@@ -44,14 +44,14 @@ export default function AnalyticScopeSelector() {
     }
   }
 
-  function toggleProject(project: Project) {
+  async function toggleProject(project: Project) {
     if (isProjectSelected(project)) {
       setSelectedProjects(selectedProjects.filter((p) => p.id !== project.id));
     } else {
       setSelectedProjects([...selectedProjects, project]);
     }
 
-    invoke("update_selected_projects", {
+    await invoke("update_selected_projects", {
       projectIds: selectedProjects.map((p) => p.id),
     });
   }
@@ -86,8 +86,8 @@ export default function AnalyticScopeSelector() {
             {projects.map((project) => (
               <button
                 key={project.id}
-                onClick={() => {
-                  toggleProject(project);
+                onClick={async () => {
+                  await toggleProject(project);
                 }}
                 className="flex items-center gap-3 w-full px-4 py-3 text-left hover:bg-slate-700/50 text-white transition-colors border-b border-slate-700/50 last:border-0 hover:cursor-pointer"
               >

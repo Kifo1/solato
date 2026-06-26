@@ -6,7 +6,7 @@ import { TimerProjectDropdown } from "./components/TimerProject.js";
 
 export default function Timer() {
   const {
-    stopwtachMillis,
+    stopwatchMillis,
     pomodoroMillis,
     isRunning,
     mode,
@@ -25,7 +25,7 @@ export default function Timer() {
 
       <div className="h-100 w-100 grid grid-rows-[2fr_1fr]">
         <TimerDisplay
-          millis={mode === "stopwatch" ? stopwtachMillis : pomodoroMillis}
+          millis={mode === "stopwatch" ? stopwatchMillis : pomodoroMillis}
           mode={mode}
           pomodoroPhase={pomodoroPhase}
           isRunning={isRunning}
