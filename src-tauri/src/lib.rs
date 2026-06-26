@@ -13,7 +13,9 @@ use std::{
 };
 use tauri::Manager;
 
-use crate::models::timer::SharedTimerState;
+use crate::{
+    models::timer::SharedTimerState, services::analytics_service::ActiveProjectFilterState,
+};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -63,6 +65,7 @@ pub fn run() {
                 handle.manage(db_state.clone());
                 let timer_state = Arc::new(Mutex::new(TimerState::new(&db_state.clone()).await));
                 handle.manage(timer_state);
+                handle.manage(ActiveProjectFilterState::default());
             });
 
             Ok(())
@@ -111,6 +114,7 @@ pub fn run() {
             commands::analytics_commands::get_overall_project_time,
             commands::analytics_commands::get_todays_overall_time,
             commands::analytics_commands::get_most_active_project_name,
+            commands::analytics_commands::update_selected_projects,
             commands::settings_commands::get_settings,
             commands::settings_commands::update_settings
         ])

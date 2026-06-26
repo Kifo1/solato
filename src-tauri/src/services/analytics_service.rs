@@ -1,6 +1,13 @@
+use std::sync::Mutex;
+
 use tauri::State;
 
 use crate::models::dbstate::DbState;
+
+#[derive(Default)]
+pub struct ActiveProjectFilterState {
+    pub selected_project_ids: Mutex<Vec<String>>,
+}
 
 pub async fn get_overall_project_time(
     project_id: String,

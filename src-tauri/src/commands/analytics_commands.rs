@@ -1,6 +1,9 @@
 use tauri::State;
 
-use crate::{models::dbstate::DbState, services::analytics_service};
+use crate::{
+    models::dbstate::DbState,
+    services::analytics_service::{self, ActiveProjectFilterState},
+};
 
 #[tauri::command]
 pub async fn get_overall_project_time(
@@ -27,4 +30,17 @@ pub async fn get_most_active_project_name(db: State<'_, DbState>) -> Result<Stri
         .await
         .expect("Couldn't receive most active project name.");
     Ok(most_active_project_name)
+}
+
+#[tauri::command]
+pub async fn update_selected_projects(
+    project_ids: Vec<String>,
+    filter_state: State<'_, ActiveProjectFilterState>,
+) -> Result<(), String> {
+    let mut ids = filter_state
+        .selected_project_ids
+        .lock()
+        .map_err(|e| e.to_string())?;
+    *ids = project_ids;
+    Ok(())
 }

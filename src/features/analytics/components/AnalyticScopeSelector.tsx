@@ -50,6 +50,10 @@ export default function AnalyticScopeSelector() {
     } else {
       setSelectedProjects([...selectedProjects, project]);
     }
+
+    invoke("update_selected_projects", {
+      projectIds: selectedProjects.map((p) => p.id),
+    });
   }
 
   function isProjectSelected(project: Project) {
