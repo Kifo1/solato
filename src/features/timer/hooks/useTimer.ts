@@ -36,7 +36,7 @@ async function ensureModuleListeners() {
 export function useTimer() {
   const { settings } = useSettings();
 
-  const [stopwtachMillis, setStopwatchMillis] = useState(0);
+  const [stopwatchMillis, setStopwatchMillis] = useState(0);
   const [pomodoroMillis, setPomodoroMillis] = useState(
     (settings?.focus_duration || 25) * 60 * 1000,
   );
@@ -150,7 +150,7 @@ export function useTimer() {
   };
 
   return {
-    stopwtachMillis,
+    stopwatchMillis,
     pomodoroMillis,
     isRunning,
     mode,

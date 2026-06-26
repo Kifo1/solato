@@ -78,7 +78,7 @@ export function TimerProjectDropdown({
         )}
 
         {isOpen && (
-          <div
+          <button
             className="fixed inset-0 z-40"
             onClick={() => setIsOpen(false)}
           />
