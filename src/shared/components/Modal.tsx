@@ -25,7 +25,9 @@ const modalVariants = cva(
 );
 
 interface ModalProps
-  extends VariantProps<typeof modalVariants>, HTMLAttributes<HTMLDivElement> {
+  extends
+    VariantProps<typeof modalVariants>,
+    HTMLAttributes<HTMLButtonElement> {
   children: ReactNode;
   className?: string;
   isOpen: boolean;
@@ -40,15 +42,15 @@ function Modal({
   isOpen,
   setIsOpen,
   ...props
-}: ModalProps) {
+}: Readonly<ModalProps>) {
   return (
     <>
       {isOpen && (
-        <div
+        <button
           className="fixed inset-0 w-full h-full bg-black/50 flex justify-center items-center z-1000"
           onClick={() => setIsOpen(false)}
         >
-          <div
+          <button
             className={cn(modalVariants({ variant, scale, className }))}
             onClick={(e) => e.stopPropagation()}
             {...props}
@@ -59,8 +61,8 @@ function Modal({
               onClick={() => setIsOpen(false)}
             ></X>
             {children}
-          </div>
-        </div>
+          </button>
+        </button>
       )}
     </>
   );
