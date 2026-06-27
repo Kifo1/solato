@@ -1,11 +1,13 @@
 import { Project } from "@/shared/components/layout/ProjectsPage";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { invoke } from "@tauri-apps/api/core";
 import { useState } from "react";
 import { useAnalytics } from "../hooks/useAnalytics";
 import { Check, ChevronDown, Folder, Layers, X } from "lucide-react";
 
 export default function AnalyticScopeSelector() {
+  const queryClient = useQueryClient();
+
   const [isOpen, setIsOpen] = useState(false);
   const { selectedProjects, setSelectedProjects } = useAnalytics();
 
@@ -45,14 +47,19 @@ export default function AnalyticScopeSelector() {
   }
 
   async function toggleProject(project: Project) {
-    if (isProjectSelected(project)) {
-      setSelectedProjects(selectedProjects.filter((p) => p.id !== project.id));
-    } else {
-      setSelectedProjects([...selectedProjects, project]);
-    }
+    const isSelected = isProjectSelected(project);
+    const nextProjects = isSelected
+      ? selectedProjects.filter((p) => p.id !== project.id)
+      : [...selectedProjects, project];
+
+    setSelectedProjects(nextProjects);
 
     await invoke("update_selected_projects", {
-      projectIds: selectedProjects.map((p) => p.id),
+      projectIds: nextProjects.map((p) => p.id),
+    });
+
+    await queryClient.invalidateQueries({
+      queryKey: ["analytics"],
     });
   }
 

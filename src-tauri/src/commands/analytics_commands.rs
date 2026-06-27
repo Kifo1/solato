@@ -1,9 +1,14 @@
 use tauri::State;
 
 use crate::{
-    models::dbstate::DbState,
+    models::{
+        analytics::{calendar_data::CalendarData, streak_data::StreakData},
+        dbstate::DbState,
+    },
     services::analytics_service::{self, ActiveProjectFilterState},
 };
+
+// Projects Page
 
 #[tauri::command]
 pub async fn get_overall_project_time(
@@ -41,6 +46,30 @@ pub async fn update_selected_projects(
         .selected_project_ids
         .lock()
         .map_err(|e| e.to_string())?;
-    *ids = project_ids;
+    *ids = project_ids.clone();
     Ok(())
+}
+
+// Analytics Page
+
+#[tauri::command]
+pub async fn get_analytics_streak(
+    db: State<'_, DbState>,
+    filter_state: State<'_, ActiveProjectFilterState>,
+) -> Result<StreakData, String> {
+    let streak_data = analytics_service::get_analytic_streak_data(db, filter_state)
+        .await
+        .expect("Couldn't receive streak data.");
+    Ok(streak_data)
+}
+
+#[tauri::command]
+pub async fn get_analytics_calendar(
+    db: State<'_, DbState>,
+    filter_state: State<'_, ActiveProjectFilterState>,
+) -> Result<CalendarData, String> {
+    let calendar_data = analytics_service::get_analytic_calendar_data(db, filter_state)
+        .await
+        .expect("Unable to receive calendar data from analytics service.");
+    Ok(calendar_data)
 }

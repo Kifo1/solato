@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { Project } from "./ProjectsPage";
 import FirstProjectTutorial from "@/features/projects/components/FirstProjectTutorial";
 import AnalyticScopeSelector from "@/features/analytics/components/AnalyticScopeSelector";
+import AnalyticStreak from "@/features/analytics/components/AnalyticStreak";
 
 export default function AnalyticsPage() {
   const { data: projects = [], isLoading } = useQuery({
@@ -28,11 +29,7 @@ export default function AnalyticsPage() {
         </div>
       </div>
       <div>
-        {userHasProjects ? (
-          <h2 className="text-white">Analytics coming soon...</h2>
-        ) : (
-          <FirstProjectTutorial />
-        )}
+        {userHasProjects ? <AnalyticStreak /> : <FirstProjectTutorial />}
       </div>
     </div>
   );

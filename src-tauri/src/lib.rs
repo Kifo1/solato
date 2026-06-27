@@ -115,6 +115,8 @@ pub fn run() {
             commands::analytics_commands::get_todays_overall_time,
             commands::analytics_commands::get_most_active_project_name,
             commands::analytics_commands::update_selected_projects,
+            commands::analytics_commands::get_analytics_calendar,
+            commands::analytics_commands::get_analytics_streak,
             commands::settings_commands::get_settings,
             commands::settings_commands::update_settings
         ])

@@ -1,8 +1,13 @@
-use std::sync::Mutex;
+use std::{collections::HashMap, sync::Mutex};
 
+use chrono::{Duration, Local, NaiveDate};
+use sqlx::Row;
 use tauri::State;
 
-use crate::models::dbstate::DbState;
+use crate::models::{
+    analytics::{calendar_data::CalendarData, streak_data::StreakData},
+    dbstate::DbState,
+};
 
 #[derive(Default)]
 pub struct ActiveProjectFilterState {
@@ -102,4 +107,160 @@ pub async fn get_most_active_project_name(db: State<'_, DbState>) -> Result<Stri
     Ok(record
         .map(|r| r.project_name)
         .unwrap_or_else(|| "No project".to_string()))
+}
+
+pub async fn get_analytic_streak_data(
+    db: State<'_, DbState>,
+    filter_state: State<'_, ActiveProjectFilterState>,
+) -> Result<StreakData, String> {
+    let pool = &db.pool;
+    let project_ids = filter_state
+        .selected_project_ids
+        .lock()
+        .map_err(|e| e.to_string())?
+        .clone();
+
+    if project_ids.is_empty() {
+        return Ok(StreakData {
+            current_streak: 0,
+            active_today: false,
+        });
+    }
+
+    let mut query_string = String::from(
+        r#"
+        SELECT DISTINCT date(start_time, 'localtime') AS session_date
+        FROM sessions
+        WHERE session_type = 'FOCUS'
+          AND is_deleted = 0
+        "#,
+    );
+
+    if !project_ids.is_empty() {
+        query_string.push_str(" AND project_id IN (");
+        let placeholders: Vec<String> = project_ids.iter().map(|_| "?".to_string()).collect();
+        query_string.push_str(&placeholders.join(", "));
+        query_string.push_str(")");
+    }
+
+    query_string.push_str(" ORDER BY session_date DESC");
+
+    let mut query = sqlx::query(&query_string);
+
+    if !project_ids.is_empty() {
+        for id in project_ids {
+            query = query.bind(id);
+        }
+    }
+
+    let records = query.fetch_all(pool).await.map_err(|e| e.to_string())?;
+
+    let active_dates: Vec<NaiveDate> = records
+        .iter()
+        .filter_map(|r| {
+            let date_str: String = r.get("session_date");
+            NaiveDate::parse_from_str(&date_str, "%Y-%m-%d").ok()
+        })
+        .collect();
+
+    if active_dates.is_empty() {
+        return Ok(StreakData {
+            current_streak: 0,
+            active_today: false,
+        });
+    }
+
+    let today = Local::now().date_naive();
+    let yesterday = today - Duration::days(1);
+
+    let active_today = active_dates.contains(&today);
+    let active_yesterday = active_dates.contains(&yesterday);
+
+    if !active_today && !active_yesterday {
+        return Ok(StreakData {
+            current_streak: 0,
+            active_today: false,
+        });
+    }
+
+    let mut current_streak = 0;
+    let mut check_date = if active_today { today } else { yesterday };
+
+    for date in active_dates {
+        if date == check_date {
+            current_streak += 1;
+            check_date -= Duration::days(1);
+        } else if date < check_date {
+            break;
+        }
+    }
+
+    Ok(StreakData {
+        current_streak,
+        active_today,
+    })
+}
+
+pub async fn get_analytic_calendar_data(
+    db: State<'_, DbState>,
+    filter_state: State<'_, ActiveProjectFilterState>,
+) -> Result<CalendarData, String> {
+    let pool = &db.pool;
+    let project_ids = filter_state
+        .selected_project_ids
+        .lock()
+        .map_err(|e| e.to_string())?
+        .clone();
+
+    if project_ids.is_empty() {
+        return Ok(CalendarData {
+            history: std::collections::HashMap::new(),
+        });
+    }
+
+    let mut query_string = String::from(
+        r#"
+        SELECT 
+            date(start_time, 'localtime') AS session_date,
+            SUM(
+                CASE 
+                    WHEN end_time IS NOT NULL THEN (strftime('%s', end_time) - strftime('%s', start_time))
+                    ELSE (strftime('%s', 'now') - strftime('%s', start_time))
+                END
+            ) AS total_seconds
+        FROM sessions
+        WHERE session_type = 'FOCUS'
+          AND is_deleted = 0
+          AND start_time >= datetime('now', '-1 year')
+        "#,
+    );
+
+    if !project_ids.is_empty() {
+        query_string.push_str(" AND project_id IN (");
+        let placeholders: Vec<String> = project_ids.iter().map(|_| "?".to_string()).collect();
+        query_string.push_str(&placeholders.join(", "));
+        query_string.push_str(")");
+    }
+
+    query_string.push_str(" GROUP BY date(start_time, 'localtime')");
+
+    let mut query = sqlx::query(&query_string);
+
+    if !project_ids.is_empty() {
+        for id in project_ids {
+            query = query.bind(id);
+        }
+    }
+
+    let records = query.fetch_all(pool).await.map_err(|e| e.to_string())?;
+
+    let mut history = HashMap::new();
+    for row in records {
+        let session_date: String = row.get("session_date");
+        let total_seconds: i64 = row.get("total_seconds");
+
+        history.insert(session_date, total_seconds.max(0) as u64);
+    }
+
+    Ok(CalendarData { history })
 }
