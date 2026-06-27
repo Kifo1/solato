@@ -29,7 +29,13 @@ export default function AnalyticsPage() {
         </div>
       </div>
       <div>
-        {userHasProjects ? <AnalyticStreak /> : <FirstProjectTutorial />}
+        {userHasProjects ? (
+          <div className="flex bg-slate-800 border rounded-2xl border-slate-700 p-6">
+            <AnalyticStreak />
+          </div>
+        ) : (
+          <FirstProjectTutorial />
+        )}
       </div>
     </div>
   );

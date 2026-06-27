@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { invoke } from "@tauri-apps/api/core";
+import { Flame } from "lucide-react";
 
 interface StreakData {
   current_streak: number;
@@ -13,9 +14,14 @@ export default function AnalyticStreak() {
   });
 
   return (
-    <div>
+    <div className="flex">
+      <Flame
+        size={45}
+        color={streakData?.active_today ? "orange" : "gray"}
+        fill={streakData?.active_today ? "orange" : "#1d293d"}
+      />
       <p
-        className={`${streakData?.active_today ? "text-green-500" : "text-gray-500"}`}
+        className={`text-5xl font-semibold align-bottom ${streakData?.active_today ? "text-orange-400" : "text-gray-500"}`}
       >
         {streakData?.current_streak}
       </p>
