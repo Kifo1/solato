@@ -15,7 +15,7 @@ pub fn build_window_menu(app: &mut App) -> Result<(), tauri::Error> {
     app.on_menu_event(
         move |_app_handle: &tauri::AppHandle, event| match event.id().0.as_str() {
             "github" => {
-                let _ = open::that("https://github.com/Kifo1/stopwatch-app");
+                let _ = open::that("https://github.com/Kifo1/solato");
             }
             _ => {
                 println!("Unknown menu item clicked: {}", event.id().0);

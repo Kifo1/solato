@@ -3,7 +3,7 @@ import { TextInput } from '@/shared/components/TextInput';
 import Modal from '@shared/components/Modal';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { invoke } from '@tauri-apps/api/core';
-import { useState } from 'react';
+import React, { useState } from 'react';
 
 interface CreateProjectModalProps {
   isModalOpen: boolean;

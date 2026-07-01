@@ -2,5 +2,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    stopwatch_app_lib::run()
+    solato_lib::run()
 }

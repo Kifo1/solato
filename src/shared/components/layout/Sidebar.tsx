@@ -32,7 +32,7 @@ export default function Sidebar() {
     <aside className="flex w-64 flex-col justify-between border-r border-blue-300 p-4">
       <div className="flex flex-col gap-6">
         <div className="px-2">
-          <h1 className="text-xl font-bold tracking-tight text-white">Stopwatch App</h1>
+          <h1 className="text-xl font-bold tracking-tight text-white">Solato</h1>
           <p className="text-xs font-normal text-blue-200">Track your time</p>
         </div>
         <nav className="flex flex-col gap-2">

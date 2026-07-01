@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "stopwatch-app",
+  "productName": "Solato",
   "version": "0.1.0",
-  "identifier": "de.kifo.stopwatch-app",
+  "identifier": "de.kifo.solato",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "stopwatch-app",
+        "title": "Solato",
         "width": 1000,
         "height": 800,
         "minWidth": 900,
