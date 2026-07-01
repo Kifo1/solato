@@ -1,7 +1,7 @@
-import Button from "@shared/components/Button";
-import { ChartLine, CirclePlus, LucideIcon, Plus, Timer } from "lucide-react";
-import { useState } from "react";
-import { CreateProjectModal } from "./CreateProjectModal";
+import Button from '@shared/components/Button';
+import { ChartLine, CirclePlus, LucideIcon, Plus, Timer } from 'lucide-react';
+import { useState } from 'react';
+import { CreateProjectModal } from './CreateProjectModal';
 
 interface TutorialStepProps {
   position: number;
@@ -21,25 +21,22 @@ function TutorialStep({
   setIsModalOpen,
 }: Readonly<TutorialStepProps>) {
   return (
-    <div className="bg-slate-800 p-6 border rounded-2xl border-slate-700">
+    <div className="rounded-2xl border border-slate-700 bg-slate-800 p-6">
       <div className="flex">
         <div
-          className={`${highlighted ? "text-blue-500 bg-blue-500/10" : "text-white bg-slate-700"} mt-2 p-4 rounded-2xl`}
+          className={`${highlighted ? 'bg-blue-500/10 text-blue-500' : 'bg-slate-700 text-white'} mt-2 rounded-2xl p-4`}
         >
           <Icon></Icon>
         </div>
-        <span className="text-slate-700 font-bold ml-auto text-6xl opacity-50 hover:opacity-80">
+        <span className="ml-auto text-6xl font-bold text-slate-700 opacity-50 hover:opacity-80">
           {position}
         </span>
       </div>
-      <div className="flex flex-col pt-5 gap-3">
-        <h3 className="text-white text-2xl font-semibold">{title}</h3>
-        <p className="text-blue-200 opacity-70 font-light">{description}</p>
+      <div className="flex flex-col gap-3 pt-5">
+        <h3 className="text-2xl font-semibold text-white">{title}</h3>
+        <p className="font-light text-blue-200 opacity-70">{description}</p>
         {highlighted && (
-          <Button
-            onClick={() => setIsModalOpen(true)}
-            className="font-medium rounded-md"
-          >
+          <Button onClick={() => setIsModalOpen(true)} className="rounded-md font-medium">
             <Plus />
             Add Project
           </Button>
@@ -54,14 +51,14 @@ export default function FirstProjectTutorial() {
 
   return (
     <>
-      <div className="text-center justify-center mt-30">
-        <h2 className="text-white text-4xl font-semibold">No projects found</h2>
-        <p className="text-blue-200 max-w-150 ml-auto mr-auto">
-          Get started in three simple steps. Create your first project to begin
-          tracking your productivity journey.
+      <div className="mt-30 justify-center text-center">
+        <h2 className="text-4xl font-semibold text-white">No projects found</h2>
+        <p className="mr-auto ml-auto max-w-150 text-blue-200">
+          Get started in three simple steps. Create your first project to begin tracking your
+          productivity journey.
         </p>
       </div>
-      <div className="grid pt-15 pl-15 pr-15 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-10">
+      <div className="grid grid-cols-1 gap-10 pt-15 pr-15 pl-15 lg:grid-cols-2 xl:grid-cols-3">
         <TutorialStep
           position={1}
           title="Create a Project"

@@ -1,34 +1,25 @@
-import { useEffect, useState } from "react";
-import { formatMillis } from "@shared/lib/utils";
-import { PomodoroPhases } from "./PomodoroPhases";
-import { useSettings } from "@/features/settings/hooks/useSettings";
+import { useEffect, useState } from 'react';
+import { formatMillis } from '@shared/lib/utils';
+import { PomodoroPhases } from './PomodoroPhases';
+import { useSettings } from '@/features/settings/hooks/useSettings';
 
 interface Props {
   millis: number;
-  mode: "stopwatch" | "pomodoro";
+  mode: 'stopwatch' | 'pomodoro';
   pomodoroPhase: number;
   isRunning: boolean;
 }
 
-export function TimerDisplay({
-  millis,
-  mode,
-  pomodoroPhase,
-  isRunning,
-}: Readonly<Props>) {
+export function TimerDisplay({ millis, mode, pomodoroPhase, isRunning }: Readonly<Props>) {
   const { settings } = useSettings();
   const [transitionsEnabled, setTransitionsEnabled] = useState(false);
 
   useEffect(() => {
-    const transitionTimeout = setTimeout(
-      () => setTransitionsEnabled(true),
-      200,
-    );
+    const transitionTimeout = setTimeout(() => setTransitionsEnabled(true), 200);
     return () => clearTimeout(transitionTimeout);
   }, []);
 
-  const ratio =
-    mode === "pomodoro" ? millis / getMaxMillisByPhase(pomodoroPhase) : 0;
+  const ratio = mode === 'pomodoro' ? millis / getMaxMillisByPhase(pomodoroPhase) : 0;
   const R = 45;
   const CIRC = 2 * Math.PI * R;
 
@@ -49,19 +40,14 @@ export function TimerDisplay({
   }
 
   return (
-    <div className="relative h-100 w-100 grid grid-rows-[2fr_1fr]">
-      <div className="flex flex-col mt-auto mb-10 justify-center text-center">
-        <span className="text-white font-mono text-6xl font-bold tabular-nums">
+    <div className="relative grid h-100 w-100 grid-rows-[2fr_1fr]">
+      <div className="mt-auto mb-10 flex flex-col justify-center text-center">
+        <span className="font-mono text-6xl font-bold text-white tabular-nums">
           {formatMillis(millis)}
         </span>
-        <span className="text-gray-500 font-semibold text-lg uppercase">
-          {mode}
-        </span>
+        <span className="text-lg font-semibold text-gray-500 uppercase">{mode}</span>
       </div>
-      <svg
-        viewBox="0 0 100 100"
-        className="absolute max-h-100 transform z-0 pointer-events-none"
-      >
+      <svg viewBox="0 0 100 100" className="pointer-events-none absolute z-0 max-h-100 transform">
         <circle
           cx="50"
           cy="50"
@@ -69,23 +55,23 @@ export function TimerDisplay({
           fill="none"
           stroke="currentColor"
           strokeWidth="2"
-          className="text-slate-700 dark:text-surface-highlight"
+          className="dark:text-surface-highlight text-slate-700"
         />
         <circle
-          className={`text-blue-500 dark:text-primary ${
-            transitionsEnabled ? "transition-all duration-700 ease-in-out" : ""
+          className={`dark:text-primary text-blue-500 ${
+            transitionsEnabled ? 'transition-all duration-700 ease-in-out' : ''
           }`}
           cx="50%"
           cy="50%"
-          transform={"rotate(-90 50 50)"}
+          transform={'rotate(-90 50 50)'}
           fill="transparent"
           r="45"
           stroke="currentColor"
           strokeLinecap="round"
           strokeWidth="2.25"
           strokeDasharray={
-            mode === "stopwatch"
-              ? "71 70 71 70"
+            mode === 'stopwatch'
+              ? '71 70 71 70'
               : (() => {
                   const visible = CIRC * ratio;
                   const gap = Math.max(0, CIRC - visible);
@@ -93,7 +79,7 @@ export function TimerDisplay({
                 })()
           }
           strokeDashoffset={(() => {
-            if (mode === "stopwatch") return isRunning ? "0" : "70";
+            if (mode === 'stopwatch') return isRunning ? '0' : '70';
             const visible = CIRC * ratio;
             const gap = Math.max(0, CIRC - visible);
             const offset = gap / 2;
@@ -101,7 +87,7 @@ export function TimerDisplay({
           })()}
         ></circle>
       </svg>
-      {mode === "pomodoro" && <PomodoroPhases currentPhase={pomodoroPhase} />}
+      {mode === 'pomodoro' && <PomodoroPhases currentPhase={pomodoroPhase} />}
     </div>
   );
 }

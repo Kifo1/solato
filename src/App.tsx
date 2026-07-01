@@ -1,12 +1,12 @@
-import { Navigate, Route, BrowserRouter, Routes } from "react-router-dom";
-import Sidebar from "./shared/components/layout/Sidebar";
-import TimerPage from "./shared/components/layout/TimerPage";
-import ProjectsPage from "./shared/components/layout/ProjectsPage";
+import { Navigate, Route, BrowserRouter, Routes } from 'react-router-dom';
+import Sidebar from './shared/components/layout/Sidebar';
+import TimerPage from './shared/components/layout/TimerPage';
+import ProjectsPage from './shared/components/layout/ProjectsPage';
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-import AnalyticsPage from "./shared/components/layout/AnalyticsPage";
-import SettingsPage from "./shared/components/layout/SettingsPage";
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import AnalyticsPage from './shared/components/layout/AnalyticsPage';
+import SettingsPage from './shared/components/layout/SettingsPage';
 
 const queryClient = new QueryClient();
 

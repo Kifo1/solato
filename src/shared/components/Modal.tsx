@@ -1,33 +1,30 @@
-import { cva, type VariantProps } from "class-variance-authority";
-import { cn } from "@shared/lib/utils.js";
-import type { HTMLAttributes, ReactNode } from "react";
-import { X } from "lucide-react";
+import { cva, type VariantProps } from 'class-variance-authority';
+import { cn } from '@shared/lib/utils.js';
+import type { HTMLAttributes, ReactNode } from 'react';
+import { X } from 'lucide-react';
 
 const modalVariants = cva(
-  "relative flex justify-center text-center px-10 mx-6 p-10 overflow-y-auto",
+  'relative flex justify-center text-center px-10 mx-6 p-10 overflow-y-auto',
   {
     variants: {
       variant: {
-        default: "bg-slate-800 rounded-2xl",
+        default: 'bg-slate-800 rounded-2xl',
       },
       scale: {
-        sm: "max-w-md",
-        md: "max-w-lg",
-        lg: "max-w-2xl",
-        xl: "max-w-4xl",
+        sm: 'max-w-md',
+        md: 'max-w-lg',
+        lg: 'max-w-2xl',
+        xl: 'max-w-4xl',
       },
     },
     defaultVariants: {
-      variant: "default",
-      scale: "md",
+      variant: 'default',
+      scale: 'md',
     },
   },
 );
 
-interface ModalProps
-  extends
-    VariantProps<typeof modalVariants>,
-    HTMLAttributes<HTMLButtonElement> {
+interface ModalProps extends VariantProps<typeof modalVariants>, HTMLAttributes<HTMLButtonElement> {
   children: ReactNode;
   className?: string;
   isOpen: boolean;
@@ -47,7 +44,7 @@ function Modal({
     <>
       {isOpen && (
         <button
-          className="fixed inset-0 w-full h-full bg-black/50 flex justify-center items-center z-1000"
+          className="fixed inset-0 z-1000 flex h-full w-full items-center justify-center bg-black/50"
           onClick={() => setIsOpen(false)}
         >
           <button

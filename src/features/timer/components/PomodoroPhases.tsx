@@ -4,35 +4,35 @@ interface Props {
 
 export function PomodoroPhases({ currentPhase }: Readonly<Props>) {
   return (
-    <div className="text-center mt-auto mb-15">
-      <ul className="flex gap-2 justify-center">
+    <div className="mt-auto mb-15 text-center">
+      <ul className="flex justify-center gap-2">
         <li className="">
           <span
-            className={`${currentPhase === 0 ? "bg-blue-500 glow" : "bg-gray-700"} inline-block w-2.5 h-2.5 rounded-full`}
+            className={`${currentPhase === 0 ? 'glow bg-blue-500' : 'bg-gray-700'} inline-block h-2.5 w-2.5 rounded-full`}
           ></span>
         </li>
         <li>
           <span
-            className={`${currentPhase === 1 ? "bg-blue-500 glow" : "bg-gray-700"} inline-block w-2.5 h-2.5 rounded-full`}
-          ></span>{" "}
+            className={`${currentPhase === 1 ? 'glow bg-blue-500' : 'bg-gray-700'} inline-block h-2.5 w-2.5 rounded-full`}
+          ></span>{' '}
         </li>
         <li>
           <span
-            className={`${currentPhase === 2 ? "bg-blue-500 glow" : "bg-gray-700"} inline-block w-2.5 h-2.5 rounded-full`}
-          ></span>{" "}
+            className={`${currentPhase === 2 ? 'glow bg-blue-500' : 'bg-gray-700'} inline-block h-2.5 w-2.5 rounded-full`}
+          ></span>{' '}
         </li>
         <li>
           <span
-            className={`${currentPhase === 3 ? "bg-blue-500 glow" : "bg-gray-700"} inline-block w-2.5 h-2.5 rounded-full`}
-          ></span>{" "}
+            className={`${currentPhase === 3 ? 'glow bg-blue-500' : 'bg-gray-700'} inline-block h-2.5 w-2.5 rounded-full`}
+          ></span>{' '}
         </li>
       </ul>
-      <span className="text-gray-500 font-semibold text-sm uppercase">
+      <span className="text-sm font-semibold text-gray-500 uppercase">
         {currentPhase === 0 || currentPhase === 2
-          ? "Focus"
+          ? 'Focus'
           : currentPhase === 1
-            ? "Short Break"
-            : "Long Break"}
+            ? 'Short Break'
+            : 'Long Break'}
       </span>
     </div>
   );

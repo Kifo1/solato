@@ -1,9 +1,9 @@
-import { useEffect, useState, useRef } from "react";
-import { listen } from "@tauri-apps/api/event";
-import { invoke } from "@tauri-apps/api/core";
-import phaseChangeSound from "@assets/pomodoro-phase-change.mp3";
-import { Project } from "@/shared/components/layout/ProjectsPage";
-import { useSettings } from "@/features/settings/hooks/useSettings";
+import { useEffect, useState, useRef } from 'react';
+import { listen } from '@tauri-apps/api/event';
+import { invoke } from '@tauri-apps/api/core';
+import phaseChangeSound from '@assets/pomodoro-phase-change.mp3';
+import { Project } from '@/shared/components/layout/ProjectsPage';
+import { useSettings } from '@/features/settings/hooks/useSettings';
 
 type Subscriber = { tick: (n: number) => void; phase: (n: number) => void };
 let moduleListenersRegistered = false;
@@ -15,20 +15,20 @@ async function ensureModuleListeners() {
   if (moduleListenersRegistered) return;
   moduleListenersRegistered = true;
 
-  await listen<number>("timer-tick", (event) => {
+  await listen<number>('timer-tick', (event) => {
     subscribers.forEach((s) => s.tick(event.payload));
   });
 
-  await listen<number>("pomodoro-phase", (event) => {
+  await listen<number>('pomodoro-phase', (event) => {
     subscribers.forEach((s) => s.phase(event.payload));
   });
 
-  await listen("pomodoro-phase-sound", () => {
+  await listen('pomodoro-phase-sound', () => {
     const now = Date.now();
     if (now - lastSharedSoundTime > 1000) {
       lastSharedSoundTime = now;
       sharedAudio.currentTime = 0;
-      sharedAudio.play().catch((e) => console.error("Audio error:", e));
+      sharedAudio.play().catch((e) => console.error('Audio error:', e));
     }
   });
 }
@@ -42,7 +42,7 @@ export function useTimer() {
   );
   const [isRunning, setIsRunning] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-  const [mode, setMode] = useState<"stopwatch" | "pomodoro">("stopwatch");
+  const [mode, setMode] = useState<'stopwatch' | 'pomodoro'>('stopwatch');
   const [pomodoroPhase, setPomodoroPhase] = useState(0);
 
   const modeRef = useRef(mode);
@@ -54,15 +54,14 @@ export function useTimer() {
   useEffect(() => {
     const syncWithBackend = async () => {
       try {
-        const [bIsRunning, bMode, sMillis, pMillis, phase, project] =
-          await Promise.all([
-            invoke<boolean>("is_timer_running"),
-            invoke<"stopwatch" | "pomodoro">("get_timer_mode"),
-            invoke<number>("get_stopwatch_millis"),
-            invoke<number>("get_pomodoro_millis"),
-            invoke<number>("get_pomodoro_phase"),
-            invoke<Project | null>("get_selected_project"),
-          ]);
+        const [bIsRunning, bMode, sMillis, pMillis, phase, project] = await Promise.all([
+          invoke<boolean>('is_timer_running'),
+          invoke<'stopwatch' | 'pomodoro'>('get_timer_mode'),
+          invoke<number>('get_stopwatch_millis'),
+          invoke<number>('get_pomodoro_millis'),
+          invoke<number>('get_pomodoro_phase'),
+          invoke<Project | null>('get_selected_project'),
+        ]);
 
         setIsRunning(bIsRunning);
         setMode(bMode);
@@ -71,7 +70,7 @@ export function useTimer() {
         setPomodoroPhase(phase);
         setSelectedProject(project);
       } catch (err) {
-        console.error("Backend Sync Fehler:", err);
+        console.error('Backend Sync Fehler:', err);
       }
     };
     syncWithBackend();
@@ -80,7 +79,7 @@ export function useTimer() {
   useEffect(() => {
     const localSubscriber: Subscriber = {
       tick: (n: number) => {
-        if (modeRef.current === "stopwatch") {
+        if (modeRef.current === 'stopwatch') {
           setStopwatchMillis(n);
         } else {
           setPomodoroMillis(n);
@@ -99,54 +98,48 @@ export function useTimer() {
 
   useEffect(() => {
     if (!settings) return;
-    if (
-      !isRunning &&
-      mode === "pomodoro" &&
-      (pomodoroPhase === 0 || pomodoroPhase === 2)
-    ) {
+    if (!isRunning && mode === 'pomodoro' && (pomodoroPhase === 0 || pomodoroPhase === 2)) {
       setPomodoroMillis(settings.focus_duration * 60 * 1000);
     }
   }, [settings?.focus_duration, mode, pomodoroPhase]);
 
   const start = async () => {
-    await invoke("start_timer");
+    await invoke('start_timer');
     setIsRunning(true);
   };
 
   const stop = async () => {
-    await invoke("stop_timer");
+    await invoke('stop_timer');
     setIsRunning(false);
   };
 
   const reset = async () => {
-    await invoke("reset_timer");
-    if (mode === "stopwatch") {
+    await invoke('reset_timer');
+    if (mode === 'stopwatch') {
       setStopwatchMillis(0);
     } else {
-      const pMillis = await invoke<number>("get_pomodoro_millis");
+      const pMillis = await invoke<number>('get_pomodoro_millis');
       console.log(pMillis);
       setPomodoroMillis(pMillis);
     }
   };
 
-  const switchMode = async (newMode: "stopwatch" | "pomodoro") => {
+  const switchMode = async (newMode: 'stopwatch' | 'pomodoro') => {
     await stop();
     setMode(newMode);
-    await invoke("switch_timer_mode", { timerMode: newMode });
+    await invoke('switch_timer_mode', { timerMode: newMode });
 
     const millis =
-      newMode === "pomodoro"
-        ? await invoke<number>("get_pomodoro_millis")
-        : await invoke<number>("get_stopwatch_millis");
+      newMode === 'pomodoro'
+        ? await invoke<number>('get_pomodoro_millis')
+        : await invoke<number>('get_stopwatch_millis');
 
-    newMode === "pomodoro"
-      ? setPomodoroMillis(millis)
-      : setStopwatchMillis(millis);
+    newMode === 'pomodoro' ? setPomodoroMillis(millis) : setStopwatchMillis(millis);
   };
 
   const switchSelectedProject = async (project: Project) => {
     setSelectedProject(project);
-    await invoke("set_selected_project", { project });
+    await invoke('set_selected_project', { project });
   };
 
   return {
