@@ -16,6 +16,7 @@ use tauri::Manager;
 use crate::{
     models::timer::SharedTimerState, services::analytics_service::ActiveProjectFilterState,
 };
+use crate::commands::discord_commands::DiscordState;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -73,6 +74,7 @@ pub fn run() {
                 let timer_state = Arc::new(Mutex::new(TimerState::new(&db_state.clone()).await));
                 handle.manage(timer_state);
                 handle.manage(ActiveProjectFilterState::default());
+                handle.manage(DiscordState {client: Mutex::new(None),});
             });
 
             Ok(())
@@ -125,7 +127,8 @@ pub fn run() {
             commands::analytics_commands::get_analytics_calendar,
             commands::analytics_commands::get_analytics_streak,
             commands::settings_commands::get_settings,
-            commands::settings_commands::update_settings
+            commands::settings_commands::update_settings,
+            commands::discord_commands::set_discord_presence
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -93,8 +93,6 @@ export function ProjectTable({ projects }: Readonly<ProjectTableProps>) {
   const projectsPerPage = 5;
 
   function maxPageNumber(projectAmount: number) {
-    console.log('Page: ' + page);
-    console.log('MaxPages: ' + Math.ceil(projectAmount / projectsPerPage));
     return Math.ceil(projectAmount / projectsPerPage);
   }
 
