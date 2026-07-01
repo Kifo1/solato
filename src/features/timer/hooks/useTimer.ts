@@ -112,7 +112,7 @@ export function useTimer() {
 
   const stop = async () => {
     await invoke('stop_timer');
-    await updatePresence(WorkingState.IDLING);
+    await updatePresence(WorkingState.IDLE);
     setIsRunning(false);
   };
 

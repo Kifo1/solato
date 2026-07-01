@@ -12,7 +12,7 @@ import { updatePresence, WorkingState } from '@shared/lib/discord.ts';
 const queryClient = new QueryClient();
 
 function App() {
-  updatePresence(WorkingState.IDLING);
+  updatePresence(WorkingState.IDLE);
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
