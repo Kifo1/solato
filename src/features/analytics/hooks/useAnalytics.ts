@@ -1,11 +1,18 @@
 import { Project } from "@/shared/components/layout/ProjectsPage";
-import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 export function useAnalytics() {
-  const [selectedProjects, setSelectedProjects] = useState<Project[]>([]);
+  const queryClient = useQueryClient();
 
-  return {
-    selectedProjects,
-    setSelectedProjects,
+  const { data: selectedProjects = [] } = useQuery<Project[]>({
+    queryKey: ["localSelectedProjects"],
+    initialData: [],
+    staleTime: Infinity,
+  });
+
+  const setSelectedProjects = (nextProjects: Project[]) => {
+    queryClient.setQueryData(["localSelectedProjects"], nextProjects);
   };
+
+  return { selectedProjects, setSelectedProjects };
 }
