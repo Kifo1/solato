@@ -11,3 +11,6 @@
 
 # Ignore sqlx query cache
 /.sqlx
+
+# Ignore test database
+dev.db

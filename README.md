@@ -25,13 +25,22 @@ All data is currently stored **locally only** on your device. Nothing is sent an
    ```
    npm i
    ```
+   
+2. Set up test database (SQLite) for development:<br><br>
+   Add a .env file with the content of .env.example<br>
+   Then run both within /src-tauri folder:
 
-2. Start the Tauri development session (serves the frontend and launches the native window):
+   ```
+   sqlx database create
+   sqlx migrate run
+   ```
+
+3. Start the Tauri development session (serves the frontend and launches the native window):
    ```
    npm run tauri dev
    ```
 
-3. Build production assets and create native installers:
+4. Build production assets and create native installers:
    ```
    npm run tauri build
    ```
