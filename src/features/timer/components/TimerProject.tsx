@@ -85,7 +85,7 @@ export function TimerProjectDropdown({
         )}
       </div>
       <div>
-        <p className="text-sm text-blue-200/25">
+        <p className="text-sm text-blue-200/75^">
           Selecting a project tracks time automatically to your analytics.
         </p>
       </div>

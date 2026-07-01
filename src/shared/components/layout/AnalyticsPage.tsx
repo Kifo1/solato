@@ -4,6 +4,7 @@ import { Project } from "./ProjectsPage";
 import FirstProjectTutorial from "@/features/projects/components/FirstProjectTutorial";
 import AnalyticScopeSelector from "@/features/analytics/components/AnalyticScopeSelector";
 import AnalyticStreak from "@/features/analytics/components/AnalyticStreak";
+import { AnalyticCalendar } from "@/features/analytics/components/AnalyticCalendar";
 
 export default function AnalyticsPage() {
   const { data: projects = [], isLoading } = useQuery({
@@ -30,8 +31,13 @@ export default function AnalyticsPage() {
       </div>
       <div>
         {userHasProjects ? (
-          <div className="flex bg-slate-800 border rounded-2xl border-slate-700 p-6">
-            <AnalyticStreak />
+          <div className="flex gap-5 flex-col">
+            <div className="mt-15 border-slate-200/10 bg-slate-200/5 flex items-center justify-between border rounded-2xl p-6">
+              <div className="flex-1 flex items-center justify-center">
+                <AnalyticStreak />
+              </div>
+            </div>
+            <AnalyticCalendar />
           </div>
         ) : (
           <FirstProjectTutorial />

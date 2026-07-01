@@ -16,12 +16,12 @@ export default function AnalyticStreak() {
   return (
     <div className="flex">
       <Flame
-        size={45}
+        size={60}
         color={streakData?.active_today ? "orange" : "gray"}
         fill={streakData?.active_today ? "orange" : "#1d293d"}
       />
       <p
-        className={`text-5xl font-semibold align-bottom ${streakData?.active_today ? "text-orange-400" : "text-gray-500"}`}
+        className={`text-6xl font-semibold align-bottom ${streakData?.active_today ? "text-orange-400" : "text-gray-500"}`}
       >
         {streakData?.current_streak}
       </p>
