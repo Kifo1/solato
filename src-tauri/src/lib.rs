@@ -27,18 +27,25 @@ pub fn run() {
             // Window
             window::window_menu::build_window_menu(app)?;
 
-            // Db
-            let app_dir = handle
-                .path()
-                .app_data_dir()
-                .expect("Failed to get app directory");
-            std::fs::create_dir_all(&app_dir).ok();
+            let db_url = if cfg!(debug_assertions) {
+                let dev_db_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("dev.db");
+                format!(
+                    "sqlite:{}",
+                    dev_db_path.to_str().expect("Path contains invalid UTF-8")
+                )
+            } else {
+                let app_dir = handle
+                    .path()
+                    .app_data_dir()
+                    .expect("Failed to get app directory");
+                std::fs::create_dir_all(&app_dir).ok();
 
-            let db_path = app_dir.join("database.sqlite");
-            let db_url = format!(
-                "sqlite:{}",
-                db_path.to_str().expect("Path contains invalid UTF-8")
-            );
+                let db_path = app_dir.join("database.sqlite");
+                format!(
+                    "sqlite:{}",
+                    db_path.to_str().expect("Path contains invalid UTF-8")
+                )
+            };
 
             let connection_options = SqliteConnectOptions::from_str(&db_url)
                 .expect("Invalid DB URL")

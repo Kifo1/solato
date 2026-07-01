@@ -14,3 +14,5 @@
 
 # Ignore test database
 dev.db
+dev.db-shm
+dev.db-wal
