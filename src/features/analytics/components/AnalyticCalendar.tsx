@@ -41,17 +41,15 @@ interface TooltipState {
   seconds: number;
 }
 
-const WEEK_STARTS_ON = 1; // Monday
+const WEEK_STARTS_ON = 1;
 const WEEKDAY_LABELS = ['', 'Mon', '', 'Wed', '', 'Fri', ''];
 
-// Level 0 = no activity, levels 1-4 scale with intensity relative to the
-// most active day in the visible year.
 const LEVEL_COLORS = [
-  'bg-white/5 border border-slate-200/10', // 0 - no activity
-  'bg-blue-900/70 border border-blue-900/70', // 1
-  'bg-blue-700/80 border border-blue-700/80', // 2
-  'bg-blue-500/90 border border-blue-500/90', // 3
-  'bg-blue-300 border border-blue-300', // 4
+  'bg-white/5 border border-slate-200/10',
+  'bg-blue-900/70 border border-blue-900/70',
+  'bg-blue-700/80 border border-blue-700/80',
+  'bg-blue-500/90 border border-blue-500/90',
+  'bg-blue-300 border border-blue-300',
 ];
 
 function getLevel(seconds: number, max: number): number {
@@ -156,7 +154,9 @@ export function AnalyticCalendar() {
     <div className="rounded-xl border border-slate-200/10 bg-slate-200/5 p-6">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h3 className="text-sm font-semibold tracking-wider text-blue-200 uppercase">Activity</h3>
+          <h3 className="te text-sm font-semibold tracking-wider text-blue-200 uppercase">
+            Activity
+          </h3>
           <p className="mt-1 text-xs text-blue-200/70">
             {activeDays} active day{activeDays === 1 ? '' : 's'} ·{' '}
             {formatSecondsToString(totalSeconds)} total in {year}

@@ -1,7 +1,8 @@
 import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@shared/lib/utils.js';
-import type { HTMLAttributes, ReactNode } from 'react';
+import { HTMLAttributes, ReactNode, useEffect } from 'react';
 import { X } from 'lucide-react';
+import Button from './Button';
 
 const modalVariants = cva(
   'relative flex justify-center text-center px-10 mx-6 p-10 overflow-y-auto',
@@ -40,6 +41,20 @@ function Modal({
   setIsOpen,
   ...props
 }: Readonly<ModalProps>) {
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsOpen(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
+
   return (
     <>
       {isOpen && (
@@ -52,11 +67,17 @@ function Modal({
             onClick={(e) => e.stopPropagation()}
             {...props}
           >
-            <X
-              color="white"
-              className="absolute top-4 right-4 w-8 cursor-pointer transition-transform duration-200 hover:scale-110 hover:brightness-90"
+            <Button
+              variant="icon"
+              scale="icon_md"
+              className="absolute top-4 right-4"
               onClick={() => setIsOpen(false)}
-            ></X>
+            >
+              <X
+                color="white"
+                className="cursor-pointer transition-transform duration-200 hover:scale-110 hover:brightness-90"
+              ></X>
+            </Button>
             {children}
           </button>
         </button>

@@ -37,13 +37,7 @@ export function CreateProjectModal({
   };
 
   return (
-    <Modal
-      variant={'default'}
-      scale={'md'}
-      isOpen={isModalOpen}
-      setIsOpen={setIsModalOpen}
-      className=""
-    >
+    <Modal variant={'default'} scale={'md'} isOpen={isModalOpen} setIsOpen={setIsModalOpen}>
       <form onSubmit={handleSubmit}>
         <fieldset className="flex flex-col items-center gap-5">
           <legend className="pb-10 text-4xl font-semibold text-white">Create Project</legend>
@@ -84,7 +78,7 @@ export function CreateProjectModal({
               Color
             </label>
             <input
-              className="col-span-2 h-full w-full"
+              className="col-span-2 h-full w-full cursor-pointer"
               type="color"
               name="color"
               id="color"
