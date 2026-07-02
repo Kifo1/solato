@@ -6,4 +6,5 @@ pub struct AppSettings {
     pub focus_duration: i64,
     pub short_break: i64,
     pub long_break: i64,
+    pub discord_rich_presence: bool,
 }
