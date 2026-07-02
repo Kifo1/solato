@@ -13,10 +13,10 @@ use std::{
 };
 use tauri::Manager;
 
+use crate::commands::discord_commands::DiscordState;
 use crate::{
     models::timer::SharedTimerState, services::analytics_service::ActiveProjectFilterState,
 };
-use crate::commands::discord_commands::DiscordState;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -74,7 +74,9 @@ pub fn run() {
                 let timer_state = Arc::new(Mutex::new(TimerState::new(&db_state.clone()).await));
                 handle.manage(timer_state);
                 handle.manage(ActiveProjectFilterState::default());
-                handle.manage(DiscordState {client: Mutex::new(None),});
+                handle.manage(DiscordState {
+                    client: Mutex::new(None),
+                });
             });
 
             Ok(())
