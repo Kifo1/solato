@@ -4,7 +4,7 @@ import { invoke } from '@tauri-apps/api/core';
 import phaseChangeSound from '@assets/pomodoro-phase-change.mp3';
 import { Project } from '@/shared/components/layout/ProjectsPage';
 import { useSettings } from '@/features/settings/hooks/useSettings';
-import { updatePresence, WorkingState } from '@shared/lib/discord.ts';
+import { PresenceState, updatePresence } from '@shared/lib/discord.ts';
 
 type Subscriber = { tick: (n: number) => void; phase: (n: number) => void };
 let moduleListenersRegistered = false;
@@ -106,13 +106,13 @@ export function useTimer() {
 
   const start = async () => {
     await invoke('start_timer');
-    await updatePresence(WorkingState.WORKING, selectedProject?.name);
+    await updatePresence(PresenceState.Working);
     setIsRunning(true);
   };
 
   const stop = async () => {
     await invoke('stop_timer');
-    await updatePresence(WorkingState.IDLE);
+    await updatePresence(PresenceState.Idle);
     setIsRunning(false);
   };
 

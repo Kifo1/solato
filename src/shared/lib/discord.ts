@@ -1,15 +1,15 @@
 import { invoke } from '@tauri-apps/api/core';
 
-export enum WorkingState {
-  IDLE = 'Idle',
-  WORKING = 'Working',
+// Values have to match lowercase/camelCase
+export enum PresenceState {
+  Idle = 'idle',
+  Working = 'working',
 }
 
-export async function updatePresence(state: WorkingState, projectName?: string) {
+export async function updatePresence(state: PresenceState) {
   try {
     await invoke('set_discord_presence', {
-      status: state,
-      details: state !== WorkingState.IDLE ? `Working on ${projectName}` : "Idling",
+      presenceState: state,
     });
   } catch (error) {
     console.error('Failed to update Discord presence:', error);
