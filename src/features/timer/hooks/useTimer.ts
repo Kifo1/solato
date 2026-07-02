@@ -4,7 +4,7 @@ import { invoke } from '@tauri-apps/api/core';
 import phaseChangeSound from '@assets/pomodoro-phase-change.mp3';
 import { Project } from '@/shared/components/layout/ProjectsPage';
 import { useSettings } from '@/features/settings/hooks/useSettings';
-import { PresenceState, updatePresence } from '@shared/lib/discord.ts';
+import { PresenceState, usePresence } from '@/shared/hooks/UsePresence';
 
 type Subscriber = { tick: (n: number) => void; phase: (n: number) => void };
 let moduleListenersRegistered = false;
@@ -36,6 +36,7 @@ async function ensureModuleListeners() {
 
 export function useTimer() {
   const { settings } = useSettings();
+  const { updatePresence } = usePresence();
 
   const [stopwatchMillis, setStopwatchMillis] = useState(0);
   const [pomodoroMillis, setPomodoroMillis] = useState(

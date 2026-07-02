@@ -99,7 +99,7 @@ export default function PhaseDurationSliders() {
   }
 
   return (
-    <div className="flex w-full items-center justify-center">
+    <div className="flex w-full flex-col items-center justify-center">
       <div className="flex w-full max-w-2xl flex-col divide-y divide-slate-200/10 overflow-hidden rounded-3xl border border-slate-200/10 bg-slate-200/5">
         <SliderComponent
           title="Focus Duration"

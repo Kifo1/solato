@@ -1,3 +1,4 @@
+import DiscordSettings from '@/features/settings/components/DiscordSettings';
 import PhaseDurationSliders from '@/features/settings/components/PhaseDurationSliders';
 
 export default function SettingsPage() {
@@ -7,7 +8,10 @@ export default function SettingsPage() {
       <p className="mb-15 pt-3 text-blue-200">
         Manage your settings and personalize your experience.
       </p>
-      <PhaseDurationSliders></PhaseDurationSliders>
+      <div className="flex flex-col gap-5">
+        <PhaseDurationSliders></PhaseDurationSliders>
+        <DiscordSettings></DiscordSettings>
+      </div>
     </div>
   );
 }

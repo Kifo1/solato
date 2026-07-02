@@ -23,9 +23,7 @@ export default function AnalyticsPage() {
           <h1 className="text-5xl font-bold text-white">Analyze Projects</h1>
           <p className="pt-3 text-blue-200">See insides and statistics for your projects.</p>
         </div>
-        <div className="ml-auto">
-          <AnalyticScopeSelector />
-        </div>
+        <div className="ml-auto">{userHasProjects && <AnalyticScopeSelector />}</div>
       </div>
       <div>
         {userHasProjects ? (

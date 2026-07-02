@@ -25,5 +25,14 @@ export function useSettings() {
     },
   });
 
-  return { settings, isLoading, updateSettings };
+  const updateSingleSetting = (partial: Partial<AppSettings>) => {
+    if (!settings) return;
+
+    updateSettings({
+      ...settings,
+      ...partial,
+    });
+  };
+
+  return { settings, isLoading, updateSingleSetting, updateSettings };
 }
