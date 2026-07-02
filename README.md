@@ -32,7 +32,7 @@ All data is currently stored **locally only** on your device. Nothing is sent an
    ```
 
 2. Set up test database (SQLite) for development:<br><br>
-   Add a .env file with the content of .env.example<br>
+   Add a .env file with the content of .env.example in src-tauri<br>
    Then run both within /src-tauri folder:
 
    ```
@@ -40,7 +40,7 @@ All data is currently stored **locally only** on your device. Nothing is sent an
    sqlx migrate run
    ```
 
-3. Start the Tauri development session (serves the frontend and launches the native window):
+3. Start the Tauri development session from root folder (serves the frontend and launches the native window):
 
    ```
    npm run tauri dev

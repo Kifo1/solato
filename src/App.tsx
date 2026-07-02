@@ -7,12 +7,12 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import AnalyticsPage from './shared/components/layout/AnalyticsPage';
 import SettingsPage from './shared/components/layout/SettingsPage';
-import { updatePresence, WorkingState } from '@shared/lib/discord.ts';
+import { PresenceState, updatePresence } from '@shared/lib/discord.ts';
 
 const queryClient = new QueryClient();
 
 function App() {
-  updatePresence(WorkingState.IDLE);
+  updatePresence(PresenceState.IDLE);
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
