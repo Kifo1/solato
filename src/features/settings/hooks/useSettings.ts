@@ -10,7 +10,7 @@ export function useSettings() {
     staleTime: Infinity,
   });
 
-  const { mutate: updateSettings } = useMutation({
+  const { mutateAsync: updateSettingsAsync } = useMutation({
     mutationFn: (newSettings: AppSettings) => invoke('update_settings', { newSettings }),
 
     onMutate: async (newSettings) => {
@@ -23,16 +23,20 @@ export function useSettings() {
     onError: (_err, _newSettings, context) => {
       queryClient.setQueryData(['settings'], context?.previousSettings);
     },
+
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['settings'] });
+    },
   });
 
-  const updateSingleSetting = (partial: Partial<AppSettings>) => {
+  const updateSingleSetting = async (partial: Partial<AppSettings>) => {
     if (!settings) return;
 
-    updateSettings({
+    return await updateSettingsAsync({
       ...settings,
       ...partial,
     });
   };
 
-  return { settings, isLoading, updateSingleSetting, updateSettings };
+  return { settings, isLoading, updateSingleSetting, updateSettings: updateSettingsAsync };
 }

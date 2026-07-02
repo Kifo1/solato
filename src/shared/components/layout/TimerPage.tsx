@@ -1,4 +1,4 @@
-import { PresenceState, usePresence } from '@/shared/hooks/UsePresence';
+import { PresenceState, usePresence } from '@/shared/hooks/usePresence';
 import Timer from '@features/timer/Timer';
 
 export default function TimerPage() {

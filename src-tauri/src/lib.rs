@@ -9,10 +9,10 @@ use models::timer::TimerState;
 use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
 use std::{
     str::FromStr,
-    sync::{Arc, Mutex},
+    sync::{Arc},
 };
 use tauri::Manager;
-
+use tokio::sync::Mutex;
 use crate::commands::discord_commands::DiscordState;
 use crate::{
     models::timer::SharedTimerState, services::analytics_service::ActiveProjectFilterState,
@@ -71,7 +71,8 @@ pub fn run() {
                     crate::services::session_service::delete_incomplete_sessions(&db_state).await;
 
                 handle.manage(db_state.clone());
-                let timer_state = Arc::new(Mutex::new(TimerState::new(&db_state.clone()).await));
+                let internal_state = Arc::new(std::sync::Mutex::new(TimerState::new(&db_state.clone()).await));
+                let timer_state = SharedTimerState::from(internal_state);
                 handle.manage(timer_state);
                 handle.manage(ActiveProjectFilterState::default());
                 handle.manage(DiscordState {

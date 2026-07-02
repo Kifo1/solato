@@ -1,8 +1,29 @@
 import Switch from '@/shared/components/Switch';
 import { useSettings } from '../hooks/useSettings';
+import { PresenceState, usePresence } from '@shared/hooks/usePresence.tsx';
+import { useTimer } from '@features/timer/hooks/useTimer.ts';
+import { useEffect } from 'react';
+import { sleep } from '@shared/lib/utils.ts';
 
 export default function DiscordSettings() {
   const { settings, isLoading, updateSingleSetting } = useSettings();
+  const { updatePresence } = usePresence();
+  const { isRunning } = useTimer();
+
+  useEffect(() => {
+    if (!settings) return;
+
+    const syncPresence = async () => {
+      await sleep(100);
+      if (!settings.discord_rich_presence) {
+        await updatePresence(PresenceState.None);
+      } else {
+        await updatePresence(isRunning ? PresenceState.Working : PresenceState.Idle);
+      }
+    };
+
+    syncPresence();
+  }, [settings?.discord_rich_presence, isRunning]);
 
   if (isLoading) {
     return <div className="p-10 text-center text-white">Settings loading...</div>;
@@ -22,7 +43,9 @@ export default function DiscordSettings() {
           </div>
           <Switch
             isOn={settings.discord_rich_presence}
-            setIsOn={(val) => updateSingleSetting({ discord_rich_presence: val })}
+            setIsOn={async (val) =>
+              await updateSingleSetting({ discord_rich_presence: val })
+            }
           />
         </div>
       </div>

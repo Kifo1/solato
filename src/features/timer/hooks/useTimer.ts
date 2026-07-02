@@ -4,7 +4,7 @@ import { invoke } from '@tauri-apps/api/core';
 import phaseChangeSound from '@assets/pomodoro-phase-change.mp3';
 import { Project } from '@/shared/components/layout/ProjectsPage';
 import { useSettings } from '@/features/settings/hooks/useSettings';
-import { PresenceState, usePresence } from '@/shared/hooks/UsePresence';
+import { PresenceState, usePresence } from '@shared/hooks/usePresence';
 
 type Subscriber = { tick: (n: number) => void; phase: (n: number) => void };
 let moduleListenersRegistered = false;
@@ -72,7 +72,7 @@ export function useTimer() {
         setPomodoroPhase(phase);
         setSelectedProject(project);
       } catch (err) {
-        console.error('Backend Sync Fehler:', err);
+        console.error('Backend Sync Error:', err);
       }
     };
     syncWithBackend();
@@ -87,7 +87,12 @@ export function useTimer() {
           setPomodoroMillis(n);
         }
       },
-      phase: (n: number) => setPomodoroPhase(n),
+      phase: (n: number) => {
+        setPomodoroPhase(n);
+        if (isRunning) {
+          updatePresence(PresenceState.Working);
+        }
+      },
     };
 
     subscribers.add(localSubscriber);
@@ -123,8 +128,12 @@ export function useTimer() {
       setStopwatchMillis(0);
     } else {
       const pMillis = await invoke<number>('get_pomodoro_millis');
-      console.log(pMillis);
       setPomodoroMillis(pMillis);
+    }
+    if (isRunning) {
+      await updatePresence(PresenceState.Working);
+    } else {
+      await updatePresence(PresenceState.Idle);
     }
   };
 
@@ -144,6 +153,9 @@ export function useTimer() {
   const switchSelectedProject = async (project: Project) => {
     setSelectedProject(project);
     await invoke('set_selected_project', { project });
+    if (isRunning) {
+      await updatePresence(PresenceState.Working);
+    }
   };
 
   return {
