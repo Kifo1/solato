@@ -1,10 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
 import { invoke } from '@tauri-apps/api/core';
-import { Project } from './ProjectsPage';
-import FirstProjectTutorial from '@/features/projects/components/FirstProjectTutorial';
-import AnalyticScopeSelector from '@/features/analytics/components/AnalyticScopeSelector';
-import AnalyticStreak from '@/features/analytics/components/AnalyticStreak';
-import { AnalyticCalendar } from '@/features/analytics/components/AnalyticCalendar';
+import { Project } from '@features/projects/ProjectsPage.tsx';
+import FirstProjectTutorial from '@features/projects/components/FirstProjectTutorial.tsx';
+import AnalyticScopeSelector from '@features/analytics/components/AnalyticScopeSelector.tsx';
+import AnalyticStreak from '@features/analytics/components/AnalyticStreak.tsx';
+import { AnalyticCalendar } from '@features/analytics/components/AnalyticCalendar.tsx';
 
 export default function AnalyticsPage() {
   const { data: projects = [], isLoading } = useQuery({

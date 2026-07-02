@@ -1,5 +1,5 @@
-import DiscordSettings from '@/features/settings/components/DiscordSettings';
-import PhaseDurationSliders from '@/features/settings/components/PhaseDurationSliders';
+import DiscordSettings from '@features/settings/components/DiscordSettings.tsx';
+import PhaseDurationSliders from '@features/settings/components/PhaseDurationSliders.tsx';
 
 export default function SettingsPage() {
   return (

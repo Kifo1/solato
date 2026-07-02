@@ -2,7 +2,7 @@ import Button from '@/shared/components/Button';
 import { Plus } from 'lucide-react';
 import { useState } from 'react';
 import { CreateProjectModal } from './CreateProjectModal';
-import { Project } from '@/shared/components/layout/ProjectsPage';
+import { Project } from '@features/projects/ProjectsPage.tsx';
 import { ProjectTable } from './ProjectTable';
 import { invoke } from '@tauri-apps/api/core';
 import { useQuery } from '@tanstack/react-query';

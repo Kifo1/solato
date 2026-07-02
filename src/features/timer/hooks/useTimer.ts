@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { listen } from '@tauri-apps/api/event';
 import { invoke } from '@tauri-apps/api/core';
 import phaseChangeSound from '@assets/pomodoro-phase-change.mp3';
-import { Project } from '@/shared/components/layout/ProjectsPage';
+import { Project } from '@features/projects/ProjectsPage.tsx';
 import { useSettings } from '@/features/settings/hooks/useSettings';
 import { PresenceState, usePresence } from '@shared/hooks/usePresence';
 

@@ -1,5 +1,5 @@
-import { ProjectOverview } from '@/features/projects/components/ProjectOverview';
-import FirstProjectTutorial from '@features/projects/components/FirstProjectTutorial';
+import { ProjectOverview } from '@features/projects/components/ProjectOverview.tsx';
+import FirstProjectTutorial from '@features/projects/components/FirstProjectTutorial.tsx';
 import { useQuery } from '@tanstack/react-query';
 import { invoke } from '@tauri-apps/api/core';
 

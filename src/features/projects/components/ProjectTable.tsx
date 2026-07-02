@@ -1,5 +1,5 @@
 import Button from '@/shared/components/Button';
-import { Project } from '@/shared/components/layout/ProjectsPage';
+import { Project } from '@features/projects/ProjectsPage.tsx';
 import { formatSecondsToString } from '@/shared/lib/utils';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { invoke } from '@tauri-apps/api/core';

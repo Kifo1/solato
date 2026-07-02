@@ -1,4 +1,4 @@
-import { Project } from '@/shared/components/layout/ProjectsPage';
+import { Project } from '@features/projects/ProjectsPage.tsx';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 export function useAnalytics() {

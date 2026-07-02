@@ -1,5 +1,5 @@
-import { PresenceState, usePresence } from '@/shared/hooks/usePresence';
-import Timer from '@features/timer/Timer';
+import { PresenceState, usePresence } from '@shared/hooks/usePresence.tsx';
+import Timer from '@features/timer/Timer.tsx';
 
 export default function TimerPage() {
   const { updatePresence } = usePresence();

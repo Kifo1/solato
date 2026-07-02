@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { invoke } from '@tauri-apps/api/core';
 import { ChevronDown, Folder } from 'lucide-react';
 import { useState } from 'react';
-import { Project } from '@/shared/components/layout/ProjectsPage';
+import { Project } from '@features/projects/ProjectsPage.tsx';
 
 interface TimerProjectDropdownProps {
   currentProject: Project | null;
