@@ -4,19 +4,17 @@ mod models;
 mod services;
 mod window;
 
-use models::dbstate::DbState;
-use models::timer::TimerState;
-use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
-use std::{
-    str::FromStr,
-    sync::{Arc},
-};
-use tauri::Manager;
-use tokio::sync::Mutex;
-use crate::commands::discord_commands::DiscordState;
+use crate::services::discord_service;
+use crate::services::discord_service::{DiscordState, PresenceState};
 use crate::{
     models::timer::SharedTimerState, services::analytics_service::ActiveProjectFilterState,
 };
+use models::dbstate::DbState;
+use models::timer::TimerState;
+use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
+use std::{str::FromStr, sync::Arc};
+use tauri::Manager;
+use tokio::sync::Mutex;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -67,17 +65,31 @@ pub fn run() {
 
                 let db_state = DbState { pool };
 
-                let _ =
-                    crate::services::session_service::delete_incomplete_sessions(&db_state).await;
+                let _ = services::session_service::delete_incomplete_sessions(&db_state).await;
 
                 handle.manage(db_state.clone());
-                let internal_state = Arc::new(std::sync::Mutex::new(TimerState::new(&db_state.clone()).await));
+                let internal_state = Arc::new(std::sync::Mutex::new(
+                    TimerState::new(&db_state.clone()).await,
+                ));
                 let timer_state = SharedTimerState::from(internal_state);
                 handle.manage(timer_state);
                 handle.manage(ActiveProjectFilterState::default());
                 handle.manage(DiscordState {
                     client: Mutex::new(None),
                 });
+
+                let discord_state = handle.state::<DiscordState>();
+                let timer_state_ref = handle.state::<SharedTimerState>();
+                let db_state_ref = handle.state::<DbState>();
+
+                if let Err(e) = discord_service::set_discord_presence(
+                    &handle,
+                    PresenceState::Idle,
+                )
+                .await
+                {
+                    eprintln!("Failed to set initial Discord presence: {}", e);
+                }
             });
 
             Ok(())
@@ -96,12 +108,11 @@ pub fn run() {
                     tauri::async_runtime::block_on(async {
                         let session_id = {
                             let mut state_lock = state_handle.lock().unwrap();
-                            crate::services::timer_service::stop_timer_inner(&mut state_lock)
+                            services::timer_service::stop_timer_inner(&mut state_lock)
                         };
 
                         if let Some(id) = session_id {
-                            let _ = crate::services::session_service::stop_session(id, &db_handle)
-                                .await;
+                            let _ = services::session_service::stop_session(id, &db_handle).await;
                         }
                     });
                 }

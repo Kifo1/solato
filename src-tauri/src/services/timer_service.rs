@@ -12,6 +12,7 @@ use crate::{
 use std::time::{Duration, Instant};
 use tauri::{AppHandle, Emitter, State};
 use tokio::time::sleep;
+use crate::services::discord_service;
 
 fn get_session_info(state: &crate::models::timer::TimerState) -> (SessionType, TimerMode) {
     match state.active_mode {
@@ -122,6 +123,12 @@ pub async fn start_timer(
                     let _ = app.emit("pomodoro-phase", phase_idx);
                     let _ = app.emit("pomodoro-phase-sound", ());
                     let _ = app.emit("timer-tick", 0);
+                    discord_service::set_discord_presence(
+                        &app,
+                        discord_service::PresenceState::Working,
+                    )
+                        .await
+                        .unwrap_or_else(|e| eprintln!("Failed to set Discord presence: {}", e));
                 }
             }
 

@@ -89,9 +89,6 @@ export function useTimer() {
       },
       phase: (n: number) => {
         setPomodoroPhase(n);
-        if (isRunning) {
-          updatePresence(PresenceState.Working);
-        }
       },
     };
 
@@ -129,11 +126,6 @@ export function useTimer() {
     } else {
       const pMillis = await invoke<number>('get_pomodoro_millis');
       setPomodoroMillis(pMillis);
-    }
-    if (isRunning) {
-      await updatePresence(PresenceState.Working);
-    } else {
-      await updatePresence(PresenceState.Idle);
     }
   };
 
