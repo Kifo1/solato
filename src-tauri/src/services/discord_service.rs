@@ -2,7 +2,7 @@ use chrono::Utc;
 use discord_rich_presence::activity::Timestamps;
 use discord_rich_presence::{activity, DiscordIpc, DiscordIpcClient};
 use serde::Deserialize;
-use tauri::{AppHandle, Manager, State};
+use tauri::{AppHandle, Manager};
 use tokio::sync::Mutex;
 use crate::database::models::session::SessionType;
 use crate::models::dbstate::DbState;
@@ -22,18 +22,17 @@ pub enum PresenceState {
 }
 
 pub async fn set_discord_presence(
-    app: &AppHandle,
+    app: AppHandle,
     presence_state: PresenceState,
 ) -> Result<(), String> {
-    let state = app.state::<DiscordState>();
+    let dc = app.state::<DiscordState>();
     let timer = app.state::<SharedTimerState>();
-    let db = app.state::<DbState>();
-    let settings = get_settings(&db)
+    let settings = get_settings(app.clone())
         .await
         .map_err(|e| format!("Failed to get settings: {}", e))?;
 
     if presence_state == PresenceState::None || !settings.discord_rich_presence {
-        let mut client_lock = state.client.lock().await;
+        let mut client_lock = dc.client.lock().await;
         if let Some(ref mut client) = *client_lock {
             client
                 .clear_activity()
@@ -98,7 +97,7 @@ pub async fn set_discord_presence(
         (details, status, timestamps)
     };
 
-    let mut client_lock = state.client.lock().await;
+    let mut client_lock = dc.client.lock().await;
 
     if client_lock.is_none() {
         let mut client = DiscordIpcClient::new("1521951733704687768");

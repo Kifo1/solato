@@ -1,44 +1,37 @@
 use crate::database::models::project::Project;
-use crate::models::dbstate::DbState;
 use crate::models::timer::{ActiveMode, SharedTimerState};
 use crate::services::{discord_service, timer_service};
-use tauri::{AppHandle, State};
+use tauri::{AppHandle, Manager, State};
 use crate::services::discord_service::{PresenceState};
 
 #[tauri::command]
 pub async fn start_timer(
     app: AppHandle,
-    state: State<'_, SharedTimerState>,
-    db: State<'_, DbState>,
 ) -> Result<(), String> {
-    timer_service::start_timer(app, state.inner().clone(), db).await
+    timer_service::start_timer(app).await
 }
 
 #[tauri::command]
 pub async fn stop_timer(
-    state: State<'_, SharedTimerState>,
-    db: State<'_, DbState>,
+    app: AppHandle,
 ) -> Result<(), String> {
-    timer_service::stop_timer(state.inner().clone(), db).await
+    timer_service::stop_timer(app).await
 }
 
 #[tauri::command]
 pub async fn reset_timer(
     app: AppHandle,
-    timer_state: State<'_, SharedTimerState>,
-    db: State<'_, DbState>,
 ) -> Result<(), String> {
-    let timer_arc = timer_state.inner().clone();
-    let db_clone = db.clone();
+    let timer = app.state::<SharedTimerState>();
 
-    let running = timer_arc.lock().unwrap().is_running;
+    let running = timer.lock().unwrap().is_running;
     let presence_state = if running { PresenceState::Working } else { PresenceState::Idle };
 
-    discord_service::set_discord_presence(&app, presence_state)
+    discord_service::set_discord_presence(app.clone(), presence_state)
         .await
         .map_err(|e| format!("Failed to set Discord presence: {}", e))?;
 
-    timer_service::reset_timer(app, timer_arc, db_clone).await
+    timer_service::reset_timer(app).await
 }
 
 #[tauri::command]
@@ -88,11 +81,10 @@ pub fn get_pomodoro_phase(state: State<'_, SharedTimerState>) -> u8 {
 
 #[tauri::command]
 pub async fn set_selected_project(
+    app: AppHandle,
     project: Option<Project>,
-    state: State<'_, SharedTimerState>,
-    db: State<'_, DbState>,
 ) -> Result<(), String> {
-    timer_service::update_project_session(project, state.inner().clone(), &db).await
+    timer_service::update_project_session(app, project).await
 }
 
 #[tauri::command]

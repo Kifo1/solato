@@ -1,3 +1,4 @@
+use crate::services::discord_service;
 use crate::{
     database::models::{
         project::Project,
@@ -10,29 +11,28 @@ use crate::{
     services::session_service,
 };
 use std::time::{Duration, Instant};
-use tauri::{AppHandle, Emitter, State};
+use tauri::{AppHandle, Emitter, Manager};
 use tokio::time::sleep;
-use crate::services::discord_service;
+use crate::models::timer::TimerState;
 
-fn get_session_info(state: &crate::models::timer::TimerState) -> (SessionType, TimerMode) {
+fn get_session_info(state: &TimerState) -> (SessionType, TimerMode) {
     match state.active_mode {
         ActiveMode::Stopwatch => (SessionType::Focus, TimerMode::Stopwatch),
         ActiveMode::Pomodoro => (state.pomodoro.phase.into(), TimerMode::Pomodoro),
     }
 }
 
-pub async fn start_timer(
-    app: AppHandle,
-    state: SharedTimerState,
-    db: State<'_, DbState>,
-) -> Result<(), String> {
+pub async fn start_timer(app: AppHandle) -> Result<(), String> {
+    let timer = app.state::<SharedTimerState>();
+    let db = app.state::<DbState>();
+
     let (project_id, session_info) = {
-        let s = state.lock().map_err(|_| "Mutex Error")?;
-        if s.is_running {
+        let timer = timer.lock().map_err(|_| "Mutex Error")?;
+        if timer.is_running {
             return Ok(());
         }
-        let pid = s.selected_project.as_ref().map(|p| p.id.clone());
-        let info = get_session_info(&s);
+        let pid = timer.selected_project.as_ref().map(|p| p.id.clone());
+        let info = get_session_info(&timer);
         (pid, info)
     };
 
@@ -44,7 +44,7 @@ pub async fn start_timer(
     };
 
     {
-        let mut state_lock = state.lock().map_err(|_| "Mutex Error")?;
+        let mut state_lock = timer.lock().map_err(|_| "Mutex Error")?;
         state_lock.is_running = true;
         state_lock.current_session_id = session_id;
 
@@ -62,7 +62,8 @@ pub async fn start_timer(
     }
 
     let db_handle = db.inner().clone();
-    let state_clone = state.clone();
+    let state_clone = timer.inner().clone();
+    let app_handle = app.clone();
 
     tauri::async_runtime::spawn(async move {
         let mut last_heartbeat = Instant::now();
@@ -117,18 +118,18 @@ pub async fn start_timer(
 
             match result {
                 Ok(elapsed) => {
-                    let _ = app.emit("timer-tick", elapsed);
+                    let _ = app_handle.emit("timer-tick", elapsed);
                 }
                 Err(phase_idx) => {
-                    let _ = app.emit("pomodoro-phase", phase_idx);
-                    let _ = app.emit("pomodoro-phase-sound", ());
-                    let _ = app.emit("timer-tick", 0);
+                    let _ = app_handle.emit("pomodoro-phase", phase_idx);
+                    let _ = app_handle.emit("pomodoro-phase-sound", ());
+                    let _ = app_handle.emit("timer-tick", 0);
                     discord_service::set_discord_presence(
-                        &app,
+                        app_handle.clone(),
                         discord_service::PresenceState::Working,
                     )
-                        .await
-                        .unwrap_or_else(|e| eprintln!("Failed to set Discord presence: {}", e));
+                    .await
+                    .unwrap_or_else(|e| eprintln!("Failed to set Discord presence: {}", e));
                 }
             }
 
@@ -159,9 +160,12 @@ pub async fn start_timer(
     Ok(())
 }
 
-pub async fn stop_timer(state: SharedTimerState, db: State<'_, DbState>) -> Result<(), String> {
+pub async fn stop_timer(app: AppHandle) -> Result<(), String> {
+    let timer = app.state::<SharedTimerState>();
+    let db = app.state::<DbState>();
+
     let session_id = {
-        let mut state_lock = state.lock().map_err(|_| "Mutex Error")?;
+        let mut state_lock = timer.lock().map_err(|_| "Mutex Error")?;
         stop_timer_inner(&mut state_lock)
     };
 
@@ -172,7 +176,7 @@ pub async fn stop_timer(state: SharedTimerState, db: State<'_, DbState>) -> Resu
     Ok(())
 }
 
-pub fn stop_timer_inner(state: &mut crate::models::timer::TimerState) -> Option<String> {
+pub fn stop_timer_inner(state: &mut TimerState) -> Option<String> {
     if !state.is_running {
         return None;
     }
@@ -200,21 +204,21 @@ pub fn stop_timer_inner(state: &mut crate::models::timer::TimerState) -> Option<
 
 pub async fn reset_timer(
     app: AppHandle,
-    state: SharedTimerState,
-    db: State<'_, DbState>,
 ) -> Result<(), String> {
+    let timer = app.state::<SharedTimerState>();
+    let db = app.state::<DbState>();
+
     let was_running = {
-        let mut state_lock = state.lock().map_err(|_| "Mutex Error")?;
-        let was_running = state_lock.is_running;
+        let mut timer_state = timer.lock().map_err(|_| "Mutex Error")?;
+        let was_running = timer_state.is_running;
+        let session_id = stop_timer_inner(&mut timer_state);
 
-        let session_id = stop_timer_inner(&mut state_lock);
-
-        match state_lock.active_mode {
-            ActiveMode::Stopwatch => state_lock.stopwatch.elapsed_millis = 0,
+        match timer_state.active_mode {
+            ActiveMode::Stopwatch => timer_state.stopwatch.elapsed_millis = 0,
             ActiveMode::Pomodoro => {
-                state_lock.pomodoro.elapsed_millis = 0;
-                state_lock.pomodoro.phase = crate::models::pomodoro::PomodoroPhase::FocusOne;
-                let _ = app.emit("pomodoro-phase", state_lock.pomodoro.phase as u8);
+                timer_state.pomodoro.elapsed_millis = 0;
+                timer_state.pomodoro.phase = crate::models::pomodoro::PomodoroPhase::FocusOne;
+                let _ = app.emit("pomodoro-phase", timer_state.pomodoro.phase as u8);
             }
         }
         (was_running, session_id)
@@ -225,19 +229,21 @@ pub async fn reset_timer(
     }
 
     if was_running.0 {
-        start_timer(app, state, db).await
+        start_timer(app).await
     } else {
         Ok(())
     }
 }
 
 pub async fn update_project_session(
+    app: AppHandle,
     project: Option<Project>,
-    state: SharedTimerState,
-    db: &DbState,
 ) -> Result<(), String> {
+    let timer = app.state::<SharedTimerState>();
+    let db = app.state::<DbState>();
+
     let (is_running, old_session_id, session_info) = {
-        let mut state_lock = state.lock().map_err(|_| "Mutex Error")?;
+        let mut state_lock = timer.lock().map_err(|_| "Mutex Error")?;
         let is_running = state_lock.is_running;
         let old_id = state_lock.current_session_id.take();
 
@@ -253,13 +259,13 @@ pub async fn update_project_session(
 
     if is_running {
         if let Some(id) = old_session_id {
-            let _ = session_service::stop_session(id, db).await;
+            let _ = session_service::stop_session(id, db.inner()).await;
         }
 
         if let Some(p) = project {
             if let Some((s_type, mode)) = session_info {
-                let new_id = session_service::start_session(p.id, s_type, mode, db).await?;
-                if let Ok(mut s) = state.lock() {
+                let new_id = session_service::start_session(p.id, s_type, mode, db.inner()).await?;
+                if let Ok(mut s) = timer.lock() {
                     s.current_session_id = Some(new_id);
                 }
             }
@@ -269,13 +275,15 @@ pub async fn update_project_session(
     Ok(())
 }
 
-pub async fn sync_timer_with_settings(state: SharedTimerState, db: &DbState) -> Result<(), String> {
-    let settings = crate::services::settings_service::get_settings(db)
+pub async fn sync_timer_with_settings(app: AppHandle) -> Result<(), String> {
+    let timer = app.state::<SharedTimerState>();
+
+    let settings = crate::services::settings_service::get_settings(app.clone())
         .await
         .map_err(|_| "Failed to get settings")?;
 
     {
-        let mut state_lock = state.lock().map_err(|_| "Mutex Error")?;
+        let mut state_lock = timer.lock().map_err(|_| "Mutex Error")?;
 
         state_lock.pomodoro.focus_minutes = settings.focus_duration;
         state_lock.pomodoro.short_break_minutes = settings.short_break;

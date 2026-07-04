@@ -1,7 +1,8 @@
+use tauri::{AppHandle, Manager};
 use crate::{database::models::settings::AppSettings, models::dbstate::DbState};
 
-pub async fn get_settings(db: &DbState) -> Result<AppSettings, String> {
-    let pool = &db.pool;
+pub async fn get_settings(app: AppHandle) -> Result<AppSettings, String> {
+    let pool = &app.state::<DbState>().pool;
 
     let settings = sqlx::query_as!(
         AppSettings,
@@ -14,8 +15,8 @@ pub async fn get_settings(db: &DbState) -> Result<AppSettings, String> {
     Ok(settings)
 }
 
-pub async fn update_settings(db: &DbState, new_settings: AppSettings) -> Result<(), String> {
-    let pool = &db.pool;
+pub async fn update_settings(app: AppHandle, new_settings: AppSettings) -> Result<(), String> {
+    let db = app.state::<DbState>();
 
     sqlx::query!(
         "UPDATE settings SET focus_duration = ?, short_break = ?, long_break = ?, discord_rich_presence = ? WHERE id = 1",
@@ -24,7 +25,7 @@ pub async fn update_settings(db: &DbState, new_settings: AppSettings) -> Result<
         new_settings.long_break,
         new_settings.discord_rich_presence
     )
-    .execute(pool)
+    .execute(&db.pool)
     .await
     .map_err(|e| e.to_string())?;
 

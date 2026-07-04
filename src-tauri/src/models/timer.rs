@@ -1,7 +1,8 @@
-use crate::{database::models::project::Project, models::dbstate::DbState};
+use crate::{database::models::project::Project};
 
 use super::{pomodoro::PomodoroState, stopwatch::StopwatchState};
 use std::sync::{Arc, Mutex};
+use tauri::AppHandle;
 
 pub enum ActiveMode {
     Stopwatch,
@@ -19,14 +20,14 @@ pub struct TimerState {
 }
 
 impl TimerState {
-    pub async fn new(db: &DbState) -> Self {
+    pub async fn new(app: AppHandle) -> Self {
         Self {
             active_mode: ActiveMode::Stopwatch,
             is_running: false,
             selected_project: None,
             current_session_id: None,
             stopwatch: StopwatchState::new(),
-            pomodoro: PomodoroState::new(db).await,
+            pomodoro: PomodoroState::new(app).await,
         }
     }
 }

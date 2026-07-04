@@ -1,7 +1,7 @@
 use std::time::Instant;
-
+use tauri::AppHandle;
 use crate::{
-    database::models::session::SessionType, models::dbstate::DbState, services::settings_service,
+    database::models::session::SessionType, services::settings_service,
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -34,19 +34,19 @@ pub struct PomodoroState {
 }
 
 impl PomodoroState {
-    pub async fn new(db: &DbState) -> Self {
+    pub async fn new(app: AppHandle) -> Self {
         Self {
             elapsed_millis: 0,
             start_instant: None,
-            focus_minutes: settings_service::get_settings(db)
+            focus_minutes: settings_service::get_settings(app.clone())
                 .await
                 .unwrap()
                 .focus_duration,
-            short_break_minutes: settings_service::get_settings(db)
+            short_break_minutes: settings_service::get_settings(app.clone())
                 .await
                 .unwrap()
                 .short_break,
-            long_break_minutes: settings_service::get_settings(db).await.unwrap().long_break,
+            long_break_minutes: settings_service::get_settings(app.clone()).await.unwrap().long_break,
             phase: PomodoroPhase::FocusOne,
         }
     }

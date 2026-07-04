@@ -13,7 +13,7 @@ import {
 } from 'date-fns';
 import { useQuery } from '@tanstack/react-query';
 import { invoke } from '@tauri-apps/api/core';
-import { useMemo, useState, useRef } from 'react';
+import React, { useMemo, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 

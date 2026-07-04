@@ -69,7 +69,7 @@ pub fn run() {
 
                 handle.manage(db_state.clone());
                 let internal_state = Arc::new(std::sync::Mutex::new(
-                    TimerState::new(&db_state.clone()).await,
+                    TimerState::new(handle.clone()).await,
                 ));
                 let timer_state = SharedTimerState::from(internal_state);
                 handle.manage(timer_state);
@@ -78,12 +78,8 @@ pub fn run() {
                     client: Mutex::new(None),
                 });
 
-                let discord_state = handle.state::<DiscordState>();
-                let timer_state_ref = handle.state::<SharedTimerState>();
-                let db_state_ref = handle.state::<DbState>();
-
                 if let Err(e) = discord_service::set_discord_presence(
-                    &handle,
+                    handle,
                     PresenceState::Idle,
                 )
                 .await
