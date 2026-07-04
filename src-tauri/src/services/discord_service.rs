@@ -5,7 +5,6 @@ use serde::Deserialize;
 use tauri::{AppHandle, Manager};
 use tokio::sync::Mutex;
 use crate::database::models::session::SessionType;
-use crate::models::dbstate::DbState;
 use crate::models::timer::{ActiveMode, SharedTimerState};
 use crate::services::settings_service::get_settings;
 
