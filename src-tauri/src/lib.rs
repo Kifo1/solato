@@ -3,6 +3,7 @@ mod database;
 mod models;
 mod services;
 mod window;
+mod api;
 
 use crate::services::discord_service;
 use crate::services::discord_service::{DiscordState, PresenceState};
