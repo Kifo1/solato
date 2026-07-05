@@ -1,13 +1,13 @@
 use serde::{Deserialize, Serialize};
 use crate::api::api_client::ApiState;
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 pub struct RegisterRequest {
     pub email: String,
     pub password: String,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 pub struct LoginRequest {
     pub email: String,
     pub password: String,

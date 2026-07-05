@@ -16,9 +16,13 @@ use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
 use std::{str::FromStr, sync::Arc};
 use tauri::Manager;
 use tokio::sync::Mutex;
+use crate::api::api_client::ApiState;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    let base_url = std::env::var("API_BASE_URL")
+        .unwrap_or_else(|_| "http://localhost:8080/api/v1".to_string());
+
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
@@ -75,6 +79,7 @@ pub fn run() {
                 let timer_state = SharedTimerState::from(internal_state);
                 handle.manage(timer_state);
                 handle.manage(ActiveProjectFilterState::default());
+                handle.manage(ApiState::new(base_url));
                 handle.manage(DiscordState {
                     client: Mutex::new(None),
                 });
@@ -139,7 +144,9 @@ pub fn run() {
             commands::analytics_commands::get_analytics_streak,
             commands::settings_commands::get_settings,
             commands::settings_commands::update_settings,
-            commands::discord_commands::set_discord_presence
+            commands::discord_commands::set_discord_presence,
+            commands::api::auth_commands::register_user,
+            commands::api::auth_commands::login_user,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
