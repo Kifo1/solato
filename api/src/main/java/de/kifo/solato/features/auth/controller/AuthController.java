@@ -4,6 +4,7 @@ import de.kifo.solato.features.auth.dto.AuthResponse;
 import de.kifo.solato.features.auth.dto.LoginRequest;
 import de.kifo.solato.features.auth.dto.RegisterRequest;
 import de.kifo.solato.features.auth.service.AuthService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,7 +21,7 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping
-    public ResponseEntity<AuthResponse> register(@RequestBody RegisterRequest request) {
+    public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
         AuthResponse response = authService.register(request);
         if (!response.success()) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
@@ -29,7 +30,7 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request) {
+    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         AuthResponse response = authService.login(request);
         if (!response.success()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);

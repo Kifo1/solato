@@ -14,7 +14,6 @@ import java.util.Optional;
 @Service
 @RequiredArgsConstructor
 public class AuthService {
-    //TODO Add validation
     //TODO Add email service for registration
 
     private final UserRepository userRepository;
