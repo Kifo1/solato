@@ -1,4 +1,8 @@
 package de.kifo.solato.features.auth.dto;
 
-//TODO Send JWT instead of message
-public record AuthResponse(String message, boolean success) {}
+public record AuthResponse(String message, boolean success, String token) {
+
+    public AuthResponse(String message, boolean success) {
+        this(message, success, null);
+    }
+}

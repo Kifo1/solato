@@ -6,3 +6,7 @@ spring:
     name: solato
   profiles:
     active: dev
+
+solato:
+  jwt:
+    secret: ${JWT_SECRET:90967723bc52d3ee508672781442d898}

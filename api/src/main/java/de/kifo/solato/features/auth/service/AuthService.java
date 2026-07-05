@@ -16,6 +16,7 @@ import java.util.Optional;
 public class AuthService {
     //TODO Add email service for registration
 
+    private final JwtService jwtService;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
@@ -30,7 +31,8 @@ public class AuthService {
 
         userRepository.save(user);
 
-        return new AuthResponse("User registered", true); //TODO Return JWT
+        String token = jwtService.generateToken(user.getEmail());
+        return new AuthResponse("User registered", true, token);
     }
 
     public AuthResponse login(LoginRequest request) {
@@ -46,6 +48,7 @@ public class AuthService {
             return new AuthResponse("Invalid E-Mail or password", false);
         }
 
-        return new AuthResponse("Login", true); //TODO Return JWT
+        String token = jwtService.generateToken(user.getEmail());
+        return new AuthResponse("Login", true, token);
     }
 }
