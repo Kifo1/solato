@@ -4,3 +4,4 @@ pub mod session_service;
 pub mod settings_service;
 pub mod timer_service;
 pub mod discord_service;
+pub mod api;
