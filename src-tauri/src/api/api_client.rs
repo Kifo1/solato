@@ -39,7 +39,7 @@ impl ApiState {
         Req: Serialize,
         Res: DeserializeOwned,
     {
-        let url = format!("{}/{}", self.base_url, endpoint);
+        let url = format!("{}{}", self.base_url, endpoint);
 
         let response = self.client.post(&url)
             .headers(self.build_headers())
