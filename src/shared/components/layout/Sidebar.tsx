@@ -1,3 +1,4 @@
+import LoginButton from '@/features/login/components/LoginButton';
 import { ChartLine, FolderDot, LucideIcon, Settings, Timer } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 
@@ -42,6 +43,7 @@ export default function Sidebar() {
           <NavbarItem name="Settings" Icon={Settings} to="/settings"></NavbarItem>
         </nav>
       </div>
+      <LoginButton></LoginButton>
     </aside>
   );
 }

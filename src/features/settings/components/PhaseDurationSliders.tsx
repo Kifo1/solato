@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import Slider from '@mui/material/Slider';
 import { Coffee, LucideIcon, Sofa, Timer } from 'lucide-react';
 import { useSettings } from '../hooks/useSettings';
@@ -23,7 +24,19 @@ function SliderComponent({
 }: Readonly<SliderComponentProps>) {
   const { settings, updateSettings } = useSettings();
 
-  const currentValue = settings ? settings[settingsKey] : min;
+  const [localValue, setLocalValue] = useState<number>(min);
+
+  useEffect(() => {
+    if (settings) {
+      setLocalValue(settings[settingsKey]);
+    }
+  }, [settings, settingsKey]);
+
+  const handleLiveChange = (_: any, val: number | number[]) => {
+    if (typeof val === 'number') {
+      setLocalValue(val);
+    }
+  };
 
   const handleFinalChange = (_: any, val: number | number[]) => {
     if (settings && typeof val === 'number') {
@@ -52,7 +65,8 @@ function SliderComponent({
       </div>
       <div className="px-2">
         <Slider
-          value={currentValue}
+          value={localValue}
+          onChange={handleLiveChange}
           onChangeCommitted={handleFinalChange}
           step={step}
           min={min}
@@ -62,6 +76,12 @@ function SliderComponent({
           marks={generateMarks(min, max, step)}
           sx={{
             color: '#3b82f6',
+            '& .MuiSlider-thumb': {
+              transition: 'left 0.1s ease-out, bottom 0.1s ease-out',
+            },
+            '& .MuiSlider-track': {
+              transition: 'width 0.1s ease-out, height 0.1s ease-out',
+            },
             '& .MuiSlider-markLabel': {
               color: 'white',
               fontSize: '0.85rem',
