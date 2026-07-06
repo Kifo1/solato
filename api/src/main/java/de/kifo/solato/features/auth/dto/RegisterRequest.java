@@ -14,7 +14,7 @@ public record RegisterRequest(
         @Size(min = 8, max = 64, message = "Password must have between 8 and 64 characters")
         @Pattern(
                 regexp = "^(?=.*\\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=!.*_]).*$",
-                message = "Password must contain at least one uppercase letter, one lowercase letter, one number and one special character (@#$%^&+=!.*_)."
+                message = "Password must contain at least one uppercase letter, one lowercase letter, one number and one special character."
         )
         String password
 ) {}

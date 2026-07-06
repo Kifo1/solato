@@ -9,6 +9,27 @@ pub struct CommandResponse {
     pub message: String,
 }
 
+#[derive(Serialize, Clone)]
+pub struct UserInfo {
+    pub username: String,
+    pub email: String,
+}
+
+#[tauri::command]
+pub async fn get_current_user(api_state: State<'_, ApiState>) -> Result<Option<UserInfo>, String> {
+    let token_guard = api_state.jwt_token.lock().unwrap();
+
+    if token_guard.is_some() {
+        //TODO Use real user object
+        Ok(Some(UserInfo {
+            username: "test name".to_string(),
+            email: "test@solato".to_string(),
+        }))
+    } else {
+        Ok(None)
+    }
+}
+
 #[tauri::command]
 pub async fn register_user(
     payload: RegisterRequest,

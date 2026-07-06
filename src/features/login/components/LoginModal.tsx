@@ -2,7 +2,8 @@ import Button from '@/shared/components/Button';
 import Modal from '@/shared/components/Modal';
 import { TextInput } from '@/shared/components/TextInput';
 import { CloudOff } from 'lucide-react';
-import { Dispatch, SetStateAction, useState } from 'react';
+import { Dispatch, FormEvent, SetStateAction, useState } from 'react';
+import { useAuth } from '../hooks/useAuth';
 
 enum ModalView {
   Welcome,
@@ -14,6 +15,9 @@ interface LoginModalProps {
   isOpen: boolean;
   setIsOpen: Dispatch<SetStateAction<boolean>>;
 }
+
+const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+const PASSWORD_REGEX = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=!.*_]).*$/;
 
 export default function LoginModal({ isOpen, setIsOpen }: Readonly<LoginModalProps>) {
   const [currentView, setCurrentView] = useState<ModalView>(ModalView.Welcome);
@@ -55,44 +59,185 @@ export default function LoginModal({ isOpen, setIsOpen }: Readonly<LoginModalPro
       )}
 
       {currentView === ModalView.Login && (
-        <LoginForm onBack={() => setCurrentView(ModalView.Welcome)} />
+        <LoginForm onBack={() => setCurrentView(ModalView.Welcome)} onSuccess={handleClose} />
       )}
 
       {currentView === ModalView.Register && (
-        <RegisterForm onBack={() => setCurrentView(ModalView.Welcome)} />
+        <RegisterForm onBack={() => setCurrentView(ModalView.Welcome)} onSuccess={handleClose} />
       )}
     </Modal>
   );
 }
 
-function LoginForm({ onBack }: Readonly<{ onBack: () => void }>) {
+function FormWrapper({ title, children }: Readonly<{ title: string; children: React.ReactNode }>) {
   return (
     <div className="flex max-w-64 flex-col gap-3 text-white">
-      <h2 className="text-2xl font-semibold">Welcome Back</h2>
-      <TextInput type="email" placeholder="Email"></TextInput>
-      <TextInput type="password" placeholder="Password"></TextInput>
-      <Button variant="primary" className="rounded-lg">
-        Sign In
-      </Button>
-      <Button variant="ghost" className="rounded-lg" onClick={onBack}>
-        Back
-      </Button>
+      <h2 className="text-2xl font-semibold">{title}</h2>
+      {children}
     </div>
   );
 }
 
-function RegisterForm({ onBack }: Readonly<{ onBack: () => void }>) {
+interface FormProps {
+  onBack: () => void;
+  onSuccess: () => void;
+}
+
+function LoginForm({ onBack, onSuccess }: Readonly<FormProps>) {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [localError, setLocalError] = useState<string | null>(null);
+
+  const { login, isLoggingIn, loginError } = useAuth();
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setLocalError(null);
+
+    e.preventDefault();
+    setLocalError(null);
+
+    if (!email.trim()) {
+      setLocalError('E-Mail cannot be empty');
+      return;
+    }
+    if (!password.trim()) {
+      setLocalError('Password cannot be empty');
+      return;
+    }
+    if (!EMAIL_REGEX.test(email)) {
+      setLocalError('E-Mail is not valid');
+      return;
+    }
+
+    try {
+      await login({ email, password });
+      onSuccess();
+    } catch {} //Errors handled via tanstack
+  };
+
+  const activeError = localError || loginError;
+
   return (
-    <div className="flex max-w-64 flex-col gap-3 text-white">
-      <h2 className="text-2xl font-semibold">Create Account</h2>
-      <TextInput type="email" placeholder="Email"></TextInput>
-      <TextInput type="password" placeholder="Password"></TextInput>
-      <Button variant="primary" className="rounded-lg">
-        Register
-      </Button>
-      <Button variant="ghost" className="rounded-lg" onClick={onBack}>
-        Back
-      </Button>
-    </div>
+    <form onSubmit={handleSubmit}>
+      <FormWrapper title="Login">
+        {activeError && (
+          <div className="rounded border border-red-500 bg-red-500/20 p-2 text-xs text-red-300">
+            {activeError}
+          </div>
+        )}
+
+        <TextInput
+          type="email"
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          disabled={isLoggingIn}
+        />
+        <TextInput
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          disabled={isLoggingIn}
+        />
+
+        <Button type="submit" variant="primary" className="rounded-lg" disabled={isLoggingIn}>
+          {isLoggingIn ? 'Signing In...' : 'Sign In'}
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          className="rounded-lg"
+          onClick={onBack}
+          disabled={isLoggingIn}
+        >
+          Back
+        </Button>
+      </FormWrapper>
+    </form>
+  );
+}
+
+function RegisterForm({ onBack, onSuccess }: Readonly<FormProps>) {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [localError, setLocalError] = useState<string | null>(null);
+
+  const { register, isRegistering, registerError } = useAuth();
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setLocalError(null);
+
+    if (!email.trim()) {
+      setLocalError('E-Mail cannot be empty');
+      return;
+    }
+    if (!password.trim()) {
+      setLocalError('Password cannot be empty');
+      return;
+    }
+    if (!EMAIL_REGEX.test(email)) {
+      setLocalError('E-Mail is not valid');
+      return;
+    }
+    if (password.length < 8 || password.length > 64) {
+      setLocalError('Password must have between 8 and 64 characters');
+      return;
+    }
+    if (!PASSWORD_REGEX.test(password)) {
+      setLocalError(
+        'Password must contain uppercase letters, lowercase letters, numbers and special characters',
+      );
+      return;
+    }
+
+    try {
+      await register({ email, password });
+      onSuccess();
+    } catch {} //Error handling via tanstack
+  };
+
+  const activeError = localError || registerError;
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <FormWrapper title="Create Account">
+        {activeError && (
+          <div className="rounded border border-red-500 bg-red-500/20 p-2 text-xs text-red-300">
+            {activeError}
+          </div>
+        )}
+
+        <TextInput
+          type="email"
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          disabled={isRegistering}
+        />
+        <TextInput
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          disabled={isRegistering}
+        />
+
+        <Button type="submit" variant="primary" className="rounded-lg" disabled={isRegistering}>
+          {isRegistering ? 'Registering...' : 'Register'}
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          className="rounded-lg"
+          onClick={onBack}
+          disabled={isRegistering}
+        >
+          Back
+        </Button>
+      </FormWrapper>
+    </form>
   );
 }

@@ -9,7 +9,7 @@ const modalVariants = cva(
   {
     variants: {
       variant: {
-        default: 'bg-slate-800 rounded-2xl',
+        default: 'bg-slate-800 rounded-2xl border border-blue-300/35',
       },
       scale: {
         sm: 'max-w-md',
@@ -48,10 +48,10 @@ function Modal({
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
+    globalThis.addEventListener('keydown', handleKeyDown);
 
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
+      globalThis.removeEventListener('keydown', handleKeyDown);
     };
   }, []);
 

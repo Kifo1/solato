@@ -1,10 +1,11 @@
+mod api;
 mod commands;
 mod database;
 mod models;
 mod services;
 mod window;
-mod api;
 
+use crate::api::api_client::ApiState;
 use crate::services::discord_service;
 use crate::services::discord_service::{DiscordState, PresenceState};
 use crate::{
@@ -16,7 +17,6 @@ use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
 use std::{str::FromStr, sync::Arc};
 use tauri::Manager;
 use tokio::sync::Mutex;
-use crate::api::api_client::ApiState;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -73,9 +73,8 @@ pub fn run() {
                 let _ = services::session_service::delete_incomplete_sessions(&db_state).await;
 
                 handle.manage(db_state.clone());
-                let internal_state = Arc::new(std::sync::Mutex::new(
-                    TimerState::new(handle.clone()).await,
-                ));
+                let internal_state =
+                    Arc::new(std::sync::Mutex::new(TimerState::new(handle.clone()).await));
                 let timer_state = SharedTimerState::from(internal_state);
                 handle.manage(timer_state);
                 handle.manage(ActiveProjectFilterState::default());
@@ -84,11 +83,8 @@ pub fn run() {
                     client: Mutex::new(None),
                 });
 
-                if let Err(e) = discord_service::set_discord_presence(
-                    handle,
-                    PresenceState::Idle,
-                )
-                .await
+                if let Err(e) =
+                    discord_service::set_discord_presence(handle, PresenceState::Idle).await
                 {
                     eprintln!("Failed to set initial Discord presence: {}", e);
                 }
@@ -145,6 +141,7 @@ pub fn run() {
             commands::settings_commands::get_settings,
             commands::settings_commands::update_settings,
             commands::discord_commands::set_discord_presence,
+            commands::api::auth_commands::get_current_user,
             commands::api::auth_commands::register_user,
             commands::api::auth_commands::login_user,
         ])
