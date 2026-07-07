@@ -36,8 +36,9 @@ All data is currently stored **locally only** on your device. Nothing is sent an
    Then run both within /src-tauri folder:
 
    ```
-   sqlx database create
-   sqlx migrate run
+   cargo install sqlx-cli --no-default-features --features rustls,sqlite
+   cargo sqlx database create
+   cargo sqlx migrate run
    ```
 
 3. Start the Tauri development session from root folder (serves the frontend and launches the native window):
