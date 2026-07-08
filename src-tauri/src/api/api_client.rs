@@ -7,7 +7,7 @@ use tauri::http::HeaderValue;
 
 pub struct ApiState {
     pub base_url: String,
-    pub jwt_token: Mutex<Option<String>>,
+    pub access_token: Mutex<Option<String>>,
     pub client: Client,
 }
 
@@ -15,7 +15,7 @@ impl ApiState {
     pub fn new(base_url: String) -> Self {
         Self {
             base_url,
-            jwt_token: Mutex::new(None),
+            access_token: Mutex::new(None),
             client: Client::builder().build().unwrap_or_default(),
         }
     }
@@ -24,7 +24,7 @@ impl ApiState {
         let mut headers = HeaderMap::new();
         headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
 
-        if let Ok(token_guard) = self.jwt_token.lock() {
+        if let Ok(token_guard) = self.access_token.lock() {
             if let Some(ref token) = *token_guard {
                 if let Ok(auth_val) = HeaderValue::from_str(&format!("Bearer {}", token)) {
                     headers.insert(AUTHORIZATION, auth_val);
@@ -41,7 +41,9 @@ impl ApiState {
     {
         let url = format!("{}{}", self.base_url, endpoint);
 
-        let response = self.client.post(&url)
+        let response = self
+            .client
+            .post(&url)
             .headers(self.build_headers())
             .json(body)
             .send()
@@ -51,7 +53,9 @@ impl ApiState {
         let status = response.status();
         if !status.is_success() {
             #[derive(serde::Deserialize)]
-            struct ErrorBody { message: String }
+            struct ErrorBody {
+                message: String,
+            }
             if let Ok(err_json) = response.json::<ErrorBody>().await {
                 return Err(err_json.message);
             }

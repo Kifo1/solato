@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use crate::api::api_client::ApiState;
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
 pub struct RegisterRequest {
@@ -17,7 +17,8 @@ pub struct LoginRequest {
 pub struct AuthResponse {
     pub message: String,
     pub success: bool,
-    pub token: Option<String>,
+    pub access_token: Option<String>,
+    pub refresh_token: Option<String>,
 }
 
 pub struct AuthService;
@@ -35,8 +36,8 @@ impl AuthService {
 
     fn handle_response(api_state: &ApiState, res: AuthResponse) -> Result<String, String> {
         if res.success {
-            if let Some(token) = res.token {
-                let mut token_guard = api_state.jwt_token.lock().unwrap();
+            if let Some(token) = res.access_token {
+                let mut token_guard = api_state.access_token.lock().unwrap();
                 *token_guard = Some(token);
             }
             Ok(res.message)
