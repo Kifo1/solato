@@ -29,3 +29,4 @@ uuid = { version = "1.0", features = ["v4", "serde"] }
 open = "5.3.3"
 discord-rich-presence = "1.1.0"
 reqwest = { version = "0.13.4", features = ["json"] }
+keyring = "4.1.4"
