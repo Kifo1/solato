@@ -51,6 +51,8 @@ All data is currently stored **locally only** on your device. Nothing is sent an
    ```
    npm run tauri build
    ```
+   
+   > If building on **Linux** throws an error try to use **npm run tauri:build:linux** instead
 
 Notes:
 

@@ -8,6 +8,7 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "tauri": "tauri",
+    "tauri:build:linux": "NO_STRIP=1 tauri build",
     "format": "prettier --write \"**/*.{js,ts,jsx,tsx,cjs,cts,mjs,mts,json,vue,astro,css,scss,md}\""
   },
   "dependencies": {
