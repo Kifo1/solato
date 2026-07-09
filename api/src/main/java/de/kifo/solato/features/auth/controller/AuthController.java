@@ -2,6 +2,7 @@ package de.kifo.solato.features.auth.controller;
 
 import de.kifo.solato.features.auth.dto.AuthResponse;
 import de.kifo.solato.features.auth.dto.LoginRequest;
+import de.kifo.solato.features.auth.dto.RefreshRequest;
 import de.kifo.solato.features.auth.dto.RegisterRequest;
 import de.kifo.solato.features.auth.service.AuthService;
 import jakarta.validation.Valid;
@@ -34,6 +35,15 @@ public class AuthController {
         AuthResponse response = authService.login(request);
         if (!response.success()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+        }
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<AuthResponse> refresh(@RequestBody RefreshRequest request) {
+        AuthResponse response = authService.refreshAuthentication(request.oldRefreshToken());
+        if (!response.success()) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
         }
         return ResponseEntity.ok(response);
     }

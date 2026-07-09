@@ -17,7 +17,7 @@ pub struct UserInfo {
 
 #[tauri::command]
 pub async fn get_current_user(api_state: State<'_, ApiState>) -> Result<Option<UserInfo>, String> {
-    let token_guard = api_state.jwt_token.lock().unwrap();
+    let token_guard = api_state.access_token.lock().unwrap();
 
     if token_guard.is_some() {
         //TODO Use real user object

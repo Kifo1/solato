@@ -9,18 +9,28 @@ import java.time.Instant;
 @Entity
 @Getter
 @Setter
-@Table(name = "users")
-public class User {
+@Table(name = "refresh_token")
+public class RefreshToken {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(unique = true, nullable = false)
-    private String email;
+    @Column(nullable = false, unique = true)
+    private String token;
 
-    @Column(nullable = false)
-    private String password;
+    @ManyToOne
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
+
+    @Column(name = "expiry_date", nullable = false)
+    private Instant expiryDate;
+
+    @Column(name = "last_used_at", nullable = false)
+    private Instant lastUsedAt;
+
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    private boolean revoked = false;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -32,6 +42,7 @@ public class User {
     protected void onCreate() {
         this.createdAt = Instant.now();
         this.updatedAt = Instant.now();
+        this.lastUsedAt = Instant.now();
     }
 
     @PreUpdate
