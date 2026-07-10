@@ -1,12 +1,12 @@
+use crate::database::models::session::SessionType;
+use crate::models::timer::{ActiveMode, SharedTimerState};
+use crate::services::settings_service::get_settings;
 use chrono::Utc;
 use discord_rich_presence::activity::Timestamps;
 use discord_rich_presence::{activity, DiscordIpc, DiscordIpcClient};
 use serde::Deserialize;
 use tauri::{AppHandle, Manager};
 use tokio::sync::Mutex;
-use crate::database::models::session::SessionType;
-use crate::models::timer::{ActiveMode, SharedTimerState};
-use crate::services::settings_service::get_settings;
 
 pub struct DiscordState {
     pub client: Mutex<Option<DiscordIpcClient>>,
@@ -33,9 +33,7 @@ pub async fn set_discord_presence(
     if presence_state == PresenceState::None || !settings.discord_rich_presence {
         let mut client_lock = dc.client.lock().await;
         if let Some(ref mut client) = *client_lock {
-            client
-                .clear_activity()
-                .map_err(|e| format!("Failed to clear presence: {}", e))?;
+            let _ = client.clear_activity();
         }
         return Ok(());
     }
@@ -100,10 +98,16 @@ pub async fn set_discord_presence(
 
     if client_lock.is_none() {
         let mut client = DiscordIpcClient::new("1521951733704687768");
-        client
-            .connect()
-            .map_err(|e| format!("Error while connecting to Discord: {}", e))?;
-        *client_lock = Some(client);
+
+        match client.connect() {
+            Ok(_) => {
+                *client_lock = Some(client);
+            }
+            Err(_) => {
+                println!("Discord IPC socket not available");
+                return Ok(());
+            }
+        }
     }
 
     if let Some(ref mut client) = *client_lock {
@@ -113,9 +117,10 @@ pub async fn set_discord_presence(
             .timestamps(timestamps)
             .assets(activity::Assets::new().large_text("Solato"));
 
-        client
-            .set_activity(payload)
-            .map_err(|e| format!("Failed to set presence: {}", e))?;
+        if client.set_activity(payload).is_err() {
+            println!("Lost connection to Discord. Resetting client...");
+            *client_lock = None;
+        }
     }
 
     Ok(())

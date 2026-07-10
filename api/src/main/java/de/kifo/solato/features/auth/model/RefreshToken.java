@@ -12,6 +12,8 @@ import java.time.Instant;
 @Table(name = "refresh_token")
 public class RefreshToken {
 
+    //TODO Add device information to allow deletion of sessions
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

@@ -6,7 +6,7 @@ mod services;
 mod window;
 
 use crate::api::api_client::ApiState;
-use crate::services::api::auth_service::{self, AuthService, RefreshRequest};
+use crate::services::api::auth_service::{AuthService, RefreshRequest};
 use crate::services::discord_service;
 use crate::services::discord_service::{DiscordState, PresenceState};
 use crate::{
