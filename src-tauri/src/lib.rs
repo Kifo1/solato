@@ -6,6 +6,7 @@ mod services;
 mod window;
 
 use crate::api::api_client::ApiState;
+use crate::services::api::auth_service::{self, AuthService, RefreshRequest};
 use crate::services::discord_service;
 use crate::services::discord_service::{DiscordState, PresenceState};
 use crate::{
@@ -87,6 +88,16 @@ pub fn run() {
                     discord_service::set_discord_presence(handle, PresenceState::Idle).await
                 {
                     eprintln!("Failed to set initial Discord presence: {}", e);
+                }
+
+                if let Some(token) = AuthService::get_stored_refresh_token().await {
+                    let _ = AuthService::refresh(
+                        &app.state::<ApiState>(),
+                        RefreshRequest {
+                            old_refresh_token: token,
+                        },
+                    )
+                    .await;
                 }
             });
 

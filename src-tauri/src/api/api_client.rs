@@ -1,5 +1,6 @@
+use keyring::Entry;
 use reqwest::header::{HeaderMap, AUTHORIZATION, CONTENT_TYPE};
-use reqwest::Client;
+use reqwest::{Client, StatusCode};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use std::sync::Mutex;
@@ -51,6 +52,68 @@ impl ApiState {
             .map_err(|e| format!("API request error: {}", e))?;
 
         let status = response.status();
+
+        if status == StatusCode::UNAUTHORIZED && !endpoint.contains("/auth/public/") {
+            println!("Access token not valid (401). Try to refresh token...");
+
+            if let Some(refresh_token) = self.get_stored_refresh_token_internal().await {
+                #[derive(Serialize)]
+                struct RefreshRequest {
+                    old_refresh_token: String,
+                }
+
+                #[derive(serde::Deserialize)]
+                struct AuthResponse {
+                    success: bool,
+                    access_token: Option<String>,
+                    refresh_token: Option<String>,
+                }
+
+                let refresh_url = format!("{}{}", self.base_url, "/auth/public/refresh");
+                let refresh_req = RefreshRequest {
+                    old_refresh_token: refresh_token,
+                };
+
+                let refresh_res = self
+                    .client
+                    .post(&refresh_url)
+                    .json(&refresh_req)
+                    .send()
+                    .await;
+
+                if let Ok(res) = refresh_res {
+                    if res.status().is_success() {
+                        if let Ok(auth_data) = res.json::<AuthResponse>().await {
+                            if auth_data.success {
+                                if let Some(new_access_token) = auth_data.access_token {
+                                    let mut token_guard = self.access_token.lock().unwrap();
+                                    *token_guard = Some(new_access_token);
+                                }
+
+                                if let Some(new_refresh_token) = auth_data.refresh_token {
+                                    let _ = self
+                                        .set_stored_refresh_token_internal(new_refresh_token)
+                                        .await;
+                                }
+
+                                println!(
+                                    "Refreshed all tokens. Retry API request to endpoint: {}",
+                                    endpoint
+                                );
+                                return self.post(endpoint, body).await;
+                            }
+                        }
+                    }
+                }
+            }
+            println!("Refresh failed or refresh token is missing. New login required");
+            let mut token_guard = self.access_token.lock().unwrap();
+            *token_guard = None;
+            let _ = self.delete_stored_refresh_token_internal().await;
+
+            return Err("Session expired. New login required.".to_string());
+        }
+
         if !status.is_success() {
             #[derive(serde::Deserialize)]
             struct ErrorBody {
@@ -63,5 +126,39 @@ impl ApiState {
         }
 
         response.json::<Res>().await.map_err(|e| e.to_string())
+    }
+
+    async fn get_stored_refresh_token_internal(&self) -> Option<String> {
+        tokio::task::spawn_blocking(|| {
+            Entry::new("de.kifo.solato", "refresh_token")
+                .ok()
+                .and_then(|entry| entry.get_password().ok())
+        })
+        .await
+        .unwrap_or(None)
+    }
+
+    async fn set_stored_refresh_token_internal(&self, token: String) -> Result<(), ()> {
+        tokio::task::spawn_blocking(move || {
+            if let Ok(entry) = Entry::new("de.kifo.solato", "refresh_token") {
+                if entry.set_password(&token).is_ok() {
+                    return Ok(());
+                }
+            }
+            Err(())
+        })
+        .await
+        .unwrap_or(Err(()))
+    }
+
+    async fn delete_stored_refresh_token_internal(&self) -> Result<(), ()> {
+        tokio::task::spawn_blocking(|| {
+            if let Ok(entry) = Entry::new("de.kifo.solato", "refresh_token") {
+                let _ = entry.delete_credential();
+            }
+            Ok(())
+        })
+        .await
+        .unwrap_or(Err(()))
     }
 }
