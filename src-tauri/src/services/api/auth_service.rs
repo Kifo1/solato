@@ -1,4 +1,4 @@
-use crate::api::api_client::ApiState;
+use crate::{api::api_client::ApiState, log};
 use keyring::Entry;
 use serde::{Deserialize, Serialize};
 
@@ -57,10 +57,10 @@ impl AuthService {
                     match Entry::new("de.kifo.solato", "refresh_token") {
                         Ok(entry) => {
                             if let Err(e) = entry.set_password(&refresh_token) {
-                                eprintln!("Keyring writing error: {}", e);
+                                log!("ERROR", format!("Keyring writing error: {}", e));
                             }
                         }
-                        Err(e) => eprintln!("Keyring could not be initialized: {}", e),
+                        Err(e) => log!("ERROR", format!("Keyring could not be initialized: {}", e)),
                     }
                 })
                 .await

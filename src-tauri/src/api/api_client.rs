@@ -6,6 +6,8 @@ use serde::Serialize;
 use std::sync::Mutex;
 use tauri::http::HeaderValue;
 
+use crate::log;
+
 pub struct ApiState {
     pub base_url: String,
     pub access_token: Mutex<Option<String>>,
@@ -59,7 +61,10 @@ impl ApiState {
                 && !endpoint.contains("/auth/public/")
                 && !refresh_attempted
             {
-                println!("Access Token abgelaufen (401). Versuche Token-Refresh...");
+                log!(
+                    "ERROR",
+                    format!("Access Token invalid. Try to refetch access token...")
+                );
                 refresh_attempted = true;
 
                 if let Some(refresh_token) = self.get_stored_refresh_token_internal().await {
@@ -100,14 +105,14 @@ impl ApiState {
                                             self.set_stored_refresh_token_internal(new_rt).await;
                                     }
 
-                                    println!("Refresh erfolgreich. Wiederhole Request via Loop...");
+                                    log!("INFO", format!("Refresh successful. Retry API request"));
                                     continue;
                                 }
                             }
                         }
                     }
                 }
-                println!("Refresh fehlgeschlagen oder kein Token vorhanden. Bereinige Sitzung.");
+                log!("ERROR", "Refresh failed or no available token");
                 {
                     let mut token_guard = self.access_token.lock().unwrap();
                     *token_guard = None;

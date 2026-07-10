@@ -1,3 +1,5 @@
+use crate::log;
+use crate::models::timer::TimerState;
 use crate::services::discord_service;
 use crate::{
     database::models::{
@@ -13,7 +15,6 @@ use crate::{
 use std::time::{Duration, Instant};
 use tauri::{AppHandle, Emitter, Manager};
 use tokio::time::sleep;
-use crate::models::timer::TimerState;
 
 fn get_session_info(state: &TimerState) -> (SessionType, TimerMode) {
     match state.active_mode {
@@ -129,7 +130,9 @@ pub async fn start_timer(app: AppHandle) -> Result<(), String> {
                         discord_service::PresenceState::Working,
                     )
                     .await
-                    .unwrap_or_else(|e| eprintln!("Failed to set Discord presence: {}", e));
+                    .unwrap_or_else(|e| {
+                        log!("ERROR", format!("Failed to set Discord presence: {}", e))
+                    });
                 }
             }
 
@@ -202,9 +205,7 @@ pub fn stop_timer_inner(state: &mut TimerState) -> Option<String> {
     session_id
 }
 
-pub async fn reset_timer(
-    app: AppHandle,
-) -> Result<(), String> {
+pub async fn reset_timer(app: AppHandle) -> Result<(), String> {
     let timer = app.state::<SharedTimerState>();
     let db = app.state::<DbState>();
 

@@ -1,6 +1,7 @@
 mod api;
 mod commands;
 mod database;
+mod logging;
 mod models;
 mod services;
 mod window;
@@ -87,7 +88,10 @@ pub fn run() {
                 if let Err(e) =
                     discord_service::set_discord_presence(handle, PresenceState::Idle).await
                 {
-                    eprintln!("Failed to set initial Discord presence: {}", e);
+                    log!(
+                        "ERROR",
+                        format!("Failed to set initial Discord presence: {}", e)
+                    );
                 }
 
                 if let Some(token) = AuthService::get_stored_refresh_token().await {

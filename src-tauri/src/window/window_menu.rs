@@ -3,6 +3,8 @@ use tauri::{
     App,
 };
 
+use crate::{log, logging::logger};
+
 pub fn build_window_menu(app: &mut App) -> Result<(), tauri::Error> {
     let help_menu = SubmenuBuilder::new(app, "Help")
         .text("github", "Github")
@@ -18,7 +20,10 @@ pub fn build_window_menu(app: &mut App) -> Result<(), tauri::Error> {
                 let _ = open::that("https://github.com/Kifo1/solato");
             }
             _ => {
-                println!("Unknown menu item clicked: {}", event.id().0);
+                log!(
+                    "ERROR",
+                    format!("Unknown menu item clicked: {}", event.id().0)
+                );
             }
         },
     );
