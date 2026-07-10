@@ -41,91 +41,95 @@ impl ApiState {
         Res: DeserializeOwned,
     {
         let url = format!("{}{}", self.base_url, endpoint);
+        let mut refresh_attempted = false;
 
-        let response = self
-            .client
-            .post(&url)
-            .headers(self.build_headers())
-            .json(body)
-            .send()
-            .await
-            .map_err(|e| format!("API request error: {}", e))?;
+        loop {
+            let response = self
+                .client
+                .post(&url)
+                .headers(self.build_headers())
+                .json(body)
+                .send()
+                .await
+                .map_err(|e| format!("API request error: {}", e))?;
 
-        let status = response.status();
+            let status = response.status();
 
-        if status == StatusCode::UNAUTHORIZED && !endpoint.contains("/auth/public/") {
-            println!("Access token not valid (401). Try to refresh token...");
+            if status == StatusCode::UNAUTHORIZED
+                && !endpoint.contains("/auth/public/")
+                && !refresh_attempted
+            {
+                println!("Access Token abgelaufen (401). Versuche Token-Refresh...");
+                refresh_attempted = true;
 
-            if let Some(refresh_token) = self.get_stored_refresh_token_internal().await {
-                #[derive(Serialize)]
-                struct RefreshRequest {
-                    old_refresh_token: String,
-                }
+                if let Some(refresh_token) = self.get_stored_refresh_token_internal().await {
+                    #[derive(Serialize)]
+                    struct RefreshRequest {
+                        old_refresh_token: String,
+                    }
 
-                #[derive(serde::Deserialize)]
-                struct AuthResponse {
-                    success: bool,
-                    access_token: Option<String>,
-                    refresh_token: Option<String>,
-                }
+                    #[derive(serde::Deserialize)]
+                    struct AuthResponse {
+                        success: bool,
+                        access_token: Option<String>,
+                        refresh_token: Option<String>,
+                    }
 
-                let refresh_url = format!("{}{}", self.base_url, "/auth/public/refresh");
-                let refresh_req = RefreshRequest {
-                    old_refresh_token: refresh_token,
-                };
+                    let refresh_url = format!("{}{}", self.base_url, "/auth/public/refresh");
+                    let refresh_req = RefreshRequest {
+                        old_refresh_token: refresh_token,
+                    };
 
-                let refresh_res = self
-                    .client
-                    .post(&refresh_url)
-                    .json(&refresh_req)
-                    .send()
-                    .await;
+                    let refresh_res = self
+                        .client
+                        .post(&refresh_url)
+                        .json(&refresh_req)
+                        .send()
+                        .await;
 
-                if let Ok(res) = refresh_res {
-                    if res.status().is_success() {
-                        if let Ok(auth_data) = res.json::<AuthResponse>().await {
-                            if auth_data.success {
-                                if let Some(new_access_token) = auth_data.access_token {
-                                    let mut token_guard = self.access_token.lock().unwrap();
-                                    *token_guard = Some(new_access_token);
+                    if let Ok(res) = refresh_res {
+                        if res.status().is_success() {
+                            if let Ok(auth_data) = res.json::<AuthResponse>().await {
+                                if auth_data.success {
+                                    if let Some(new_at) = auth_data.access_token {
+                                        let mut token_guard = self.access_token.lock().unwrap();
+                                        *token_guard = Some(new_at);
+                                    }
+                                    if let Some(new_rt) = auth_data.refresh_token {
+                                        let _ =
+                                            self.set_stored_refresh_token_internal(new_rt).await;
+                                    }
+
+                                    println!("Refresh erfolgreich. Wiederhole Request via Loop...");
+                                    continue;
                                 }
-
-                                if let Some(new_refresh_token) = auth_data.refresh_token {
-                                    let _ = self
-                                        .set_stored_refresh_token_internal(new_refresh_token)
-                                        .await;
-                                }
-
-                                println!(
-                                    "Refreshed all tokens. Retry API request to endpoint: {}",
-                                    endpoint
-                                );
-                                return self.post(endpoint, body).await;
                             }
                         }
                     }
                 }
-            }
-            println!("Refresh failed or refresh token is missing. New login required");
-            let mut token_guard = self.access_token.lock().unwrap();
-            *token_guard = None;
-            let _ = self.delete_stored_refresh_token_internal().await;
+                println!("Refresh fehlgeschlagen oder kein Token vorhanden. Bereinige Sitzung.");
+                {
+                    let mut token_guard = self.access_token.lock().unwrap();
+                    *token_guard = None;
+                }
+                let _ = self.delete_stored_refresh_token_internal().await;
 
-            return Err("Session expired. New login required.".to_string());
+                return Err("Session expired. Please log in again.".to_string());
+            }
+
+            if !status.is_success() {
+                #[derive(serde::Deserialize)]
+                struct ErrorBody {
+                    message: String,
+                }
+                if let Ok(err_json) = response.json::<ErrorBody>().await {
+                    return Err(err_json.message);
+                }
+                return Err(format!("Server responded with status: {}", status));
+            }
+
+            return response.json::<Res>().await.map_err(|e| e.to_string());
         }
-
-        if !status.is_success() {
-            #[derive(serde::Deserialize)]
-            struct ErrorBody {
-                message: String,
-            }
-            if let Ok(err_json) = response.json::<ErrorBody>().await {
-                return Err(err_json.message);
-            }
-            return Err(format!("Server responded with status: {}", status));
-        }
-
-        response.json::<Res>().await.map_err(|e| e.to_string())
     }
 
     async fn get_stored_refresh_token_internal(&self) -> Option<String> {
