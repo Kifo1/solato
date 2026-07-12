@@ -5,7 +5,7 @@ use crate::models::sync::session_sync::SessionSync;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct SyncResponseDto {
+pub struct SyncResponse {
     pub sync_timestamp: DateTime<Utc>,
     pub projects: Vec<ProjectSync>,
     pub sessions: Vec<SessionSync>,

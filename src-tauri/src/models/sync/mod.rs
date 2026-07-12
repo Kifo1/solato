@@ -1,4 +1,4 @@
 pub mod project_sync;
 pub mod session_sync;
-mod sync_request;
-mod sync_response;
+pub mod sync_request;
+pub mod sync_response;
