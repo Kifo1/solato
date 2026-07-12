@@ -20,6 +20,7 @@ pub struct RefreshRequest {
 }
 
 #[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AuthResponse {
     pub message: String,
     pub success: bool,
