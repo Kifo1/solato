@@ -11,5 +11,5 @@ import java.util.UUID;
 @Repository
 public interface SessionRepository extends JpaRepository<Session, UUID> {
 
-    List<Session> findByUserIdAndUpdatedAtAfter(String userId, Instant lastSyncedAt);
+    List<Session> findByUserIdAndUpdatedAtAfter(Long userId, Instant lastSyncedAt);
 }

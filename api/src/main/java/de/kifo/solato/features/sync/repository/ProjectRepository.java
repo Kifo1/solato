@@ -11,5 +11,5 @@ import java.util.UUID;
 @Repository
 public interface ProjectRepository extends JpaRepository<Project, UUID> {
 
-    List<Project> findByUserIdAndUpdatedAtAfter(String userId, Instant lastSyncedAt);
+    List<Project> findByUserIdAndUpdatedAtAfter(Long userId, Instant lastSyncedAt);
 }
