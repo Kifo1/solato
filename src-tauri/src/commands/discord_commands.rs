@@ -1,7 +1,7 @@
-use tauri::{AppHandle};
+use tauri::AppHandle;
 
 use crate::services::discord_service;
-use crate::services::discord_service::{PresenceState};
+use crate::services::discord_service::PresenceState;
 
 #[tauri::command]
 pub async fn set_discord_presence(

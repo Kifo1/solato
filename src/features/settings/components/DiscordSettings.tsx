@@ -43,9 +43,7 @@ export default function DiscordSettings() {
           </div>
           <Switch
             isOn={settings.discord_rich_presence}
-            setIsOn={async (val) =>
-              await updateSingleSetting({ discord_rich_presence: val })
-            }
+            setIsOn={async (val) => await updateSingleSetting({ discord_rich_presence: val })}
           />
         </div>
       </div>

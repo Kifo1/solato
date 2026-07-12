@@ -1,31 +1,29 @@
 use crate::database::models::project::Project;
 use crate::models::timer::{ActiveMode, SharedTimerState};
+use crate::services::discord_service::PresenceState;
 use crate::services::{discord_service, timer_service};
 use tauri::{AppHandle, Manager, State};
-use crate::services::discord_service::{PresenceState};
 
 #[tauri::command]
-pub async fn start_timer(
-    app: AppHandle,
-) -> Result<(), String> {
+pub async fn start_timer(app: AppHandle) -> Result<(), String> {
     timer_service::start_timer(app).await
 }
 
 #[tauri::command]
-pub async fn stop_timer(
-    app: AppHandle,
-) -> Result<(), String> {
+pub async fn stop_timer(app: AppHandle) -> Result<(), String> {
     timer_service::stop_timer(app).await
 }
 
 #[tauri::command]
-pub async fn reset_timer(
-    app: AppHandle,
-) -> Result<(), String> {
+pub async fn reset_timer(app: AppHandle) -> Result<(), String> {
     let timer = app.state::<SharedTimerState>();
 
     let running = timer.lock().unwrap().is_running;
-    let presence_state = if running { PresenceState::Working } else { PresenceState::Idle };
+    let presence_state = if running {
+        PresenceState::Working
+    } else {
+        PresenceState::Idle
+    };
 
     discord_service::set_discord_presence(app.clone(), presence_state)
         .await
@@ -80,10 +78,7 @@ pub fn get_pomodoro_phase(state: State<'_, SharedTimerState>) -> u8 {
 }
 
 #[tauri::command]
-pub async fn set_selected_project(
-    app: AppHandle,
-    project: Option<Project>,
-) -> Result<(), String> {
+pub async fn set_selected_project(app: AppHandle, project: Option<Project>) -> Result<(), String> {
     timer_service::update_project_session(app, project).await
 }
 

@@ -1,27 +1,25 @@
-use std::sync::Arc;
 use chrono::{DateTime, Utc};
 use sqlx::SqlitePool;
+use std::sync::Arc;
 use uuid::Uuid;
 
-use crate::ApiState;
 use crate::database::models::session::{SessionType, TimerMode};
 use crate::log;
 use crate::models::sync::project_sync::ProjectSync;
 use crate::models::sync::session_sync::SessionSync;
 use crate::models::sync::sync_request::SyncRequest;
 use crate::models::sync::sync_response::SyncResponse;
+use crate::ApiState;
 
 pub struct SyncService;
 
 impl SyncService {
-
     pub async fn get_last_synced_at(pool: &SqlitePool) -> Option<DateTime<Utc>> {
-        let row: Option<(String,)> = sqlx::query_as(
-            "SELECT value FROM sync_meta WHERE key = 'last_synced_at'"
-        )
-            .fetch_optional(pool)
-            .await
-            .unwrap_or(None);
+        let row: Option<(String,)> =
+            sqlx::query_as("SELECT value FROM sync_meta WHERE key = 'last_synced_at'")
+                .fetch_optional(pool)
+                .await
+                .unwrap_or(None);
 
         row.and_then(|(val,)| {
             DateTime::parse_from_rfc3339(&val)
@@ -30,14 +28,17 @@ impl SyncService {
         })
     }
 
-    pub async fn set_last_synced_at(pool: &SqlitePool, timestamp: DateTime<Utc>) -> Result<(), sqlx::Error> {
+    pub async fn set_last_synced_at(
+        pool: &SqlitePool,
+        timestamp: DateTime<Utc>,
+    ) -> Result<(), sqlx::Error> {
         sqlx::query(
             "INSERT INTO sync_meta (key, value) VALUES ('last_synced_at', $1)
-             ON CONFLICT(key) DO UPDATE SET value = excluded.value"
+             ON CONFLICT(key) DO UPDATE SET value = excluded.value",
         )
-            .bind(timestamp.to_rfc3339())
-            .execute(pool)
-            .await?;
+        .bind(timestamp.to_rfc3339())
+        .execute(pool)
+        .await?;
         Ok(())
     }
 
@@ -50,7 +51,10 @@ impl SyncService {
             .map(|t| t.to_rfc3339())
             .unwrap_or_else(|| DateTime::<Utc>::MIN_UTC.to_rfc3339());
 
-        log!("DEBUG", &format!("Filtering local changes since: {}", filter_time));
+        log!(
+            "DEBUG",
+            &format!("Filtering local changes since: {}", filter_time)
+        );
 
         let local_projects = sqlx::query!(
             r#"
@@ -60,23 +64,28 @@ impl SyncService {
             "#,
             filter_time
         )
-            .fetch_all(&**pool)
-            .await
-            .map_err(|e| format!("Failed to fetch local projects: {}", e))?
-            .into_iter()
-            .map(|row| ProjectSync {
-                id: row.id
-                    .as_deref()
-                    .and_then(|id_str| Uuid::parse_str(id_str).ok())
-                    .unwrap_or_default(),
-                name: row.name,
-                description: row.description,
-                color: row.color,
-                created_at: DateTime::parse_from_rfc3339(&row.created_at).unwrap_or_default().with_timezone(&Utc),
-                updated_at: DateTime::parse_from_rfc3339(&row.updated_at).unwrap_or_default().with_timezone(&Utc),
-                is_deleted: row.is_deleted != 0,
-            })
-            .collect::<Vec<_>>();
+        .fetch_all(&**pool)
+        .await
+        .map_err(|e| format!("Failed to fetch local projects: {}", e))?
+        .into_iter()
+        .map(|row| ProjectSync {
+            id: row
+                .id
+                .as_deref()
+                .and_then(|id_str| Uuid::parse_str(id_str).ok())
+                .unwrap_or_default(),
+            name: row.name,
+            description: row.description,
+            color: row.color,
+            created_at: DateTime::parse_from_rfc3339(&row.created_at)
+                .unwrap_or_default()
+                .with_timezone(&Utc),
+            updated_at: DateTime::parse_from_rfc3339(&row.updated_at)
+                .unwrap_or_default()
+                .with_timezone(&Utc),
+            is_deleted: row.is_deleted != 0,
+        })
+        .collect::<Vec<_>>();
 
         let local_sessions = sqlx::query!(
             r#"
@@ -86,34 +95,40 @@ impl SyncService {
             "#,
             filter_time
         )
-            .fetch_all(&**pool)
-            .await
-            .map_err(|e| format!("Failed to fetch local sessions: {}", e))?
-            .into_iter()
-            .map(|row| {
-                let session_type = serde_json::from_value(serde_json::Value::String(row.session_type))
-                    .unwrap_or(SessionType::Focus);
-                let mode = serde_json::from_value(serde_json::Value::String(row.mode))
-                    .unwrap_or(TimerMode::Stopwatch);
+        .fetch_all(&**pool)
+        .await
+        .map_err(|e| format!("Failed to fetch local sessions: {}", e))?
+        .into_iter()
+        .map(|row| {
+            let session_type = serde_json::from_value(serde_json::Value::String(row.session_type))
+                .unwrap_or(SessionType::Focus);
+            let mode = serde_json::from_value(serde_json::Value::String(row.mode))
+                .unwrap_or(TimerMode::Stopwatch);
 
-                SessionSync {
-                    id: row.id
-                        .as_deref()
-                        .and_then(|id_str| Uuid::parse_str(id_str).ok())
-                        .unwrap_or_default(),
-                    project_id: Uuid::parse_str(&row.project_id).unwrap_or_default(),
-                    start_time: DateTime::parse_from_rfc3339(&row.start_time).unwrap_or_default().with_timezone(&Utc),
-                    end_time: row.end_time
-                        .as_deref()
-                        .and_then(|t| DateTime::parse_from_rfc3339(t).ok())
-                        .map(|dt| dt.with_timezone(&Utc)),
-                    session_type,
-                    mode,
-                    updated_at: DateTime::parse_from_rfc3339(&row.updated_at).unwrap_or_default().with_timezone(&Utc),
-                    is_deleted: row.is_deleted != 0,
-                }
-            })
-            .collect::<Vec<_>>();
+            SessionSync {
+                id: row
+                    .id
+                    .as_deref()
+                    .and_then(|id_str| Uuid::parse_str(id_str).ok())
+                    .unwrap_or_default(),
+                project_id: Uuid::parse_str(&row.project_id).unwrap_or_default(),
+                start_time: DateTime::parse_from_rfc3339(&row.start_time)
+                    .unwrap_or_default()
+                    .with_timezone(&Utc),
+                end_time: row
+                    .end_time
+                    .as_deref()
+                    .and_then(|t| DateTime::parse_from_rfc3339(t).ok())
+                    .map(|dt| dt.with_timezone(&Utc)),
+                session_type,
+                mode,
+                updated_at: DateTime::parse_from_rfc3339(&row.updated_at)
+                    .unwrap_or_default()
+                    .with_timezone(&Utc),
+                is_deleted: row.is_deleted != 0,
+            }
+        })
+        .collect::<Vec<_>>();
 
         let request_payload = SyncRequest {
             last_synced_at,
@@ -121,11 +136,12 @@ impl SyncService {
             sessions: local_sessions,
         };
 
-        let response: SyncResponse = api_state
-            .post("/api/v1/sync", &request_payload)
-            .await?;
+        let response: SyncResponse = api_state.post("/api/v1/sync", &request_payload).await?;
 
-        log!("INFO", "Sync payload successfully transmitted. Applying cloud updates...");
+        log!(
+            "INFO",
+            "Sync payload successfully transmitted. Applying cloud updates..."
+        );
 
         for cloud_project in response.projects {
             let p_id = cloud_project.id.to_string();

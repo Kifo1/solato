@@ -1,5 +1,5 @@
-use tauri::{AppHandle, Manager};
 use crate::{database::models::settings::AppSettings, models::dbstate::DbState};
+use tauri::{AppHandle, Manager};
 
 pub async fn get_settings(app: AppHandle) -> Result<AppSettings, String> {
     let pool = &app.state::<DbState>().pool;

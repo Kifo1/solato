@@ -16,9 +16,9 @@ export default function LoginUser() {
   };
 
   return (
-    <div className="flex justify-center content-center">
-      <UserIcon className="text-blue-200 h-full" />
-      <Button className="bg-blue-900/50 ml-3" variant="secondary" onClick={handleLogOut}>
+    <div className="flex content-center justify-center">
+      <UserIcon className="h-full text-blue-200" />
+      <Button className="ml-3 bg-blue-900/50" variant="secondary" onClick={handleLogOut}>
         Logout
       </Button>
     </div>

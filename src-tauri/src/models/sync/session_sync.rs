@@ -1,7 +1,7 @@
+use crate::database::models::session::{SessionType, TimerMode};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-use crate::database::models::session::{SessionType, TimerMode};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]

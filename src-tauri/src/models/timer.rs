@@ -1,4 +1,4 @@
-use crate::{database::models::project::Project};
+use crate::database::models::project::Project;
 
 use super::{pomodoro::PomodoroState, stopwatch::StopwatchState};
 use std::sync::{Arc, Mutex};

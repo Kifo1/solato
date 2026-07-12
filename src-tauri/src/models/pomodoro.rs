@@ -1,8 +1,6 @@
+use crate::{database::models::session::SessionType, services::settings_service};
 use std::time::Instant;
 use tauri::AppHandle;
-use crate::{
-    database::models::session::SessionType, services::settings_service,
-};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum PomodoroPhase {
@@ -46,7 +44,10 @@ impl PomodoroState {
                 .await
                 .unwrap()
                 .short_break,
-            long_break_minutes: settings_service::get_settings(app.clone()).await.unwrap().long_break,
+            long_break_minutes: settings_service::get_settings(app.clone())
+                .await
+                .unwrap()
+                .long_break,
             phase: PomodoroPhase::FocusOne,
         }
     }
