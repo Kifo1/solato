@@ -214,7 +214,7 @@ pub async fn get_analytic_calendar_data(
 
     if project_ids.is_empty() {
         return Ok(CalendarData {
-            history: std::collections::HashMap::new(),
+            history: HashMap::new(),
         });
     }
 

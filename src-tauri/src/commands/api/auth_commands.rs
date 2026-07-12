@@ -9,12 +9,6 @@ pub struct CommandResponse {
     pub message: String,
 }
 
-#[derive(Serialize, Clone)]
-pub struct UserInfo {
-    pub username: String,
-    pub email: String,
-}
-
 #[tauri::command]
 pub async fn is_logged_in(api_state: State<'_, ApiState>) -> Result<bool, String> {
     let token_guard = api_state.access_token.lock().unwrap();

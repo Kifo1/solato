@@ -2,6 +2,7 @@ package de.kifo.solato.features.auth.model;
 
 import jakarta.persistence.*;
 import lombok.Getter;
+import lombok.NonNull;
 import lombok.Setter;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -44,12 +45,12 @@ public class User implements UserDetails {
     }
 
     @Override
-    public Collection<? extends GrantedAuthority> getAuthorities() {
+    public @NonNull Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of();
     }
 
     @Override
-    public String getUsername() {
+    public @NonNull String getUsername() {
         return this.email;
     }
 }

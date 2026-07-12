@@ -19,8 +19,6 @@ public class JwtService {
     @Value("${solato.jwt.secret}")
     private String secretKey;
 
-    private final long JWT_EXPIRATION = 1000L * 60 *  60; // 1 Hour
-
     private SecretKey getSigningKey() {
         byte[] keyBytes = secretKey.getBytes(StandardCharsets.UTF_8);
         return Keys.hmacShaKeyFor(keyBytes);
@@ -29,6 +27,8 @@ public class JwtService {
     public String generateToken(String email) {
         Map<String, Object> claims = new HashMap<>();
 
+        // 1 Hour
+        long JWT_EXPIRATION = 1000L * 60 * 60;
         return Jwts.builder()
                 .claims(claims)
                 .subject(email)

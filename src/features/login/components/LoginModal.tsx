@@ -2,7 +2,7 @@ import Button from '@/shared/components/Button';
 import Modal from '@/shared/components/Modal';
 import { TextInput } from '@/shared/components/TextInput';
 import { CloudOff } from 'lucide-react';
-import { Dispatch, FormEvent, SetStateAction, useState } from 'react';
+import React, { Dispatch, FormEvent, SetStateAction, useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useQueryClient } from '@tanstack/react-query';
 

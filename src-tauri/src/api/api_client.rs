@@ -63,7 +63,7 @@ impl ApiState {
             {
                 log!(
                     "ERROR",
-                    format!("Access Token invalid. Try to refetch access token...")
+                    "Access Token invalid. Try to refetch access token..."
                 );
                 refresh_attempted = true;
 
@@ -105,7 +105,7 @@ impl ApiState {
                                             self.set_stored_refresh_token_internal(new_rt).await;
                                     }
 
-                                    log!("INFO", format!("Refresh successful. Retry API request"));
+                                    log!("INFO", "Refresh successful. Retry API request");
                                     continue;
                                 }
                             }

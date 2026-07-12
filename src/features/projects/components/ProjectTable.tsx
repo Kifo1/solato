@@ -4,7 +4,7 @@ import { formatSecondsToString } from '@/shared/lib/utils';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { invoke } from '@tauri-apps/api/core';
 import { Clock3, Pencil, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import React, { useState } from 'react';
 
 interface ProjectTableEntryProps {
   project: Project;

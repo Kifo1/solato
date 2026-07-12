@@ -3,7 +3,7 @@ use tauri::{
     App,
 };
 
-use crate::{log, logging::logger};
+use crate::log;
 
 pub fn build_window_menu(app: &mut App) -> Result<(), tauri::Error> {
     let help_menu = SubmenuBuilder::new(app, "Help")
