@@ -1,4 +1,4 @@
-package de.kifo.solato.features.session.model;
+package de.kifo.solato.features.sync.model;
 
 import jakarta.persistence.*;
 import lombok.Getter;
