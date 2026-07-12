@@ -1,6 +1,9 @@
 import LoginButton from '@/features/login/components/LoginButton';
 import { ChartLine, FolderDot, LucideIcon, Settings, Timer } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
+import { invoke } from '@tauri-apps/api/core';
+import LoginUser from '@features/login/components/LoginUser.tsx';
+import { useQuery } from '@tanstack/react-query';
 
 interface NavbarItemProps {
   name: string;
@@ -29,6 +32,17 @@ function NavbarItem({ name, Icon, to }: Readonly<NavbarItemProps>) {
 }
 
 export default function Sidebar() {
+  const {
+    data: loggedIn,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ['loginStatus'],
+    queryFn: () => invoke<boolean>('is_logged_in'),
+    refetchInterval: 60 * 1000,
+    refetchIntervalInBackground: true,
+  });
+
   return (
     <aside className="flex w-64 flex-col justify-between border-r border-blue-300 p-4">
       <div className="flex flex-col gap-6">
@@ -43,7 +57,15 @@ export default function Sidebar() {
           <NavbarItem name="Settings" Icon={Settings} to="/settings"></NavbarItem>
         </nav>
       </div>
-      <LoginButton></LoginButton>
+      {isLoading ? (
+        <span className="text-xs text-gray-400">Loading...</span>
+      ) : error ? (
+        <span className="text-xs text-red-400">Error</span>
+      ) : loggedIn ? (
+        <LoginUser />
+      ) : (
+        <LoginButton />
+      )}
     </aside>
   );
 }

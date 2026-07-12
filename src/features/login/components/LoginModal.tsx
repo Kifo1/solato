@@ -4,6 +4,7 @@ import { TextInput } from '@/shared/components/TextInput';
 import { CloudOff } from 'lucide-react';
 import { Dispatch, FormEvent, SetStateAction, useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
+import { useQueryClient } from '@tanstack/react-query';
 
 enum ModalView {
   Welcome,
@@ -20,6 +21,7 @@ const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 const PASSWORD_REGEX = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=!.*_]).*$/;
 
 export default function LoginModal({ isOpen, setIsOpen }: Readonly<LoginModalProps>) {
+  const queryClient = useQueryClient();
   const [currentView, setCurrentView] = useState<ModalView>(ModalView.Welcome);
 
   const handleClose = () => {
@@ -59,11 +61,23 @@ export default function LoginModal({ isOpen, setIsOpen }: Readonly<LoginModalPro
       )}
 
       {currentView === ModalView.Login && (
-        <LoginForm onBack={() => setCurrentView(ModalView.Welcome)} onSuccess={handleClose} />
+        <LoginForm
+          onBack={() => setCurrentView(ModalView.Welcome)}
+          onSuccess={() => {
+            handleClose();
+            queryClient.setQueryData(['loginStatus'], true);
+          }}
+        />
       )}
 
       {currentView === ModalView.Register && (
-        <RegisterForm onBack={() => setCurrentView(ModalView.Welcome)} onSuccess={handleClose} />
+        <RegisterForm
+          onBack={() => setCurrentView(ModalView.Welcome)}
+          onSuccess={() => {
+            handleClose();
+            queryClient.setQueryData(['loginStatus'], true);
+          }}
+        />
       )}
     </Modal>
   );

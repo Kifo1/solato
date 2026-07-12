@@ -40,6 +40,15 @@ impl AuthService {
         Self::handle_response(api_state, res).await
     }
 
+    pub async fn logout(api_state: &ApiState) -> Result<String, String> {
+        Self::delete_stored_refresh_token()
+            .await
+            .expect("Unable to delete stored refresh token for logout");
+        let mut access_token_guard = api_state.access_token.lock().unwrap();
+        *access_token_guard = None;
+        Ok("Successfully logged out".to_string())
+    }
+
     pub async fn refresh(api_state: &ApiState, req: RefreshRequest) -> Result<String, String> {
         let res: AuthResponse = api_state.post("/auth/public/refresh", &req).await?;
         Self::handle_response(api_state, res).await

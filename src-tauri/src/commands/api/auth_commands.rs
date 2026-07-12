@@ -16,17 +16,13 @@ pub struct UserInfo {
 }
 
 #[tauri::command]
-pub async fn get_current_user(api_state: State<'_, ApiState>) -> Result<Option<UserInfo>, String> {
+pub async fn is_logged_in(api_state: State<'_, ApiState>) -> Result<bool, String> {
     let token_guard = api_state.access_token.lock().unwrap();
 
     if token_guard.is_some() {
-        //TODO Use real user object
-        Ok(Some(UserInfo {
-            username: "test name".to_string(),
-            email: "test@solato".to_string(),
-        }))
+        Ok(true)
     } else {
-        Ok(None)
+        Ok(false)
     }
 }
 
@@ -62,4 +58,9 @@ pub async fn login_user(
             message: err,
         }),
     }
+}
+
+#[tauri::command]
+pub async fn logout(api_state: State<'_, ApiState>) -> Result<String, String> {
+    AuthService::logout(&api_state).await
 }

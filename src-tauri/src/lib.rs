@@ -156,9 +156,10 @@ pub fn run() {
             commands::settings_commands::get_settings,
             commands::settings_commands::update_settings,
             commands::discord_commands::set_discord_presence,
-            commands::api::auth_commands::get_current_user,
+            commands::api::auth_commands::is_logged_in,
             commands::api::auth_commands::register_user,
             commands::api::auth_commands::login_user,
+            commands::api::auth_commands::logout
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
