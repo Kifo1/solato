@@ -63,6 +63,7 @@ Notes:
 - `npm run tauri dev` # Start the Tauri dev session (frontend + native window)
 - `npm run build` # Compile TypeScript and build frontend assets
 - `npm run tauri build`# Build native Tauri bundles
+- `npm run tauri:build:linux`# Build native Tauri bundles for Linux
 - `npm run format` # Format code with Prettier
 
 ## Contributing
