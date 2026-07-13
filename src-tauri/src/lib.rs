@@ -8,6 +8,7 @@ mod window;
 
 use crate::api::api_client::ApiState;
 use crate::services::api::auth_service::{AuthService, RefreshRequest};
+use crate::services::api::sync_service::SyncService;
 use crate::services::discord_service;
 use crate::services::discord_service::{DiscordState, PresenceState};
 use crate::{
@@ -16,7 +17,7 @@ use crate::{
 use models::dbstate::DbState;
 use models::timer::TimerState;
 use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
-use std::{str::FromStr, sync::Arc};
+use std::{str::FromStr, sync::Arc, time::Duration};
 use tauri::Manager;
 use tokio::sync::Mutex;
 
@@ -70,7 +71,7 @@ pub fn run() {
                     .await
                     .expect("Unable to run database migrations");
 
-                let db_state = DbState { pool };
+                let db_state = DbState { pool: pool.clone() };
 
                 let _ = services::session_service::delete_incomplete_sessions(&db_state).await;
 
@@ -80,7 +81,9 @@ pub fn run() {
                 let timer_state = SharedTimerState::from(internal_state);
                 handle.manage(timer_state);
                 handle.manage(ActiveProjectFilterState::default());
+
                 handle.manage(ApiState::new(base_url));
+
                 handle.manage(DiscordState {
                     client: Mutex::new(None),
                 });
@@ -94,15 +97,35 @@ pub fn run() {
                     );
                 }
 
+                let api_state = app.state::<ApiState>();
+
                 if let Some(token) = AuthService::get_stored_refresh_token().await {
                     let _ = AuthService::refresh(
-                        &app.state::<ApiState>(),
+                        &api_state,
                         RefreshRequest {
                             old_refresh_token: token,
                         },
                     )
                     .await;
                 }
+
+                let app_handle_for_sync = app.handle().clone();
+                let pool_for_sync = pool.clone();
+
+                tauri::async_runtime::spawn(async move {
+                    log!("INFO", "Background sync loop started.");
+                    loop {
+                        if let Some(api_state_guard) = app_handle_for_sync.try_state::<ApiState>() {
+                            log!("DEBUG", "Triggering scheduled background sync...");
+                            let _ =
+                                SyncService::execute_sync(&api_state_guard, &pool_for_sync).await;
+                        } else {
+                            log!("WARN", "ApiState not available for background sync yet.");
+                        }
+
+                        tokio::time::sleep(Duration::from_secs(5 * 60)).await; // Automatic resync all 5 mins
+                    }
+                });
             });
 
             Ok(())
@@ -111,12 +134,14 @@ pub fn run() {
             if let tauri::WindowEvent::CloseRequested { .. } = event {
                 let app_handle = window.app_handle();
 
-                if let (Some(state), Some(db)) = (
+                if let (Some(state), Some(db), Some(api)) = (
                     app_handle.try_state::<SharedTimerState>(),
                     app_handle.try_state::<DbState>(),
+                    app_handle.try_state::<ApiState>(),
                 ) {
                     let state_handle = state.inner().clone();
                     let db_handle = db.inner().clone();
+                    let api_handle = api.inner();
 
                     tauri::async_runtime::block_on(async {
                         let session_id = {
@@ -127,6 +152,9 @@ pub fn run() {
                         if let Some(id) = session_id {
                             let _ = services::session_service::stop_session(id, &db_handle).await;
                         }
+
+                        log!("INFO", "Executing final sync before exit...");
+                        let _ = SyncService::execute_sync(api_handle, &db_handle.pool).await;
                     });
                 }
             }
