@@ -127,8 +127,13 @@ impl SyncService {
             sessions: local_sessions,
         };
 
-        let response: SyncResponse = api_state.post("/api/v1/sync", &request_payload).await?;
-
+        let response: SyncResponse = match api_state.post("/sync", &request_payload).await {
+            Ok(res) => res,
+            Err(e) => {
+                log!("ERROR", &format!("API sync request failed: {}", e));
+                return Err(format!("Sync cancelled: {}", e));
+            }
+        };
         log!(
             "INFO",
             "Sync payload successfully transmitted. Applying cloud updates..."

@@ -123,7 +123,7 @@ pub fn run() {
                             log!("WARN", "ApiState not available for background sync yet.");
                         }
 
-                        tokio::time::sleep(Duration::from_secs(5 * 60)).await; // Automatic resync all 5 mins
+                        tokio::time::sleep(Duration::from_secs(1 * 60)).await; // Automatic resync all 5 mins
                     }
                 });
             });
