@@ -57,8 +57,8 @@ impl SyncService {
         let last_synced_at = Self::get_last_synced_at(pool).await;
 
         let filter_time = last_synced_at
-            .map(|t| t.to_rfc3339_opts(chrono::SecondsFormat::Secs, true))
-            .unwrap_or_else(|| "1970-01-01T00:00:00Z".to_string());
+            .map(|t| t.format("%Y-%m-%d %H:%M:%S").to_string())
+            .unwrap_or_else(|| "1970-01-01 00:00:00".to_string());
 
         log!(
             "DEBUG",
