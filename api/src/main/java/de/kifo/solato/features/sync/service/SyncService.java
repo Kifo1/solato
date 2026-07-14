@@ -24,31 +24,37 @@ public class SyncService {
         Instant syncTimestamp = Instant.now();
 
         if (request.projects() != null) {
-            request.projects().forEach(dto -> upsertProject(userId, dto));
+            request.projects().forEach(dto -> upsertProject(userId, dto, syncTimestamp));
         }
         if (request.sessions() != null) {
-            request.sessions().forEach(dto -> upsertSession(userId, dto));
+            request.sessions().forEach(dto -> upsertSession(userId, dto, syncTimestamp));
         }
 
         Instant lastSynced = request.lastSyncedAt() != null ? request.lastSyncedAt() : Instant.EPOCH;
 
         List<ProjectSync> dbProjects = projectRepository.findByUserIdAndUpdatedAtAfter(userId, lastSynced)
-                .stream().map(this::mapToProject).toList();
+                .stream()
+                .filter(p -> p.getUpdatedAt().isBefore(syncTimestamp))
+                .map(this::mapToProject)
+                .toList();
 
         List<SessionSync> dbSessions = sessionRepository.findByUserIdAndUpdatedAtAfter(userId, lastSynced)
-                .stream().map(this::mapToSession).toList();
+                .stream()
+                .filter(s -> s.getUpdatedAt().isBefore(syncTimestamp))
+                .map(this::mapToSession)
+                .toList();
 
         return new SyncResponse(syncTimestamp, dbProjects, dbSessions);
     }
 
-    private void upsertProject(Long userId, ProjectSync dto) {
+    private void upsertProject(Long userId, ProjectSync dto, Instant syncTimestamp) {
         projectRepository.findById(dto.id()).ifPresentOrElse(
                 existing -> {
                     if (dto.updatedAt().isAfter(existing.getUpdatedAt())) {
                         existing.setName(dto.name());
                         existing.setDescription(dto.description());
                         existing.setColor(dto.color());
-                        existing.setUpdatedAt(dto.updatedAt());
+                        existing.setUpdatedAt(syncTimestamp);
                         existing.setDeleted(dto.isDeleted());
                         projectRepository.save(existing);
                     }
@@ -61,14 +67,14 @@ public class SyncService {
                     newProject.setDescription(dto.description());
                     newProject.setColor(dto.color());
                     newProject.setCreatedAt(dto.createdAt());
-                    newProject.setUpdatedAt(dto.updatedAt());
+                    newProject.setUpdatedAt(syncTimestamp);
                     newProject.setDeleted(dto.isDeleted());
                     projectRepository.save(newProject);
                 }
         );
     }
 
-    private void upsertSession(Long userId, SessionSync dto) {
+    private void upsertSession(Long userId, SessionSync dto, Instant syncTimestamp) {
         sessionRepository.findById(dto.id()).ifPresentOrElse(
                 existing -> {
                     if (dto.updatedAt().isAfter(existing.getUpdatedAt())) {
@@ -77,7 +83,7 @@ public class SyncService {
                         existing.setEndTime(dto.endTime());
                         existing.setSessionType(dto.sessionType());
                         existing.setMode(dto.mode());
-                        existing.setUpdatedAt(dto.updatedAt());
+                        existing.setUpdatedAt(syncTimestamp);
                         existing.setDeleted(dto.isDeleted());
                         sessionRepository.save(existing);
                     }
@@ -91,7 +97,7 @@ public class SyncService {
                     newSession.setEndTime(dto.endTime());
                     newSession.setSessionType(dto.sessionType());
                     newSession.setMode(dto.mode());
-                    newSession.setUpdatedAt(dto.updatedAt());
+                    newSession.setUpdatedAt(syncTimestamp);
                     newSession.setDeleted(dto.isDeleted());
                     sessionRepository.save(newSession);
                 }
