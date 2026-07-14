@@ -10,6 +10,16 @@ use crate::models::sync::sync_request::SyncRequest;
 use crate::models::sync::sync_response::SyncResponse;
 use crate::ApiState;
 
+fn parse_datetime(s: &str) -> DateTime<Utc> {
+    if let Ok(dt) = DateTime::parse_from_rfc3339(s) {
+        return dt.with_timezone(&Utc);
+    }
+    if let Ok(naive) = chrono::NaiveDateTime::parse_from_str(s, "%Y-%m-%d %H:%M:%S") {
+        return DateTime::<Utc>::from_naive_utc_and_offset(naive, Utc);
+    }
+    Utc::now()
+}
+
 pub struct SyncService;
 
 impl SyncService {
@@ -35,9 +45,9 @@ impl SyncService {
             "INSERT INTO sync_meta (key, value) VALUES ('last_synced_at', ?)
              ON CONFLICT(key) DO UPDATE SET value = excluded.value",
         )
-        .bind(timestamp.to_rfc3339_opts(chrono::SecondsFormat::Secs, true))
-        .execute(pool)
-        .await?;
+            .bind(timestamp.to_rfc3339_opts(chrono::SecondsFormat::Secs, true))
+            .execute(pool)
+            .await?;
         Ok(())
     }
 
@@ -63,24 +73,20 @@ impl SyncService {
             "#,
             filter_time
         )
-        .fetch_all(pool)
-        .await
-        .map_err(|e| format!("Failed to fetch local projects: {}", e))?
-        .into_iter()
-        .map(|row| ProjectSync {
-            id: Uuid::parse_str(&row.id).unwrap_or_default(),
-            name: row.name,
-            description: row.description,
-            color: row.color,
-            created_at: DateTime::parse_from_rfc3339(&row.created_at)
-                .unwrap_or_default()
-                .with_timezone(&Utc),
-            updated_at: DateTime::parse_from_rfc3339(&row.updated_at)
-                .unwrap_or_default()
-                .with_timezone(&Utc),
-            is_deleted: row.is_deleted != 0,
-        })
-        .collect::<Vec<_>>();
+            .fetch_all(pool)
+            .await
+            .map_err(|e| format!("Failed to fetch local projects: {}", e))?
+            .into_iter()
+            .map(|row| ProjectSync {
+                id: Uuid::parse_str(&row.id).unwrap_or_default(),
+                name: row.name,
+                description: row.description,
+                color: row.color,
+                created_at: parse_datetime(&row.created_at),
+                updated_at: parse_datetime(&row.updated_at),
+                is_deleted: row.is_deleted != 0,
+            })
+            .collect::<Vec<_>>();
 
         let local_sessions = sqlx::query!(
             r#"
@@ -90,36 +96,28 @@ impl SyncService {
             "#,
             filter_time
         )
-        .fetch_all(pool)
-        .await
-        .map_err(|e| format!("Failed to fetch local sessions: {}", e))?
-        .into_iter()
-        .map(|row| {
-            let session_type = serde_json::from_value(serde_json::Value::String(row.session_type))
-                .unwrap_or(SessionType::Focus);
-            let mode = serde_json::from_value(serde_json::Value::String(row.mode))
-                .unwrap_or(TimerMode::Stopwatch);
+            .fetch_all(pool)
+            .await
+            .map_err(|e| format!("Failed to fetch local sessions: {}", e))?
+            .into_iter()
+            .map(|row| {
+                let session_type = serde_json::from_value(serde_json::Value::String(row.session_type))
+                    .unwrap_or(SessionType::Focus);
+                let mode = serde_json::from_value(serde_json::Value::String(row.mode))
+                    .unwrap_or(TimerMode::Stopwatch);
 
-            SessionSync {
-                id: Uuid::parse_str(&row.id).unwrap_or_default(),
-                project_id: Uuid::parse_str(&row.project_id).unwrap_or_default(),
-                start_time: DateTime::parse_from_rfc3339(&row.start_time)
-                    .unwrap_or_default()
-                    .with_timezone(&Utc),
-                end_time: row
-                    .end_time
-                    .as_deref()
-                    .and_then(|t| DateTime::parse_from_rfc3339(t).ok())
-                    .map(|dt| dt.with_timezone(&Utc)),
-                session_type,
-                mode,
-                updated_at: DateTime::parse_from_rfc3339(&row.updated_at)
-                    .unwrap_or_default()
-                    .with_timezone(&Utc),
-                is_deleted: row.is_deleted != 0,
-            }
-        })
-        .collect::<Vec<_>>();
+                SessionSync {
+                    id: Uuid::parse_str(&row.id).unwrap_or_default(),
+                    project_id: Uuid::parse_str(&row.project_id).unwrap_or_default(),
+                    start_time: parse_datetime(&row.start_time),
+                    end_time: row.end_time.as_deref().map(parse_datetime),
+                    session_type,
+                    mode,
+                    updated_at: parse_datetime(&row.updated_at),
+                    is_deleted: row.is_deleted != 0,
+                }
+            })
+            .collect::<Vec<_>>();
 
         let request_payload = SyncRequest {
             last_synced_at,
@@ -139,8 +137,18 @@ impl SyncService {
             "Sync payload successfully transmitted. Applying cloud updates..."
         );
 
+        log!(
+            "DEBUG",
+            &format!(
+                "Received {} projects and {} sessions from cloud",
+                response.projects.len(),
+                response.sessions.len()
+            )
+        );
+
         for cloud_project in response.projects {
             let p_id = cloud_project.id.to_string();
+            log!("DEBUG", &format!("Upserting project: {}", p_id));
             let p_created = cloud_project
                 .created_at
                 .to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
@@ -176,6 +184,7 @@ impl SyncService {
 
         for cloud_session in response.sessions {
             let s_id = cloud_session.id.to_string();
+            log!("DEBUG", &format!("Upserting session: {}", s_id));
             let s_project_id = cloud_session.project_id.to_string();
             let s_start = cloud_session
                 .start_time
