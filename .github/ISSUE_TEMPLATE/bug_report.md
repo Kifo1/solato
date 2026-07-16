@@ -1,9 +1,10 @@
 ---
 name: Bug report
 about: Create a report to help improve solato
-title: '[Bug] - Title'
-labels: bug
+title: "[Bug] - Title"
+labels: bug, enhancement
 assignees: ''
+
 ---
 
 **Describe the bug**
@@ -25,7 +26,7 @@ If applicable, add screenshots to help explain your problem.
 
 **Desktop (please complete the following information):**
 
-- OS: [e.g. iOS]
+- OS: [e.g. iOS] (also select the corresponding label)
 - Version [e.g. 22]
 
 **Additional context**
