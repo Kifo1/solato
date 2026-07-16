@@ -12,3 +12,5 @@ spring:
 solato:
   jwt:
     secret: ${JWT_SECRET:90967723bc52d3ee508672781442d898}
+  resend:
+    api-key: ${RESEND_API_KEY:00000000-0000-0000-0000-000000000000} # Placeholder not working, set your real API key as an environment variable
