@@ -86,7 +86,7 @@ public class AuthService {
         String accessToken = jwtService.generateToken(user.getEmail());
         String refreshToken = createRefreshToken(user);
 
-        return new AuthResponse("Registrierung erfolgreich abgeschlossen", true, accessToken, refreshToken);
+        return new AuthResponse("Registration completed.", true, accessToken, refreshToken);
     }
 
     public AuthResponse login(LoginRequest request) {
