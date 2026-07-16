@@ -1,9 +1,6 @@
 package de.kifo.solato.features.auth.controller;
 
-import de.kifo.solato.features.auth.dto.AuthResponse;
-import de.kifo.solato.features.auth.dto.LoginRequest;
-import de.kifo.solato.features.auth.dto.RefreshRequest;
-import de.kifo.solato.features.auth.dto.RegisterRequest;
+import de.kifo.solato.features.auth.dto.*;
 import de.kifo.solato.features.auth.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +21,15 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
         AuthResponse response = authService.register(request);
+        if (!response.success()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        }
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/verify")
+    public ResponseEntity<AuthResponse> verify(@Valid @RequestBody VerifyRequest request) {
+        AuthResponse response = authService.verifyAndRegister(request);
         if (!response.success()) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
         }

@@ -3,8 +3,11 @@ package de.kifo.solato.features.auth.service;
 import de.kifo.solato.features.auth.dto.AuthResponse;
 import de.kifo.solato.features.auth.dto.LoginRequest;
 import de.kifo.solato.features.auth.dto.RegisterRequest;
+import de.kifo.solato.features.auth.dto.VerifyRequest;
+import de.kifo.solato.features.auth.model.PendingRegistration;
 import de.kifo.solato.features.auth.model.RefreshToken;
 import de.kifo.solato.features.auth.model.User;
+import de.kifo.solato.features.auth.repository.PendingRegistrationRepository;
 import de.kifo.solato.features.auth.repository.RefreshTokenRepository;
 import de.kifo.solato.features.auth.repository.UserRepository;
 import jakarta.transaction.Transactional;
@@ -13,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.security.SecureRandom;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
@@ -21,28 +25,68 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class AuthService {
-    //TODO Add email service for registration
 
     private final JwtService jwtService;
+    private final EmailService emailService;
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final PendingRegistrationRepository pendingRegistrationRepository;
     private final PasswordEncoder passwordEncoder;
 
+    @Transactional
     public AuthResponse register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.email())) {
             return new AuthResponse("E-Mail already in use.", false);
         }
 
-        User user = new User();
-        user.setEmail(request.email());
-        user.setPassword(passwordEncoder.encode(request.password()));
+        String email = request.email();
 
+        String verifyCode = generateVerifyCode();
+        pendingRegistrationRepository.findByEmail(email)
+                .ifPresent(pendingRegistrationRepository::delete);
+
+        PendingRegistration pendingRegistration = new PendingRegistration();
+        pendingRegistration.setEmail(email);
+        pendingRegistration.setPassword(passwordEncoder.encode(request.password()));
+        pendingRegistration.setVerificationCode(verifyCode);
+
+        pendingRegistrationRepository.save(pendingRegistration);
+
+        emailService.sendVerificationCode(email, verifyCode);
+
+        return new AuthResponse("User successful registered", true);
+    }
+
+    @Transactional
+    public AuthResponse verifyAndRegister(VerifyRequest request) {
+        Optional<PendingRegistration> pendingRegistrationOptional = pendingRegistrationRepository.findByEmail(request.email());
+
+        if (pendingRegistrationOptional.isEmpty()) {
+            return new AuthResponse("No pending verification found for this E-Mail.", false);
+        }
+
+        PendingRegistration pendingRegistration = pendingRegistrationOptional.get();
+
+        if (Instant.now().isAfter(pendingRegistration.getExpiryDate())) {
+            pendingRegistrationRepository.delete(pendingRegistration);
+            return new AuthResponse("Verification code expired. Please register again.", false);
+        }
+
+        if (!pendingRegistration.getVerificationCode().equals(request.code())) {
+            return new AuthResponse("Invalid verification code.", false);
+        }
+
+        User user = new User();
+        user.setEmail(pendingRegistration.getEmail());
+        user.setPassword(pendingRegistration.getPassword());
         userRepository.save(user);
+
+        pendingRegistrationRepository.delete(pendingRegistration);
 
         String accessToken = jwtService.generateToken(user.getEmail());
         String refreshToken = createRefreshToken(user);
 
-        return new AuthResponse("User successful registered", true, accessToken, refreshToken);
+        return new AuthResponse("Registrierung erfolgreich abgeschlossen", true, accessToken, refreshToken);
     }
 
     public AuthResponse login(LoginRequest request) {
@@ -101,5 +145,11 @@ public class AuthService {
         refreshToken.setExpiryDate(Instant.now().plus(365, ChronoUnit.DAYS)); // Refresh token expires after one year
         refreshTokenRepository.save(refreshToken);
         return refreshToken.getToken();
+    }
+
+    private String generateVerifyCode() {
+        SecureRandom random = new SecureRandom();
+        int num = random.nextInt(1000000);
+        return String.format("%06d", num);
     }
 }
