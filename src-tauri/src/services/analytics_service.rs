@@ -1,7 +1,7 @@
 use std::{collections::HashMap, sync::Mutex};
 
 use chrono::{Duration, Local, NaiveDate};
-use sqlx::Row;
+use sqlx::{QueryBuilder, Row};
 use tauri::State;
 
 use crate::models::{
@@ -127,7 +127,7 @@ pub async fn get_analytic_streak_data(
         });
     }
 
-    let mut query_string = String::from(
+    let mut query_builder = QueryBuilder::new(
         r#"
         SELECT DISTINCT date(start_time, 'localtime') AS session_date
         FROM sessions
@@ -137,23 +137,21 @@ pub async fn get_analytic_streak_data(
     );
 
     if !project_ids.is_empty() {
-        query_string.push_str(" AND project_id IN (");
-        let placeholders: Vec<String> = project_ids.iter().map(|_| "?".to_string()).collect();
-        query_string.push_str(&placeholders.join(", "));
-        query_string.push_str(")");
-    }
-
-    query_string.push_str(" ORDER BY session_date DESC");
-
-    let mut query = sqlx::query(&query_string);
-
-    if !project_ids.is_empty() {
-        for id in project_ids {
-            query = query.bind(id);
+        query_builder.push(" AND project_id IN (");
+        let mut separated = query_builder.separated(", ");
+        for id in &project_ids {
+            separated.push_bind(id);
         }
+        query_builder.push(")");
     }
 
-    let records = query.fetch_all(pool).await.map_err(|e| e.to_string())?;
+    query_builder.push(" ORDER BY session_date DESC");
+
+    let records = query_builder
+        .build()
+        .fetch_all(pool)
+        .await
+        .map_err(|e| e.to_string())?;
 
     let active_dates: Vec<NaiveDate> = records
         .iter()
@@ -218,7 +216,7 @@ pub async fn get_analytic_calendar_data(
         });
     }
 
-    let mut query_string = String::from(
+    let mut query_builder = QueryBuilder::new(
         r#"
         SELECT 
             date(start_time, 'localtime') AS session_date,
@@ -236,23 +234,21 @@ pub async fn get_analytic_calendar_data(
     );
 
     if !project_ids.is_empty() {
-        query_string.push_str(" AND project_id IN (");
-        let placeholders: Vec<String> = project_ids.iter().map(|_| "?".to_string()).collect();
-        query_string.push_str(&placeholders.join(", "));
-        query_string.push_str(")");
-    }
-
-    query_string.push_str(" GROUP BY date(start_time, 'localtime')");
-
-    let mut query = sqlx::query(&query_string);
-
-    if !project_ids.is_empty() {
-        for id in project_ids {
-            query = query.bind(id);
+        query_builder.push(" AND project_id IN (");
+        let mut separated = query_builder.separated(", ");
+        for id in &project_ids {
+            separated.push_bind(id);
         }
+        query_builder.push(")");
     }
 
-    let records = query.fetch_all(pool).await.map_err(|e| e.to_string())?;
+    query_builder.push(" GROUP BY date(start_time, 'localtime')");
+
+    let records = query_builder
+        .build()
+        .fetch_all(pool)
+        .await
+        .map_err(|e| e.to_string())?;
 
     let mut history = HashMap::new();
     for row in records {
