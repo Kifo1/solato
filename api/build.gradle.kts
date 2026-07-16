@@ -23,6 +23,7 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-validation")
 	implementation("org.springframework.boot:spring-boot-starter-webmvc")
 	implementation("io.jsonwebtoken:jjwt-api:0.13.0")
+	implementation("com.resend:resend-java:+")
 	compileOnly("org.projectlombok:lombok")
 	runtimeOnly("org.mariadb.jdbc:mariadb-java-client")
 	runtimeOnly("io.jsonwebtoken:jjwt-impl:0.13.0")
