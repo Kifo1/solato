@@ -1,0 +1,81 @@
+version: 2
+updates:
+  # Frontend
+  - package-ecosystem: "npm"
+    directory: "/" # Path to package.json
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    groups:
+      frontend-deps:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+      frontend-majors:
+        patterns:
+          - "*"
+        update-types:
+          - "major"
+    labels:
+      - "dependencies"
+      - "frontend"
+
+  # Backend
+  - package-ecosystem: "cargo"
+    directory: "/src-tauri"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    groups:
+      rust-deps:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+      rust-majors:
+        patterns:
+          - "*"
+        update-types:
+          - "major"
+    labels:
+      - "dependencies"
+      - "rust"
+
+  # GitHub Actions Workflows //TODO Review and adapt in the near future
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 3
+    groups:
+      actions-deps:
+        patterns:
+          - "*"
+    labels:
+      - "dependencies"
+      - "ci"
+
+  # API
+  - package-ecosystem: "gradle"
+    directory: "/api"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    groups:
+      spring-deps:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+      spring-majors:
+        patterns:
+          - "*"
+        update-types:
+          - "major"
+    labels:
+      - "dependencies"
+      - "backend"
