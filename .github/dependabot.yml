@@ -42,7 +42,7 @@ updates:
           - "major"
     labels:
       - "dependencies"
-      - "rust"
+      - "backend"
 
   # GitHub Actions Workflows //TODO Review and adapt in the near future
   - package-ecosystem: "github-actions"
@@ -78,4 +78,4 @@ updates:
           - "major"
     labels:
       - "dependencies"
-      - "backend"
+      - "api"
