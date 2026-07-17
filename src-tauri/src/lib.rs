@@ -24,7 +24,7 @@ use tokio::sync::Mutex;
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let base_url = std::env::var("API_BASE_URL")
-        .unwrap_or_else(|_| "http://localhost:8080/api/v1".to_string());
+        .unwrap_or_else(|_| "https://api.solato.app/api/v1".to_string());
 
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
@@ -187,7 +187,8 @@ pub fn run() {
             commands::api::auth_commands::is_logged_in,
             commands::api::auth_commands::register_user,
             commands::api::auth_commands::login_user,
-            commands::api::auth_commands::logout
+            commands::api::auth_commands::logout,
+            commands::api::auth_commands::verify_user,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
