@@ -1,4 +1,7 @@
-use crate::{api::api_client::ApiState, log};
+use crate::{
+    api::{self, api_client::ApiState},
+    log,
+};
 use keyring::Entry;
 use serde::{Deserialize, Serialize};
 
@@ -11,7 +14,7 @@ pub struct RegisterRequest {
 #[derive(Serialize, Deserialize)]
 pub struct VerifyRequest {
     pub email: String,
-    pub code: i32,
+    pub code: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -39,6 +42,11 @@ pub struct AuthService;
 impl AuthService {
     pub async fn register(api_state: &ApiState, req: RegisterRequest) -> Result<String, String> {
         let res: AuthResponse = api_state.post("/auth/public/register", &req).await?;
+        Self::handle_response(api_state, res).await
+    }
+
+    pub async fn verify(api_state: &ApiState, req: VerifyRequest) -> Result<String, String> {
+        let res: AuthResponse = api_state.post("/auth/public/verify", &req).await?;
         Self::handle_response(api_state, res).await
     }
 

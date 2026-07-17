@@ -10,6 +10,7 @@ enum ModalView {
   Welcome,
   Login,
   Register,
+  Verify,
 }
 
 interface LoginModalProps {
@@ -23,6 +24,7 @@ const PASSWORD_REGEX = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=!.*_]).*$/;
 export default function LoginModal({ isOpen, setIsOpen }: Readonly<LoginModalProps>) {
   const queryClient = useQueryClient();
   const [currentView, setCurrentView] = useState<ModalView>(ModalView.Welcome);
+  const [verificationEmail, setVerificationEmail] = useState<string>('');
 
   const handleClose = () => {
     setIsOpen(false);
@@ -73,10 +75,20 @@ export default function LoginModal({ isOpen, setIsOpen }: Readonly<LoginModalPro
       {currentView === ModalView.Register && (
         <RegisterForm
           onBack={() => setCurrentView(ModalView.Welcome)}
+          onSuccess={(email) => {
+            setVerificationEmail(email);
+            setCurrentView(ModalView.Verify);
+          }}
+        />
+      )}
+
+      {currentView === ModalView.Verify && (
+        <VerifyForm
           onSuccess={() => {
             handleClose();
             queryClient.setQueryData(['loginStatus'], true);
           }}
+          email={verificationEmail}
         />
       )}
     </Modal>
@@ -95,6 +107,15 @@ function FormWrapper({ title, children }: Readonly<{ title: string; children: Re
 interface FormProps {
   onBack: () => void;
   onSuccess: () => void;
+}
+
+interface RegisterFormProps extends Omit<FormProps, 'onSuccess'> {
+  onSuccess: (email: string) => void;
+}
+
+interface VerifyFormProps {
+  onSuccess: () => void;
+  email: string;
 }
 
 function LoginForm({ onBack, onSuccess }: Readonly<FormProps>) {
@@ -173,7 +194,7 @@ function LoginForm({ onBack, onSuccess }: Readonly<FormProps>) {
   );
 }
 
-function RegisterForm({ onBack, onSuccess }: Readonly<FormProps>) {
+function RegisterForm({ onBack, onSuccess }: Readonly<RegisterFormProps>) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [localError, setLocalError] = useState<string | null>(null);
@@ -209,7 +230,7 @@ function RegisterForm({ onBack, onSuccess }: Readonly<FormProps>) {
 
     try {
       await register({ email, password });
-      onSuccess();
+      onSuccess(email);
     } catch {} //Error handling via tanstack
   };
 
@@ -250,6 +271,59 @@ function RegisterForm({ onBack, onSuccess }: Readonly<FormProps>) {
           disabled={isRegistering}
         >
           Back
+        </Button>
+      </FormWrapper>
+    </form>
+  );
+}
+
+function VerifyForm({ onSuccess, email }: Readonly<VerifyFormProps>) {
+  const [code, setCode] = useState('');
+  const [localError, setLocalError] = useState<string | null>(null);
+
+  const { verify, isVerifying, verifyError } = useAuth();
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setLocalError(null);
+
+    if (code.length != 6) {
+      setLocalError('Code must be a 6 digit number');
+      return;
+    }
+
+    try {
+      await verify({ email, code });
+      onSuccess();
+    } catch {} //Error handling via tanstack
+  };
+
+  const activeError = localError || verifyError;
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <FormWrapper title="Verify E-Mail">
+        {activeError && (
+          <div className="rounded border border-red-500 bg-red-500/20 p-2 text-xs text-red-300">
+            {activeError}
+          </div>
+        )}
+
+        <p className="text-sm leading-relaxed text-slate-400">
+          We sent a verification code to your email address. Please enter the code below to verify
+          your account.
+        </p>
+
+        <TextInput
+          type="number"
+          placeholder="Code"
+          value={code}
+          onChange={(e) => setCode(e.target.value)}
+          disabled={isVerifying}
+        />
+
+        <Button type="submit" variant="primary" className="rounded-lg" disabled={isVerifying}>
+          {isVerifying ? 'Verifying...' : 'Verify'}
         </Button>
       </FormWrapper>
     </form>

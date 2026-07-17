@@ -1,4 +1,10 @@
-import { CommandResponse, LoginRequest, RegisterRequest, UserInfo } from '@/shared/lib/models/auth';
+import {
+  CommandResponse,
+  LoginRequest,
+  RegisterRequest,
+  UserInfo,
+  VerifyRequest,
+} from '@/shared/lib/models/auth';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { invoke } from '@tauri-apps/api/core';
 
@@ -31,6 +37,14 @@ export function useAuth() {
       if (!res.success) throw new Error(res.message);
       return res;
     },
+  });
+
+  const verifyMutation = useMutation({
+    mutationFn: async (payload: VerifyRequest) => {
+      const res = await invoke<CommandResponse>('verify_user', { payload });
+      if (!res.success) throw new Error(res.message);
+      return res;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: AUTH_QUERY_KEY });
     },
@@ -48,5 +62,9 @@ export function useAuth() {
     register: registerMutation.mutateAsync,
     isRegistering: registerMutation.isPending,
     registerError: registerMutation.error?.message || null,
+
+    verify: verifyMutation.mutateAsync,
+    isVerifying: verifyMutation.isPending,
+    verifyError: verifyMutation.error?.message || null,
   };
 }
