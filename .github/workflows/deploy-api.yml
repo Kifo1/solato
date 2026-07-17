@@ -18,6 +18,23 @@ jobs:
       packages: write
     outputs:
       image_tag: ${{ steps.vars.outputs.tag }}
+
+    services:
+      mariadb:
+        image: mariadb:11
+        env:
+          MARIADB_ROOT_PASSWORD: root
+          MARIADB_DATABASE: solato_db
+          MARIADB_USER: solato_user
+          MARIADB_PASSWORD: solato_pass
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -31,9 +48,9 @@ jobs:
 
       - name: Build & Test
         working-directory: ./api
-        run: |
-          chmod +x gradlew
-          ./gradlew clean build # 3. Geändert: Gradle Wrapper statt Maven
+        env:
+          SPRING_PROFILES_ACTIVE: dev
+        run: ./gradlew clean build
 
       - name: Set image tag
         id: vars
