@@ -9,6 +9,12 @@ pub struct RegisterRequest {
 }
 
 #[derive(Serialize, Deserialize)]
+pub struct VerifyRequest {
+    pub email: String,
+    pub code: i32,
+}
+
+#[derive(Serialize, Deserialize)]
 pub struct LoginRequest {
     pub email: String,
     pub password: String,

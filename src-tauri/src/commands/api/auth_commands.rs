@@ -1,5 +1,7 @@
 use crate::api::api_client::ApiState;
-use crate::services::api::auth_service::{AuthService, LoginRequest, RegisterRequest};
+use crate::services::api::auth_service::{
+    AuthService, LoginRequest, RegisterRequest, VerifyRequest,
+};
 use serde::Serialize;
 use tauri::State;
 
@@ -26,6 +28,23 @@ pub async fn register_user(
     api_state: State<'_, ApiState>,
 ) -> Result<CommandResponse, String> {
     match AuthService::register(&api_state, payload).await {
+        Ok(msg) => Ok(CommandResponse {
+            success: true,
+            message: msg,
+        }),
+        Err(err) => Ok(CommandResponse {
+            success: false,
+            message: err,
+        }),
+    }
+}
+
+#[tauri::command]
+pub async fn verify_user(
+    payload: VerifyRequest,
+    api_state: State<'_, ApiState>,
+) -> Result<CommandResponse, String> {
+    match AuthService::verify(&api_state, payload).await {
         Ok(msg) => Ok(CommandResponse {
             success: true,
             message: msg,
