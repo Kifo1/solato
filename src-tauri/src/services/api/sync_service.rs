@@ -45,9 +45,9 @@ impl SyncService {
             "INSERT INTO sync_meta (key, value) VALUES ('last_synced_at', ?)
              ON CONFLICT(key) DO UPDATE SET value = excluded.value",
         )
-            .bind(timestamp.to_rfc3339_opts(chrono::SecondsFormat::Secs, true))
-            .execute(pool)
-            .await?;
+        .bind(timestamp.to_rfc3339_opts(chrono::SecondsFormat::Secs, true))
+        .execute(pool)
+        .await?;
         Ok(())
     }
 

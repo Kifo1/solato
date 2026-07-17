@@ -33,6 +33,8 @@ public class AuthService {
     private final PendingRegistrationRepository pendingRegistrationRepository;
     private final PasswordEncoder passwordEncoder;
 
+    private final SecureRandom secureRandom = new SecureRandom();
+
     @Transactional
     public AuthResponse register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.email())) {
@@ -148,8 +150,7 @@ public class AuthService {
     }
 
     private String generateVerifyCode() {
-        SecureRandom random = new SecureRandom();
-        int num = random.nextInt(1000000);
+        int num = secureRandom.nextInt(1000000);
         return String.format("%06d", num);
     }
 }

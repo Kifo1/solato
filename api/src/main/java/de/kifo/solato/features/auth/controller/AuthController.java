@@ -3,6 +3,7 @@ package de.kifo.solato.features.auth.controller;
 import de.kifo.solato.features.auth.dto.*;
 import de.kifo.solato.features.auth.service.AuthService;
 import jakarta.validation.Valid;
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,7 +20,7 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/register")
-    public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
+    public ResponseEntity<@NonNull AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
         AuthResponse response = authService.register(request);
         if (!response.success()) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
@@ -28,7 +29,7 @@ public class AuthController {
     }
 
     @PostMapping("/verify")
-    public ResponseEntity<AuthResponse> verify(@Valid @RequestBody VerifyRequest request) {
+    public ResponseEntity<@NonNull AuthResponse> verify(@Valid @RequestBody VerifyRequest request) {
         AuthResponse response = authService.verifyAndRegister(request);
         if (!response.success()) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
@@ -37,7 +38,7 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
+    public ResponseEntity<@NonNull AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         AuthResponse response = authService.login(request);
         if (!response.success()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
@@ -46,7 +47,7 @@ public class AuthController {
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<AuthResponse> refresh(@RequestBody RefreshRequest request) {
+    public ResponseEntity<@NonNull AuthResponse> refresh(@RequestBody RefreshRequest request) {
         AuthResponse response = authService.refreshAuthentication(request.oldRefreshToken());
         if (!response.success()) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);

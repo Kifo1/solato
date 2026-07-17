@@ -28,7 +28,7 @@ public class JwtService {
         Map<String, Object> claims = new HashMap<>();
 
         // 1 Hour
-        long JWT_EXPIRATION = 1000L * 60 * 60;
+        final long JWT_EXPIRATION = 1000L * 60 * 60;
         return Jwts.builder()
                 .claims(claims)
                 .subject(email)

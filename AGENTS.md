@@ -96,7 +96,7 @@ Practical run & dev instructions (summary)
    - cargo install sqlx-cli --no-default-features --features rustls,sqlite
    - cargo sqlx database create
    - cargo sqlx migrate run
-   - go back to root and run: npm run tauri dev  (serves frontend and launches native window)
+   - go back to root and run: npm run tauri dev (serves frontend and launches native window)
 3. Build: npm run build && npm run tauri build (or use npm run tauri:build:linux on Linux if needed)
 
 Testing and verification guidance for agents
@@ -150,7 +150,7 @@ Who owns what (mapping for agents)
 Quick reference of important files (paths)
 
 - Root: package.json, README.md
-- Frontend: src/main.tsx, src/App.tsx, src/features/*, src/shared/*
+- Frontend: src/main.tsx, src/App.tsx, src/features/_, src/shared/_
 - Tauri & Rust: src-tauri/Cargo.toml, src-tauri/src/main.rs, src-tauri/src/lib.rs
 - Commands: src-tauri/src/commands/* (tauri commands)
 - Services: src-tauri/src/services/* (sync_service.rs, auth_service.rs, project_service.rs, session_service.rs, settings_service.rs)

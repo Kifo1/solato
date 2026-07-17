@@ -1,10 +1,9 @@
 ---
 name: Bug report
 about: Create a report to help improve solato
-title: "[Bug] - Title"
+title: '[Bug] - Title'
 labels: bug, enhancement
 assignees: ''
-
 ---
 
 **Describe the bug**

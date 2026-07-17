@@ -25,7 +25,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
         String method = request.getMethod();
-        return !("/auth/public/verify".equals(path) && "POST".equalsIgnoreCase(method));
+        return !(path.contains("/auth/public/verify") && "POST".equalsIgnoreCase(method));
     }
 
     @Override

@@ -54,7 +54,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     SecurityContextHolder.getContext().setAuthentication(authToken);
                 }
             }
-        } catch (Exception e) {/* Spring handles invalid tokens */}
+        } catch (Exception _) {/* Spring handles invalid tokens */}
 
         filterChain.doFilter(request, response);
     }

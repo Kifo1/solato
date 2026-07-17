@@ -5,6 +5,7 @@ import de.kifo.solato.features.sync.dto.SyncRequest;
 import de.kifo.solato.features.sync.dto.SyncResponse;
 import de.kifo.solato.features.sync.service.SyncService;
 import jakarta.validation.Valid;
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -18,7 +19,7 @@ public class SyncController {
     private final SyncService syncService;
 
     @PostMapping
-    public ResponseEntity<SyncResponse> synchronize(
+    public ResponseEntity<@NonNull SyncResponse> synchronize(
             @AuthenticationPrincipal User user,
             @Valid @RequestBody SyncRequest requestDto) {
         Long userId = user.getId();
