@@ -42,18 +42,16 @@ public class AuthService {
         }
 
         String email = request.email();
-
         String verifyCode = generateVerifyCode();
-        pendingRegistrationRepository.findByEmail(email)
-                .ifPresent(pendingRegistrationRepository::delete);
 
-        PendingRegistration pendingRegistration = new PendingRegistration();
-        pendingRegistration.setEmail(email);
-        pendingRegistration.setPassword(passwordEncoder.encode(request.password()));
-        pendingRegistration.setVerificationCode(verifyCode);
+        PendingRegistration pending = pendingRegistrationRepository.findByEmail(email)
+                .orElseGet(PendingRegistration::new);
 
-        pendingRegistrationRepository.save(pendingRegistration);
+        pending.setEmail(email);
+        pending.setPassword(passwordEncoder.encode(request.password()));
+        pending.setVerificationCode(verifyCode);
 
+        pendingRegistrationRepository.save(pending);
         emailService.sendVerificationCode(email, verifyCode);
 
         return new AuthResponse("User successful registered", true);
