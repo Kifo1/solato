@@ -24,6 +24,7 @@ pub struct LoginRequest {
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RefreshRequest {
     pub old_refresh_token: String,
 }
@@ -100,13 +101,18 @@ impl AuthService {
     }
 
     pub async fn get_stored_refresh_token() -> Option<String> {
-        tokio::task::spawn_blocking(|| {
-            if let Ok(entry) = Entry::new("de.kifo.solato", "refresh_token") {
-                if let Ok(token) = entry.get_password() {
-                    return Some(token);
+        tokio::task::spawn_blocking(|| match Entry::new("de.kifo.solato", "refresh_token") {
+            Ok(entry) => match entry.get_password() {
+                Ok(token) => Some(token),
+                Err(e) => {
+                    log!("WARN", format!("Keyring get_password failed: {:?}", e));
+                    None
                 }
+            },
+            Err(e) => {
+                log!("WARN", format!("Keyring Entry::new failed: {:?}", e));
+                None
             }
-            None
         })
         .await
         .unwrap_or(None)

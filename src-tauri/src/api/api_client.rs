@@ -69,6 +69,7 @@ impl ApiState {
 
                 if let Some(refresh_token) = self.get_stored_refresh_token_internal().await {
                     #[derive(Serialize)]
+                    #[serde(rename_all = "camelCase")]
                     struct RefreshRequest {
                         old_refresh_token: String,
                     }

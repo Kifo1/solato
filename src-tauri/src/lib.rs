@@ -18,7 +18,7 @@ use models::dbstate::DbState;
 use models::timer::TimerState;
 use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
 use std::{str::FromStr, sync::Arc, time::Duration};
-use tauri::Manager;
+use tauri::{Emitter, Manager};
 use tokio::sync::Mutex;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -28,7 +28,7 @@ pub fn run() {
 
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .setup(|app| {
+        .setup(move |app| {
             let handle = app.handle().clone();
 
             // Window
@@ -60,7 +60,7 @@ pub fn run() {
                 .pragma("foreign_keys", "ON")
                 .journal_mode(sqlx::sqlite::SqliteJournalMode::Wal);
 
-            tauri::async_runtime::block_on(async move {
+            let pool = tauri::async_runtime::block_on(async move {
                 let pool = SqlitePoolOptions::new()
                     .connect_with(connection_options)
                     .await
@@ -88,8 +88,18 @@ pub fn run() {
                     client: Mutex::new(None),
                 });
 
-                if let Err(e) =
-                    discord_service::set_discord_presence(handle, PresenceState::Idle).await
+                pool
+            });
+            
+            let app_handle_for_startup = app.handle().clone();
+            let pool_for_sync = pool.clone();
+
+            tauri::async_runtime::spawn(async move {
+                if let Err(e) = discord_service::set_discord_presence(
+                    app_handle_for_startup.clone(),
+                    PresenceState::Idle,
+                )
+                    .await
                 {
                     log!(
                         "ERROR",
@@ -97,35 +107,39 @@ pub fn run() {
                     );
                 }
 
-                let api_state = app.state::<ApiState>();
+                let api_state = app_handle_for_startup.state::<ApiState>();
 
                 if let Some(token) = AuthService::get_stored_refresh_token().await {
-                    let _ = AuthService::refresh(
+                    log!("INFO", "Found stored refresh token, attempting refresh...");
+                    match AuthService::refresh(
                         &api_state,
                         RefreshRequest {
                             old_refresh_token: token,
                         },
                     )
-                    .await;
+                        .await
+                    {
+                        Ok(_) => log!("INFO", "Auto-login refresh succeeded."),
+                        Err(e) => log!("WARN", format!("Auto-login refresh failed: {}", e)),
+                    }
+                } else {
+                    log!("INFO", "No stored refresh token found.");
                 }
 
-                let app_handle_for_sync = app.handle().clone();
-                let pool_for_sync = pool.clone();
+                let _ = app_handle_for_startup.emit("auth-status-changed", ());
 
-                tauri::async_runtime::spawn(async move {
-                    log!("INFO", "Background sync loop started.");
-                    loop {
-                        if let Some(api_state_guard) = app_handle_for_sync.try_state::<ApiState>() {
-                            log!("DEBUG", "Triggering scheduled background sync...");
-                            let _ =
-                                SyncService::execute_sync(&api_state_guard, &pool_for_sync).await;
-                        } else {
-                            log!("WARN", "ApiState not available for background sync yet.");
-                        }
-
-                        tokio::time::sleep(Duration::from_secs(1 * 60)).await; // Automatic resync all 5 mins
+                log!("INFO", "Background sync loop started.");
+                loop {
+                    if let Some(api_state_guard) = app_handle_for_startup.try_state::<ApiState>() {
+                        log!("DEBUG", "Triggering scheduled background sync...");
+                        let _ =
+                            SyncService::execute_sync(&api_state_guard, &pool_for_sync).await;
+                    } else {
+                        log!("WARN", "ApiState not available for background sync yet.");
                     }
-                });
+
+                    tokio::time::sleep(Duration::from_secs(1 * 60)).await; // Automatic resync very min
+                }
             });
 
             Ok(())

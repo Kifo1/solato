@@ -3,7 +3,9 @@ import { ChartLine, FolderDot, LucideIcon, Settings, Timer } from 'lucide-react'
 import { NavLink } from 'react-router-dom';
 import { invoke } from '@tauri-apps/api/core';
 import LoginUser from '@features/login/components/LoginUser.tsx';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { listen } from '@tauri-apps/api/event';
+import { useEffect } from 'react';
 
 interface NavbarItemProps {
   name: string;
@@ -32,6 +34,8 @@ function NavbarItem({ name, Icon, to }: Readonly<NavbarItemProps>) {
 }
 
 export default function Sidebar() {
+  const queryClient = useQueryClient();
+
   const {
     data: loggedIn,
     isLoading,
@@ -42,6 +46,15 @@ export default function Sidebar() {
     refetchInterval: 60 * 1000,
     refetchIntervalInBackground: true,
   });
+
+  useEffect(() => {
+    const unlisten = listen('auth-status-changed', () => {
+      queryClient.invalidateQueries({ queryKey: ['loginStatus'] });
+    });
+    return () => {
+      unlisten.then((f) => f());
+    };
+  }, [queryClient]);
 
   return (
     <aside className="flex w-64 flex-col justify-between border-r border-blue-300 p-4">
