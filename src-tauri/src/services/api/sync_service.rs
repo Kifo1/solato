@@ -90,9 +90,9 @@ impl SyncService {
 
         let local_sessions = sqlx::query!(
             r#"
-            SELECT id as "id!", project_id as "project_id!", start_time as "start_time!", end_time, session_type as "session_type!", mode as "mode!", updated_at as "updated_at!", is_deleted
-            FROM sessions
-            WHERE updated_at > ?
+                SELECT id as "id!", project_id as "project_id!", start_time as "start_time!", end_time, session_type as "session_type!", mode as "mode!", updated_at as "updated_at!", is_deleted
+                FROM sessions
+                WHERE updated_at > ?
             "#,
             filter_time
         )
@@ -157,17 +157,17 @@ impl SyncService {
                 .to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
             let p_deleted = if cloud_project.is_deleted { 1 } else { 0 };
 
-            sqlx::query!(
+            if let Err(e) = sqlx::query!(
                 r#"
-                INSERT INTO projects (id, name, description, color, created_at, updated_at, is_deleted)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-                ON CONFLICT(id) DO UPDATE SET
-                    name = excluded.name,
-                    description = excluded.description,
-                    color = excluded.color,
-                    updated_at = excluded.updated_at,
-                    is_deleted = excluded.is_deleted
-                WHERE excluded.updated_at > projects.updated_at
+                    INSERT INTO projects (id, name, description, color, created_at, updated_at, is_deleted)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(id) DO UPDATE SET
+                        name = excluded.name,
+                        description = excluded.description,
+                        color = excluded.color,
+                        updated_at = excluded.updated_at,
+                        is_deleted = excluded.is_deleted
+                    WHERE excluded.updated_at > projects.updated_at
                 "#,
                 p_id,
                 cloud_project.name,
@@ -177,9 +177,15 @@ impl SyncService {
                 p_updated,
                 p_deleted
             )
-                .execute(pool)
-                .await
-                .map_err(|e| format!("Database error on project upsert: {}", e))?;
+            .execute(pool)
+            .await
+            {
+                log!(
+                    "ERROR",
+                    &format!("Database error on project upsert (id={}): {}", p_id, e)
+                );
+                continue;
+            }
         }
 
         for cloud_session in response.sessions {
@@ -208,32 +214,35 @@ impl SyncService {
                 .to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
             let s_deleted = if cloud_session.is_deleted { 1 } else { 0 };
 
-            sqlx::query!(
-                r#"
-                INSERT INTO sessions (id, project_id, start_time, end_time, session_type, mode, updated_at, is_deleted)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                ON CONFLICT(id) DO UPDATE SET
-                    project_id = excluded.project_id,
-                    start_time = excluded.start_time,
-                    end_time = excluded.end_time,
-                    session_type = excluded.session_type,
-                    mode = excluded.mode,
-                    updated_at = excluded.updated_at,
-                    is_deleted = excluded.is_deleted
-                WHERE excluded.updated_at > sessions.updated_at
-                "#,
-                s_id,
-                s_project_id,
-                s_start,
-                s_end,
-                s_type,
-                s_mode,
-                s_updated,
-                s_deleted
-            )
+            if let Err(e) = sqlx::query!(
+        r#"
+            INSERT INTO sessions (id, project_id, start_time, end_time, session_type, mode, updated_at, is_deleted)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+                project_id = excluded.project_id,
+                start_time = excluded.start_time,
+                end_time = excluded.end_time,
+                session_type = excluded.session_type,
+                mode = excluded.mode,
+                updated_at = excluded.updated_at,
+                is_deleted = excluded.is_deleted
+            WHERE excluded.updated_at > sessions.updated_at
+        "#,
+        s_id,
+        s_project_id,
+        s_start,
+        s_end,
+        s_type,
+        s_mode,
+        s_updated,
+        s_deleted
+    )
                 .execute(pool)
                 .await
-                .map_err(|e| format!("Database error on session upsert: {}", e))?;
+            {
+                log!("ERROR", &format!("Database error on session upsert (id={}, project_id={}): {}", s_id, s_project_id, e));
+                continue;
+            }
         }
 
         Self::set_last_synced_at(pool, response.sync_timestamp)

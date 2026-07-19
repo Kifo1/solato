@@ -90,7 +90,7 @@ pub fn run() {
 
                 pool
             });
-            
+
             let app_handle_for_startup = app.handle().clone();
             let pool_for_sync = pool.clone();
 
@@ -99,7 +99,7 @@ pub fn run() {
                     app_handle_for_startup.clone(),
                     PresenceState::Idle,
                 )
-                    .await
+                .await
                 {
                     log!(
                         "ERROR",
@@ -117,7 +117,7 @@ pub fn run() {
                             old_refresh_token: token,
                         },
                     )
-                        .await
+                    .await
                     {
                         Ok(_) => log!("INFO", "Auto-login refresh succeeded."),
                         Err(e) => log!("WARN", format!("Auto-login refresh failed: {}", e)),
@@ -132,8 +132,11 @@ pub fn run() {
                 loop {
                     if let Some(api_state_guard) = app_handle_for_startup.try_state::<ApiState>() {
                         log!("DEBUG", "Triggering scheduled background sync...");
-                        let _ =
-                            SyncService::execute_sync(&api_state_guard, &pool_for_sync).await;
+                        if let Err(e) =
+                            SyncService::execute_sync(&api_state_guard, &pool_for_sync).await
+                        {
+                            log!("ERROR", format!("Background sync failed: {}", e));
+                        }
                     } else {
                         log!("WARN", "ApiState not available for background sync yet.");
                     }
@@ -168,7 +171,10 @@ pub fn run() {
                         }
 
                         log!("INFO", "Executing final sync before exit...");
-                        let _ = SyncService::execute_sync(api_handle, &db_handle.pool).await;
+                        if let Err(e) = SyncService::execute_sync(api_handle, &db_handle.pool).await
+                        {
+                            log!("ERROR", format!("Background sync failed: {}", e));
+                        }
                     });
                 }
             }
