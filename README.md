@@ -14,7 +14,14 @@ A local desktop timer app designed to help track and manage study sessions.
 
 ## Data & privacy
 
-All data is currently stored **locally only** on your device. Nothing is sent anywhere. Your study sessions and statistics stay fully private.
+By default, all your data is stored **locally only** on your device. 
+
+If you choose to create an account and log in, your study sessions and projects will be automatically synchronized with the cloud so you can access them across multiple devices. 
+
+- **Official Hosting:** Out of the box, the app connects to the official hosted API.
+- **Self-Hostable:** The API code is completely open-source. If you prefer full control over your data, feel free to self-host your own backend instance.
+
+Your privacy remains a priority — choose the setup that fits your workflow best.
 
 ## Prerequisites
 
