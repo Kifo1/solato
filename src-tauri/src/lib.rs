@@ -23,8 +23,12 @@ use tokio::sync::Mutex;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let base_url = std::env::var("API_BASE_URL")
-        .unwrap_or_else(|_| "https://api.solato.app/api/v1".to_string());
+    let base_url = if cfg!(debug_assertions) {
+        dotenvy_macro::dotenv!("API_BASE_URL").to_string()
+    } else {
+        "https://api.solato.app/api/v1".to_string()
+    };
+    log!("INFO", format!("Use API URL: {}", base_url));
 
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
@@ -35,7 +39,8 @@ pub fn run() {
             window::window_menu::build_window_menu(app)?;
 
             let db_url = if cfg!(debug_assertions) {
-                let dev_db_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("dev.db");
+                let dev_db_path: std::path::PathBuf =
+                    std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("dev.db");
                 format!(
                     "sqlite:{}",
                     dev_db_path.to_str().expect("Path contains invalid UTF-8")

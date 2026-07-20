@@ -1,7 +1,4 @@
-use crate::{
-    api::{self, api_client::ApiState},
-    log,
-};
+use crate::{api::api_client::ApiState, log};
 use keyring::Entry;
 use serde::{Deserialize, Serialize};
 
