@@ -53,7 +53,7 @@ impl ApiState {
                 .json(body)
                 .send()
                 .await
-                .map_err(|e| format!("API request error: {}", e))?;
+                .map_err(|e| format!("API request error: {:?}", e))?;
 
             let status = response.status();
 
@@ -92,6 +92,14 @@ impl ApiState {
                         .json(&refresh_req)
                         .send()
                         .await;
+
+                    match &refresh_res {
+                        Ok(res) => log!(
+                            "DEBUG",
+                            format!("Refresh response status: {}", res.status())
+                        ),
+                        Err(e) => log!("ERROR", format!("Refresh request send error: {:?}", e)),
+                    }
 
                     if let Ok(res) = refresh_res {
                         if res.status().is_success() {
