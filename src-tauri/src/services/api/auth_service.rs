@@ -1,4 +1,4 @@
-use crate::{api::api_client::ApiState, log};
+use crate::api::api_client::ApiState;
 use keyring::Entry;
 use serde::{Deserialize, Serialize};
 
@@ -79,10 +79,10 @@ impl AuthService {
                     match Entry::new("de.kifo.solato", "refresh_token") {
                         Ok(entry) => {
                             if let Err(e) = entry.set_password(&refresh_token) {
-                                log!("ERROR", format!("Keyring writing error: {}", e));
+                                log::error!("Keyring writing error: {}", e);
                             }
                         }
-                        Err(e) => log!("ERROR", format!("Keyring could not be initialized: {}", e)),
+                        Err(e) => log::error!("Keyring could not be initialized: {}", e),
                     }
                 })
                 .await
@@ -102,12 +102,12 @@ impl AuthService {
             Ok(entry) => match entry.get_password() {
                 Ok(token) => Some(token),
                 Err(e) => {
-                    log!("WARN", format!("Keyring get_password failed: {:?}", e));
+                    log::warn!("Keyring get_password failed: {:?}", e);
                     None
                 }
             },
             Err(e) => {
-                log!("WARN", format!("Keyring Entry::new failed: {:?}", e));
+                log::warn!("Keyring Entry::new failed: {:?}", e);
                 None
             }
         })

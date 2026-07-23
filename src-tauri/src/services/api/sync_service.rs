@@ -3,7 +3,6 @@ use sqlx::SqlitePool;
 use uuid::Uuid;
 
 use crate::database::models::session::{SessionType, TimerMode};
-use crate::log;
 use crate::models::sync::project_sync::ProjectSync;
 use crate::models::sync::session_sync::SessionSync;
 use crate::models::sync::sync_request::SyncRequest;
@@ -52,7 +51,7 @@ impl SyncService {
     }
 
     pub async fn execute_sync(api_state: &ApiState, pool: &SqlitePool) -> Result<(), String> {
-        log!("INFO", "Starting cloud synchronization via SyncService...");
+        log::info!("Starting cloud synchronization via SyncService...");
 
         let last_synced_at = Self::get_last_synced_at(pool).await;
 
@@ -60,10 +59,7 @@ impl SyncService {
             .map(|t| t.format("%Y-%m-%d %H:%M:%S").to_string())
             .unwrap_or_else(|| "1970-01-01 00:00:00".to_string());
 
-        log!(
-            "DEBUG",
-            &format!("Filtering local changes since: {}", filter_time)
-        );
+        log::debug!("Filtering local changes since: {}", filter_time);
 
         let local_projects = sqlx::query!(
             r#"
@@ -128,27 +124,21 @@ impl SyncService {
         let response: SyncResponse = match api_state.post("/sync", &request_payload).await {
             Ok(res) => res,
             Err(e) => {
-                log!("ERROR", &format!("API sync request failed: {}", e));
+                log::error!("API sync request failed: {}", e);
                 return Err(format!("Sync cancelled: {}", e));
             }
         };
-        log!(
-            "INFO",
-            "Sync payload successfully transmitted. Applying cloud updates..."
-        );
+        log::info!("Sync payload successfully transmitted. Applying cloud updates...");
 
-        log!(
-            "DEBUG",
-            &format!(
-                "Received {} projects and {} sessions from cloud",
-                response.projects.len(),
-                response.sessions.len()
-            )
+        log::debug!(
+            "Received {} projects and {} sessions from cloud",
+            response.projects.len(),
+            response.sessions.len()
         );
 
         for cloud_project in response.projects {
             let p_id = cloud_project.id.to_string();
-            log!("DEBUG", &format!("Upserting project: {}", p_id));
+            log::debug!("Upserting project: {}", p_id);
             let p_created = cloud_project
                 .created_at
                 .to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
@@ -180,17 +170,14 @@ impl SyncService {
             .execute(pool)
             .await
             {
-                log!(
-                    "ERROR",
-                    &format!("Database error on project upsert (id={}): {}", p_id, e)
-                );
+                log::error!("Database error on project upsert (id={}): {}", p_id, e);
                 continue;
             }
         }
 
         for cloud_session in response.sessions {
             let s_id = cloud_session.id.to_string();
-            log!("DEBUG", &format!("Upserting session: {}", s_id));
+            log::debug!("Upserting session: {}", s_id);
             let s_project_id = cloud_session.project_id.to_string();
             let s_start = cloud_session
                 .start_time
@@ -240,7 +227,7 @@ impl SyncService {
                 .execute(pool)
                 .await
             {
-                log!("ERROR", &format!("Database error on session upsert (id={}, project_id={}): {}", s_id, s_project_id, e));
+                log::error!("Database error on session upsert (id={}, project_id={}): {}", s_id, s_project_id, e);
                 continue;
             }
         }
@@ -249,7 +236,7 @@ impl SyncService {
             .await
             .map_err(|e| format!("Failed to update local sync timestamp: {}", e))?;
 
-        log!("INFO", "Cloud sync completed successfully.");
+        log::info!("Cloud sync completed successfully.");
         Ok(())
     }
 }

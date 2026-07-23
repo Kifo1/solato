@@ -31,3 +31,5 @@ discord-rich-presence = "1.1.0"
 reqwest = { version = "0.13.4", features = ["json"] }
 keyring = "4.1.4"
 dotenvy_macro = "0.15.7"
+tauri-plugin-log = "2.9.0"
+log = "^0.4"

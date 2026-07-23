@@ -1,5 +1,4 @@
 use crate::database::models::session::SessionType;
-use crate::log;
 use crate::models::timer::{ActiveMode, SharedTimerState};
 use crate::services::settings_service::get_settings;
 use chrono::Utc;
@@ -105,7 +104,7 @@ pub async fn set_discord_presence(
                 *client_lock = Some(client);
             }
             Err(_) => {
-                log!("ERROR", "Discord IPC socket not available");
+                log::error!("Discord IPC socket not available");
                 return Ok(());
             }
         }
@@ -119,7 +118,7 @@ pub async fn set_discord_presence(
             .assets(activity::Assets::new().large_text("Solato"));
 
         if client.set_activity(payload).is_err() {
-            log!("ERROR", "Lost connection to Discord. Resetting client...");
+            log::error!("Lost connection to Discord. Resetting client...");
             *client_lock = None;
         }
     }

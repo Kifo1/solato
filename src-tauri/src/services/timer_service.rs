@@ -1,4 +1,3 @@
-use crate::log;
 use crate::models::timer::TimerState;
 use crate::services::discord_service;
 use crate::{
@@ -130,9 +129,7 @@ pub async fn start_timer(app: AppHandle) -> Result<(), String> {
                         discord_service::PresenceState::Working,
                     )
                     .await
-                    .unwrap_or_else(|e| {
-                        log!("ERROR", format!("Failed to set Discord presence: {}", e))
-                    });
+                    .unwrap_or_else(|e| log::error!("Failed to set Discord presence: {}", e));
                 }
             }
 

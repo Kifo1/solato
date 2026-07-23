@@ -1,7 +1,6 @@
 mod api;
 mod commands;
 mod database;
-mod logging;
 mod models;
 mod services;
 mod window;
@@ -19,19 +18,39 @@ use models::timer::TimerState;
 use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
 use std::{str::FromStr, sync::Arc, time::Duration};
 use tauri::{Emitter, Manager};
+use tauri_plugin_log::{RotationStrategy, Target, TargetKind};
 use tokio::sync::Mutex;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    std::panic::set_hook(Box::new(|panic_info| {
+        log::error!("Application panicked: {}", panic_info);
+    }));
+
     let base_url = if cfg!(debug_assertions) {
         dotenvy_macro::dotenv!("API_BASE_URL").to_string()
     } else {
         "https://api.solato.app/api/v1".to_string()
     };
-    log!("INFO", format!("Use API URL: {}", base_url));
+    log::info!("Use API URL: {}", base_url);
 
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(
+            tauri_plugin_log::Builder::new()
+                .targets([
+                    Target::new(TargetKind::Stdout),
+                    Target::new(TargetKind::LogDir { file_name: None }),
+                ])
+                .level(if cfg!(debug_assertions) {
+                    log::LevelFilter::Debug
+                } else {
+                    log::LevelFilter::Info
+                })
+                .max_file_size(5_000_000)
+                .rotation_strategy(RotationStrategy::KeepAll)
+                .build(),
+        )
         .setup(move |app| {
             let handle = app.handle().clone();
 
@@ -106,16 +125,13 @@ pub fn run() {
                 )
                 .await
                 {
-                    log!(
-                        "ERROR",
-                        format!("Failed to set initial Discord presence: {}", e)
-                    );
+                    log::error!("Failed to set initial Discord presence: {}", e);
                 }
 
                 let api_state = app_handle_for_startup.state::<ApiState>();
 
                 if let Some(token) = AuthService::get_stored_refresh_token().await {
-                    log!("INFO", "Found stored refresh token, attempting refresh...");
+                    log::info!("Found stored refresh token, attempting refresh...");
                     match AuthService::refresh(
                         &api_state,
                         RefreshRequest {
@@ -124,26 +140,26 @@ pub fn run() {
                     )
                     .await
                     {
-                        Ok(_) => log!("INFO", "Auto-login refresh succeeded."),
-                        Err(e) => log!("WARN", format!("Auto-login refresh failed: {}", e)),
+                        Ok(_) => log::info!("Auto-login refresh succeeded."),
+                        Err(e) => log::warn!("Auto-login refresh failed: {}", e),
                     }
                 } else {
-                    log!("INFO", "No stored refresh token found.");
+                    log::info!("No stored refresh token found.");
                 }
 
                 let _ = app_handle_for_startup.emit("auth-status-changed", ());
 
-                log!("INFO", "Background sync loop started.");
+                log::info!("Background sync loop started.");
                 loop {
                     if let Some(api_state_guard) = app_handle_for_startup.try_state::<ApiState>() {
-                        log!("DEBUG", "Triggering scheduled background sync...");
+                        log::debug!("Triggering scheduled background sync...");
                         if let Err(e) =
                             SyncService::execute_sync(&api_state_guard, &pool_for_sync).await
                         {
-                            log!("ERROR", format!("Background sync failed: {}", e));
+                            log::error!("Background sync failed: {}", e);
                         }
                     } else {
-                        log!("WARN", "ApiState not available for background sync yet.");
+                        log::warn!("ApiState not available for background sync yet.");
                     }
 
                     tokio::time::sleep(Duration::from_secs(1 * 60)).await; // Automatic resync very min
@@ -175,10 +191,10 @@ pub fn run() {
                             let _ = services::session_service::stop_session(id, &db_handle).await;
                         }
 
-                        log!("INFO", "Executing final sync before exit...");
+                        log::info!("Executing final sync before exit...");
                         if let Err(e) = SyncService::execute_sync(api_handle, &db_handle.pool).await
                         {
-                            log!("ERROR", format!("Background sync failed: {}", e));
+                            log::error!("Background sync failed: {}", e);
                         }
                     });
                 }
