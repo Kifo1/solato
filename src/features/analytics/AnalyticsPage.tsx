@@ -5,6 +5,8 @@ import FirstProjectTutorial from '@features/projects/components/FirstProjectTuto
 import AnalyticScopeSelector from '@features/analytics/components/AnalyticScopeSelector.tsx';
 import AnalyticStreak from '@features/analytics/components/AnalyticStreak.tsx';
 import AnalyticProjectPie from '@features/analytics/components/AnalyticProjectPie.tsx';
+import AnalyticWeekdayBars from '@features/analytics/components/AnalyticWeekdayBars.tsx';
+import AnalyticHourlyBars from '@features/analytics/components/AnalyticHourlyBars.tsx';
 import { AnalyticCalendar } from '@features/analytics/components/AnalyticCalendar.tsx';
 
 export default function AnalyticsPage() {
@@ -35,6 +37,14 @@ export default function AnalyticsPage() {
               </div>
               <div className="flex-1">
                 <AnalyticProjectPie />
+              </div>
+            </div>
+            <div className="flex items-stretch gap-5">
+              <div className="flex-1">
+                <AnalyticWeekdayBars />
+              </div>
+              <div className="flex-1">
+                <AnalyticHourlyBars />
               </div>
             </div>
             <AnalyticCalendar />

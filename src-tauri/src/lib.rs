@@ -236,6 +236,8 @@ pub fn run() {
             commands::analytics_commands::get_analytics_calendar,
             commands::analytics_commands::get_analytics_streak,
             commands::analytics_commands::get_analytics_project_time_share,
+            commands::analytics_commands::get_analytics_weekday_time,
+            commands::analytics_commands::get_analytics_hourly_time,
             commands::analytics_commands::get_selected_projects,
             commands::settings_commands::get_settings,
             commands::settings_commands::update_settings,

@@ -4,8 +4,9 @@ use crate::{
     database::models::project::Project,
     models::{
         analytics::{
-            calendar_data::CalendarData, project_time_share_data::ProjectTimeShareData,
-            streak_data::StreakData,
+            calendar_data::CalendarData, hourly_time_data::HourlyTimeData,
+            project_time_share_data::ProjectTimeShareData, streak_data::StreakData,
+            weekday_time_data::WeekdayTimeData,
         },
         dbstate::DbState,
     },
@@ -116,4 +117,26 @@ pub async fn get_analytics_project_time_share(
             .await
             .expect("Unable to receive project time share data from analytics service.");
     Ok(project_time_share_data)
+}
+
+#[tauri::command]
+pub async fn get_analytics_weekday_time(
+    db: State<'_, DbState>,
+    filter_state: State<'_, ActiveProjectFilterState>,
+) -> Result<WeekdayTimeData, String> {
+    let weekday_time_data = analytics_service::get_analytic_weekday_time_data(db, filter_state)
+        .await
+        .expect("Unable to receive weekday time data from analytics service.");
+    Ok(weekday_time_data)
+}
+
+#[tauri::command]
+pub async fn get_analytics_hourly_time(
+    db: State<'_, DbState>,
+    filter_state: State<'_, ActiveProjectFilterState>,
+) -> Result<HourlyTimeData, String> {
+    let hourly_time_data = analytics_service::get_analytic_hourly_time_data(db, filter_state)
+        .await
+        .expect("Unable to receive hourly time data from analytics service.");
+    Ok(hourly_time_data)
 }
