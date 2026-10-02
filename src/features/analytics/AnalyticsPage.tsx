@@ -4,6 +4,7 @@ import { Project } from '@features/projects/ProjectsPage.tsx';
 import FirstProjectTutorial from '@features/projects/components/FirstProjectTutorial.tsx';
 import AnalyticScopeSelector from '@features/analytics/components/AnalyticScopeSelector.tsx';
 import AnalyticStreak from '@features/analytics/components/AnalyticStreak.tsx';
+import AnalyticProjectPie from '@features/analytics/components/AnalyticProjectPie.tsx';
 import { AnalyticCalendar } from '@features/analytics/components/AnalyticCalendar.tsx';
 
 export default function AnalyticsPage() {
@@ -28,9 +29,12 @@ export default function AnalyticsPage() {
       <div>
         {userHasProjects ? (
           <div className="flex flex-col gap-5">
-            <div className="mt-15 flex items-center justify-between rounded-2xl border border-slate-200/10 bg-slate-200/5 p-6">
-              <div className="flex flex-1 items-center justify-center">
+            <div className="mt-15 flex items-stretch gap-5">
+              <div className="flex-1">
                 <AnalyticStreak />
+              </div>
+              <div className="flex-1">
+                <AnalyticProjectPie />
               </div>
             </div>
             <AnalyticCalendar />

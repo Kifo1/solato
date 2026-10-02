@@ -3,7 +3,10 @@ use tauri::State;
 use crate::{
     database::models::project::Project,
     models::{
-        analytics::{calendar_data::CalendarData, streak_data::StreakData},
+        analytics::{
+            calendar_data::CalendarData, project_time_share_data::ProjectTimeShareData,
+            streak_data::StreakData,
+        },
         dbstate::DbState,
     },
     services::{
@@ -101,4 +104,16 @@ pub async fn get_analytics_calendar(
         .await
         .expect("Unable to receive calendar data from analytics service.");
     Ok(calendar_data)
+}
+
+#[tauri::command]
+pub async fn get_analytics_project_time_share(
+    db: State<'_, DbState>,
+    filter_state: State<'_, ActiveProjectFilterState>,
+) -> Result<ProjectTimeShareData, String> {
+    let project_time_share_data =
+        analytics_service::get_analytic_project_time_share_data(db, filter_state)
+            .await
+            .expect("Unable to receive project time share data from analytics service.");
+    Ok(project_time_share_data)
 }

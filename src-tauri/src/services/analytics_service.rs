@@ -5,7 +5,11 @@ use sqlx::{QueryBuilder, Row};
 use tauri::State;
 
 use crate::models::{
-    analytics::{calendar_data::CalendarData, streak_data::StreakData},
+    analytics::{
+        calendar_data::CalendarData,
+        project_time_share_data::{ProjectTimeShare, ProjectTimeShareData},
+        streak_data::StreakData,
+    },
     dbstate::DbState,
 };
 
@@ -259,4 +263,85 @@ pub async fn get_analytic_calendar_data(
     }
 
     Ok(CalendarData { history })
+}
+
+pub async fn get_analytic_project_time_share_data(
+    db: State<'_, DbState>,
+    filter_state: State<'_, ActiveProjectFilterState>,
+) -> Result<ProjectTimeShareData, String> {
+    let pool = &db.pool;
+    let project_ids = filter_state
+        .selected_project_ids
+        .lock()
+        .map_err(|e| e.to_string())?
+        .clone();
+
+    if project_ids.is_empty() {
+        return Ok(ProjectTimeShareData {
+            total_seconds: 0,
+            entries: Vec::new(),
+        });
+    }
+
+    let mut query_builder = QueryBuilder::new(
+        r#"
+        SELECT
+            p.id AS project_id,
+            p.name AS project_name,
+            p.color AS project_color,
+            SUM(
+                CASE
+                    WHEN s.end_time IS NOT NULL THEN (strftime('%s', s.end_time) - strftime('%s', s.start_time))
+                    ELSE (strftime('%s', 'now') - strftime('%s', s.start_time))
+                END
+            ) AS total_seconds
+        FROM sessions s
+        JOIN projects p ON s.project_id = p.id
+        WHERE s.session_type = 'FOCUS'
+          AND s.is_deleted = 0
+          AND p.is_deleted = 0
+          AND s.project_id IN (
+        "#,
+    );
+
+    let mut separated = query_builder.separated(", ");
+    for id in &project_ids {
+        separated.push_bind(id);
+    }
+
+    query_builder.push(") GROUP BY s.project_id ORDER BY total_seconds DESC");
+
+    let records = query_builder
+        .build()
+        .fetch_all(pool)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let mut entries: Vec<ProjectTimeShare> = Vec::new();
+    let mut total_seconds: u64 = 0;
+
+    for row in records {
+        let project_id: String = row.get("project_id");
+        let name: String = row.get("project_name");
+        let color: String = row.get("project_color");
+        let seconds: i64 = row.get("total_seconds");
+
+        let seconds = seconds.max(0) as u64;
+        if seconds == 0 {
+            continue;
+        }
+
+        total_seconds += seconds;
+        entries.push(ProjectTimeShare {
+            project_id,
+            name,
+            color,
+            total_seconds: seconds,
+        });
+    }
+
+    Ok(ProjectTimeShareData {
+        total_seconds,
+        entries,
+    })
 }
