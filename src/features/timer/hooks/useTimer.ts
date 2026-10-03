@@ -142,7 +142,7 @@ export function useTimer() {
     newMode === 'pomodoro' ? setPomodoroMillis(millis) : setStopwatchMillis(millis);
   };
 
-  const switchSelectedProject = async (project: Project) => {
+  const switchSelectedProject = async (project: Project | null) => {
     setSelectedProject(project);
     await invoke('set_selected_project', { project });
     if (isRunning) {

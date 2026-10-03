@@ -1,12 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
 import { invoke } from '@tauri-apps/api/core';
-import { ChevronDown, Folder } from 'lucide-react';
+import { Check, ChevronDown, CircleSlash } from 'lucide-react';
 import { useState } from 'react';
 import { Project } from '@features/projects/ProjectsPage.tsx';
 
 interface TimerProjectDropdownProps {
   currentProject: Project | null;
-  switchCurrentProject: (project: Project) => void;
+  switchCurrentProject: (project: Project | null) => void;
 }
 
 export function TimerProjectDropdown({
@@ -19,6 +19,8 @@ export function TimerProjectDropdown({
     queryKey: ['projects'],
     queryFn: () => invoke<Project[]>('get_projects'),
   });
+
+  const isUntracked = currentProject === null;
 
   return (
     <>
@@ -38,8 +40,8 @@ export function TimerProjectDropdown({
               </>
             ) : (
               <>
-                <Folder className="h-4 w-4 text-blue-400" />
-                <span className="text-slate-400">Select Project</span>
+                <CircleSlash className="h-4 w-4 shrink-0 text-slate-400" />
+                <span className="text-slate-400">No project</span>
               </>
             )}
           </div>
@@ -49,6 +51,22 @@ export function TimerProjectDropdown({
         {isOpen && (
           <div className="animate-in fade-in zoom-in absolute z-50 mt-2 w-full overflow-hidden rounded-xl border border-slate-700 bg-slate-800 shadow-2xl duration-150">
             <div className="max-h-60 overflow-y-auto">
+              <button
+                onClick={() => {
+                  switchCurrentProject(null);
+                  setIsOpen(false);
+                }}
+                className="flex w-full items-center gap-3 border-b border-slate-700/50 px-4 py-3 text-left text-white transition-colors hover:cursor-pointer hover:bg-slate-700/50"
+              >
+                <CircleSlash
+                  className={`h-4 w-4 shrink-0 ${isUntracked ? 'text-blue-400' : 'text-slate-400'}`}
+                />
+                <span className={`text-sm ${isUntracked ? 'font-medium' : 'text-slate-300'}`}>
+                  No project
+                </span>
+                {isUntracked && <Check className="ml-auto h-4 w-4 text-blue-400" />}
+              </button>
+
               {projects.length === 0 && !isLoading && (
                 <div className="px-4 py-3 text-sm text-slate-500 italic">No projects found...</div>
               )}
@@ -67,6 +85,9 @@ export function TimerProjectDropdown({
                     style={{ backgroundColor: project.color }}
                   />
                   <span className="text-sm font-medium">{project.name}</span>
+                  {currentProject?.id === project.id && (
+                    <Check className="ml-auto h-4 w-4 text-blue-400" />
+                  )}
                 </button>
               ))}
             </div>
@@ -77,7 +98,9 @@ export function TimerProjectDropdown({
       </div>
       <div>
         <p className="text-sm text-blue-200/75">
-          Selecting a project tracks time automatically to your analytics.
+          {isUntracked
+            ? 'No project selected — time will not be tracked.'
+            : 'Time is tracked to this project automatically.'}
         </p>
       </div>
     </>
