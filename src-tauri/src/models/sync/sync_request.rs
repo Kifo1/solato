@@ -1,3 +1,4 @@
+use crate::models::sync::folder_sync::FolderSync;
 use crate::models::sync::project_sync::ProjectSync;
 use crate::models::sync::session_sync::SessionSync;
 use chrono::{DateTime, Utc};
@@ -7,6 +8,7 @@ use serde::{Deserialize, Serialize};
 #[serde(rename_all = "camelCase")]
 pub struct SyncRequest {
     pub last_synced_at: Option<DateTime<Utc>>,
+    pub folders: Vec<FolderSync>,
     pub projects: Vec<ProjectSync>,
     pub sessions: Vec<SessionSync>,
 }

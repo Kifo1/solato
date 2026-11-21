@@ -1,4 +1,5 @@
 use crate::database::models::project::Project;
+use crate::services::project_service::TimerProjectsResponse;
 use crate::{models::dbstate::DbState, services::project_service};
 use tauri::State;
 
@@ -7,11 +8,10 @@ pub async fn create_project(
     name: String,
     description: String,
     color: String,
+    folder_id: Option<String>,
     db: State<'_, DbState>,
 ) -> Result<(), String> {
-    project_service::create_project(name, description, color, db)
-        .await
-        .expect("Unable to create project");
+    project_service::create_project(name, description, color, folder_id, db).await?;
     Ok(())
 }
 
@@ -21,26 +21,34 @@ pub async fn update_project(
     name: String,
     description: String,
     color: String,
+    folder_id: Option<String>,
     db: State<'_, DbState>,
 ) -> Result<(), String> {
-    project_service::update_project(uuid.clone(), name, description, color, db)
-        .await
-        .unwrap_or_else(|_| panic!("Unable to update project with UUID: {}", uuid));
-    Ok(())
+    project_service::update_project(uuid, name, description, color, folder_id, db).await
+}
+
+#[tauri::command]
+pub async fn update_project_folder(
+    project_id: String,
+    folder_id: Option<String>,
+    db: State<'_, DbState>,
+) -> Result<(), String> {
+    project_service::update_project_folder(project_id, folder_id, db).await
 }
 
 #[tauri::command]
 pub async fn get_projects(db: State<'_, DbState>) -> Result<Vec<Project>, String> {
-    let projects = project_service::get_projects(db)
+    project_service::get_projects(db)
         .await
-        .expect("Unable to get projects");
-    Ok(projects)
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn get_timer_projects(db: State<'_, DbState>) -> Result<TimerProjectsResponse, String> {
+    project_service::get_timer_projects(db).await
 }
 
 #[tauri::command]
 pub async fn delete_project(id: String, db: State<'_, DbState>) -> Result<(), String> {
-    project_service::delete_project(id, db)
-        .await
-        .expect("Cannot delete project");
-    Ok(())
+    project_service::delete_project(id, db).await
 }

@@ -1,9 +1,11 @@
 use chrono::{DateTime, Utc};
 use sqlx::SqlitePool;
+use std::collections::HashSet;
 use uuid::Uuid;
 
 use crate::api::api_client::RefreshError;
 use crate::database::models::session::{SessionType, TimerMode};
+use crate::models::sync::folder_sync::FolderSync;
 use crate::models::sync::project_sync::ProjectSync;
 use crate::models::sync::session_sync::SessionSync;
 use crate::models::sync::sync_request::SyncRequest;
@@ -18,6 +20,42 @@ fn parse_datetime(s: &str) -> DateTime<Utc> {
         return DateTime::<Utc>::from_naive_utc_and_offset(naive, Utc);
     }
     Utc::now()
+}
+
+/// Orders folders topologically so parent folders are always upserted before their children.
+fn order_folders_parents_first(folders: Vec<FolderSync>) -> Vec<FolderSync> {
+    let mut remaining = folders;
+    let mut ordered = Vec::with_capacity(remaining.len());
+    let mut placed_ids: HashSet<Uuid> = HashSet::new();
+
+    while !remaining.is_empty() {
+        let remaining_ids: HashSet<Uuid> = remaining.iter().map(|f| f.id).collect();
+        let mut next_remaining = Vec::new();
+        let mut progressed = false;
+
+        for folder in remaining {
+            let parent_ready = match folder.parent_id.flatten() {
+                None => true,
+                Some(pid) => placed_ids.contains(&pid) || !remaining_ids.contains(&pid),
+            };
+            if parent_ready {
+                placed_ids.insert(folder.id);
+                ordered.push(folder);
+                progressed = true;
+            } else {
+                next_remaining.push(folder);
+            }
+        }
+
+        if !progressed {
+            // Break any cycle defensively by appending remaining entries.
+            ordered.extend(next_remaining);
+            break;
+        }
+        remaining = next_remaining;
+    }
+
+    ordered
 }
 
 pub struct SyncService;
@@ -79,11 +117,42 @@ impl SyncService {
             .map(|t| t.format("%Y-%m-%d %H:%M:%S").to_string())
             .unwrap_or_else(|| "1970-01-01 00:00:00".to_string());
 
+        let rfc3339_filter_time = last_synced_at
+            .map(|t| t.to_rfc3339_opts(chrono::SecondsFormat::Secs, true))
+            .unwrap_or_else(|| "1970-01-01T00:00:00Z".to_string());
+
         log::debug!("Filtering local changes since: {}", filter_time);
+
+        let local_folders = sqlx::query!(
+            r#"
+            SELECT id as "id!", name, color, parent_id, created_at as "created_at!", updated_at as "updated_at!", is_deleted
+            FROM folders
+            WHERE updated_at > ?
+            "#,
+            rfc3339_filter_time
+        )
+        .fetch_all(pool)
+        .await
+        .map_err(|e| format!("Failed to fetch local folders: {}", e))?
+        .into_iter()
+        .map(|row| FolderSync {
+            id: Uuid::parse_str(&row.id).unwrap_or_default(),
+            name: row.name,
+            color: row.color,
+            parent_id: Some(
+                row.parent_id
+                    .as_deref()
+                    .and_then(|id| Uuid::parse_str(id).ok()),
+            ),
+            created_at: parse_datetime(&row.created_at),
+            updated_at: parse_datetime(&row.updated_at),
+            is_deleted: row.is_deleted != 0,
+        })
+        .collect::<Vec<_>>();
 
         let local_projects = sqlx::query!(
             r#"
-            SELECT id as "id!", name, description, color, created_at as "created_at!", updated_at as "updated_at!", is_deleted
+            SELECT id as "id!", name, description, color, folder_id, created_at as "created_at!", updated_at as "updated_at!", is_deleted
             FROM projects
             WHERE updated_at > ?
             "#,
@@ -98,6 +167,11 @@ impl SyncService {
                 name: row.name,
                 description: row.description,
                 color: row.color,
+                folder_id: Some(
+                    row.folder_id
+                        .as_deref()
+                        .and_then(|id| Uuid::parse_str(id).ok()),
+                ),
                 created_at: parse_datetime(&row.created_at),
                 updated_at: parse_datetime(&row.updated_at),
                 is_deleted: row.is_deleted != 0,
@@ -137,6 +211,7 @@ impl SyncService {
 
         let request_payload = SyncRequest {
             last_synced_at,
+            folders: local_folders,
             projects: local_projects,
             sessions: local_sessions,
         };
@@ -151,10 +226,80 @@ impl SyncService {
         log::info!("Sync payload successfully transmitted. Applying cloud updates...");
 
         log::debug!(
-            "Received {} projects and {} sessions from cloud",
+            "Received {} folders, {} projects and {} sessions from cloud",
+            response.folders.len(),
             response.projects.len(),
             response.sessions.len()
         );
+
+        // Upsert folders topologically (parents before children) before projects so all foreign keys are satisfied.
+        for cloud_folder in order_folders_parents_first(response.folders) {
+            let f_id = cloud_folder.id.to_string();
+            log::debug!("Upserting folder: {}", f_id);
+            let f_created = cloud_folder
+                .created_at
+                .to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
+            let f_updated = cloud_folder
+                .updated_at
+                .to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
+            let f_deleted = if cloud_folder.is_deleted { 1 } else { 0 };
+
+            let upsert_result = match cloud_folder.parent_id {
+                Some(opt_parent_id) => {
+                    let f_parent_id = opt_parent_id.map(|id| id.to_string());
+                    sqlx::query!(
+                        r#"
+                            INSERT INTO folders (id, name, color, parent_id, created_at, updated_at, is_deleted)
+                            VALUES (?, ?, ?, ?, ?, ?, ?)
+                            ON CONFLICT(id) DO UPDATE SET
+                                name = excluded.name,
+                                color = excluded.color,
+                                parent_id = excluded.parent_id,
+                                updated_at = excluded.updated_at,
+                                is_deleted = excluded.is_deleted
+                            WHERE excluded.updated_at > folders.updated_at
+                        "#,
+                        f_id,
+                        cloud_folder.name,
+                        cloud_folder.color,
+                        f_parent_id,
+                        f_created,
+                        f_updated,
+                        f_deleted
+                    )
+                    .execute(pool)
+                    .await
+                }
+                // Server omitted parentId -> preserve local parent_id on conflict.
+                None => {
+                    sqlx::query!(
+                        r#"
+                            INSERT INTO folders (id, name, color, created_at, updated_at, is_deleted)
+                            VALUES (?, ?, ?, ?, ?, ?)
+                            ON CONFLICT(id) DO UPDATE SET
+                                name = excluded.name,
+                                color = excluded.color,
+                                updated_at = excluded.updated_at,
+                                is_deleted = excluded.is_deleted
+                            WHERE excluded.updated_at > folders.updated_at
+                        "#,
+                        f_id,
+                        cloud_folder.name,
+                        cloud_folder.color,
+                        f_created,
+                        f_updated,
+                        f_deleted
+                    )
+                    .execute(pool)
+                    .await
+                }
+            };
+
+            if let Err(e) = upsert_result {
+                log::error!("Database error on folder upsert (id={}): {}", f_id, e);
+                continue;
+            }
+        }
 
         for cloud_project in response.projects {
             let p_id = cloud_project.id.to_string();
@@ -167,29 +312,62 @@ impl SyncService {
                 .to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
             let p_deleted = if cloud_project.is_deleted { 1 } else { 0 };
 
-            if let Err(e) = sqlx::query!(
-                r#"
-                    INSERT INTO projects (id, name, description, color, created_at, updated_at, is_deleted)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
-                    ON CONFLICT(id) DO UPDATE SET
-                        name = excluded.name,
-                        description = excluded.description,
-                        color = excluded.color,
-                        updated_at = excluded.updated_at,
-                        is_deleted = excluded.is_deleted
-                    WHERE excluded.updated_at > projects.updated_at
-                "#,
-                p_id,
-                cloud_project.name,
-                cloud_project.description,
-                cloud_project.color,
-                p_created,
-                p_updated,
-                p_deleted
-            )
-            .execute(pool)
-            .await
-            {
+            let upsert_result = match cloud_project.folder_id {
+                Some(opt_folder_id) => {
+                    let p_folder_id = opt_folder_id.map(|id| id.to_string());
+                    sqlx::query!(
+                        r#"
+                            INSERT INTO projects (id, name, description, color, folder_id, created_at, updated_at, is_deleted)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                            ON CONFLICT(id) DO UPDATE SET
+                                name = excluded.name,
+                                description = excluded.description,
+                                color = excluded.color,
+                                folder_id = excluded.folder_id,
+                                updated_at = excluded.updated_at,
+                                is_deleted = excluded.is_deleted
+                            WHERE excluded.updated_at > projects.updated_at
+                        "#,
+                        p_id,
+                        cloud_project.name,
+                        cloud_project.description,
+                        cloud_project.color,
+                        p_folder_id,
+                        p_created,
+                        p_updated,
+                        p_deleted
+                    )
+                    .execute(pool)
+                    .await
+                }
+                // Server omitted folderId (legacy API without folder support) -> preserve local folder_id on conflict.
+                None => {
+                    sqlx::query!(
+                        r#"
+                            INSERT INTO projects (id, name, description, color, created_at, updated_at, is_deleted)
+                            VALUES (?, ?, ?, ?, ?, ?, ?)
+                            ON CONFLICT(id) DO UPDATE SET
+                                name = excluded.name,
+                                description = excluded.description,
+                                color = excluded.color,
+                                updated_at = excluded.updated_at,
+                                is_deleted = excluded.is_deleted
+                            WHERE excluded.updated_at > projects.updated_at
+                        "#,
+                        p_id,
+                        cloud_project.name,
+                        cloud_project.description,
+                        cloud_project.color,
+                        p_created,
+                        p_updated,
+                        p_deleted
+                    )
+                    .execute(pool)
+                    .await
+                }
+            };
+
+            if let Err(e) = upsert_result {
                 log::error!("Database error on project upsert (id={}): {}", p_id, e);
                 continue;
             }
@@ -258,5 +436,372 @@ impl SyncService {
 
         log::info!("Cloud sync completed successfully.");
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::api::token_store::TokenStore;
+    use crate::services::folder_service::{create_folder_in_pool, get_folders_in_pool};
+    use crate::services::project_service::{create_project_in_pool, get_projects_in_pool};
+    use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
+    use std::str::FromStr;
+    use std::sync::{Arc, Mutex};
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    use tokio::net::TcpListener;
+
+    struct DummyTokenStore;
+
+    impl TokenStore for DummyTokenStore {
+        fn get_refresh_token(&self) -> Result<Option<String>, String> {
+            Ok(None)
+        }
+        fn set_refresh_token(&self, _token: &str) -> Result<(), String> {
+            Ok(())
+        }
+        fn delete_refresh_token(&self) -> Result<(), String> {
+            Ok(())
+        }
+    }
+
+    async fn setup_test_pool() -> SqlitePool {
+        let options = SqliteConnectOptions::from_str("sqlite::memory:")
+            .unwrap()
+            .pragma("foreign_keys", "ON");
+        let pool = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect_with(options)
+            .await
+            .unwrap();
+        sqlx::migrate!("./migrations").run(&pool).await.unwrap();
+        pool
+    }
+
+    async fn spawn_sync_mock(
+        response_body: String,
+    ) -> (
+        String,
+        Arc<Mutex<Option<String>>>,
+        tokio::task::JoinHandle<()>,
+    ) {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let base_url = format!("http://{}/api/v1", addr);
+        let captured = Arc::new(Mutex::new(None));
+        let captured_clone = Arc::clone(&captured);
+
+        let handle = tokio::spawn(async move {
+            let Ok((mut socket, _)) = listener.accept().await else {
+                return;
+            };
+            let mut buf = Vec::new();
+            let mut tmp = [0u8; 1024];
+            let header_end;
+            loop {
+                let n = socket.read(&mut tmp).await.unwrap_or(0);
+                if n == 0 {
+                    return;
+                }
+                buf.extend_from_slice(&tmp[..n]);
+                if let Some(pos) = buf.windows(4).position(|w| w == b"\r\n\r\n") {
+                    header_end = pos + 4;
+                    break;
+                }
+            }
+
+            let header_text = String::from_utf8_lossy(&buf[..header_end - 4]);
+            let mut content_length = 0usize;
+            for line in header_text.split("\r\n").skip(1) {
+                if let Some((k, v)) = line.split_once(':') {
+                    if k.trim().eq_ignore_ascii_case("content-length") {
+                        content_length = v.trim().parse().unwrap_or(0);
+                    }
+                }
+            }
+            while buf.len() < header_end + content_length {
+                let n = socket.read(&mut tmp).await.unwrap_or(0);
+                if n == 0 {
+                    break;
+                }
+                buf.extend_from_slice(&tmp[..n]);
+            }
+            let body =
+                String::from_utf8_lossy(&buf[header_end..header_end + content_length]).to_string();
+            *captured_clone.lock().unwrap() = Some(body);
+
+            let resp = format!(
+                "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+                response_body.len(),
+                response_body
+            );
+            let _ = socket.write_all(resp.as_bytes()).await;
+            let _ = socket.flush().await;
+            let _ = socket.shutdown().await;
+        });
+
+        (base_url, captured, handle)
+    }
+
+    #[tokio::test]
+    async fn execute_sync_uploads_local_folders_and_upserts_nested_cloud_folders_topologically() {
+        let pool = setup_test_pool().await;
+
+        let local_root_id =
+            create_folder_in_pool(&pool, "Local Root".into(), "#10B981".into(), None)
+                .await
+                .unwrap();
+        let local_sub_id = create_folder_in_pool(
+            &pool,
+            "Local Sub".into(),
+            "#06B6D4".into(),
+            Some(local_root_id.clone()),
+        )
+        .await
+        .unwrap();
+        let local_project_id = create_project_in_pool(
+            &pool,
+            "Local Project".into(),
+            "Desc".into(),
+            "#3B82F6".into(),
+            Some(local_sub_id.clone()),
+        )
+        .await
+        .unwrap();
+
+        let cloud_root_id = Uuid::new_v4();
+        let cloud_child_id = Uuid::new_v4();
+        let cloud_grandchild_id = Uuid::new_v4();
+        let cloud_project_id = Uuid::new_v4();
+
+        // Intentionally return folders in reverse hierarchy order (grandchild -> child -> root)
+        let response_json = serde_json::json!({
+            "syncTimestamp": "2026-11-21T13:00:00Z",
+            "folders": [
+                {
+                    "id": cloud_grandchild_id,
+                    "name": "Cloud Grandchild",
+                    "color": "#EC4899",
+                    "parentId": cloud_child_id,
+                    "createdAt": "2026-11-21T12:00:00Z",
+                    "updatedAt": "2026-11-21T12:30:00Z",
+                    "isDeleted": false
+                },
+                {
+                    "id": cloud_child_id,
+                    "name": "Cloud Child",
+                    "color": "#8B5CF6",
+                    "parentId": cloud_root_id,
+                    "createdAt": "2026-11-21T12:00:00Z",
+                    "updatedAt": "2026-11-21T12:30:00Z",
+                    "isDeleted": false
+                },
+                {
+                    "id": cloud_root_id,
+                    "name": "Cloud Root",
+                    "color": "#F59E0B",
+                    "parentId": null,
+                    "createdAt": "2026-11-21T12:00:00Z",
+                    "updatedAt": "2026-11-21T12:30:00Z",
+                    "isDeleted": false
+                }
+            ],
+            "projects": [{
+                "id": cloud_project_id,
+                "name": "Cloud Project",
+                "description": "From other device",
+                "color": "#8B5CF6",
+                "folderId": cloud_grandchild_id,
+                "createdAt": "2026-11-21T12:00:00Z",
+                "updatedAt": "2026-11-21T12:30:00Z",
+                "isDeleted": false
+            }],
+            "sessions": []
+        })
+        .to_string();
+
+        let (base_url, captured, server) = spawn_sync_mock(response_json).await;
+        let api = ApiState::new_with_store(base_url, Arc::new(DummyTokenStore));
+        *api.access_token.lock().unwrap() = Some("valid_jwt".to_string());
+
+        SyncService::execute_sync(&api, &pool).await.unwrap();
+
+        // Verify uploaded SyncRequest contains both local folders with parentId and project's folderId
+        let sent_body = captured.lock().unwrap().clone().unwrap();
+        let sent_json: serde_json::Value = serde_json::from_str(&sent_body).unwrap();
+        let sent_folders = sent_json["folders"].as_array().unwrap();
+        assert_eq!(sent_folders.len(), 2);
+        let sent_sub = sent_folders
+            .iter()
+            .find(|f| f["id"] == local_sub_id)
+            .unwrap();
+        assert_eq!(sent_sub["parentId"], local_root_id);
+        assert_eq!(sent_json["projects"][0]["id"], local_project_id);
+        assert_eq!(sent_json["projects"][0]["folderId"], local_sub_id);
+
+        // Verify all 3 cloud folders (despite reverse order) + cloud project with FK persisted locally
+        let folders = get_folders_in_pool(&pool).await.unwrap();
+        assert_eq!(folders.len(), 5);
+        let grandchild = folders
+            .iter()
+            .find(|f| f.id == cloud_grandchild_id.to_string())
+            .unwrap();
+        assert_eq!(
+            grandchild.parent_id.as_deref(),
+            Some(cloud_child_id.to_string().as_str())
+        );
+
+        let projects = get_projects_in_pool(&pool).await.unwrap();
+        let synced_proj = projects
+            .iter()
+            .find(|p| p.id == cloud_project_id.to_string())
+            .unwrap();
+        assert_eq!(
+            synced_proj.folder_id.as_deref(),
+            Some(cloud_grandchild_id.to_string().as_str())
+        );
+
+        server.abort();
+    }
+
+    #[test]
+    fn sync_response_deserializes_tri_state_folder_id() {
+        let folder_uuid = Uuid::new_v4();
+        let json = serde_json::json!({
+            "syncTimestamp": "2026-11-21T13:00:00Z",
+            "projects": [
+                {
+                    "id": Uuid::new_v4(),
+                    "name": "Omitted folderId",
+                    "description": "Legacy server",
+                    "color": "#3B82F6",
+                    "createdAt": "2026-11-21T12:00:00Z",
+                    "updatedAt": "2026-11-21T12:30:00Z",
+                    "isDeleted": false
+                },
+                {
+                    "id": Uuid::new_v4(),
+                    "name": "Explicit null folderId",
+                    "description": "Unassigned on server",
+                    "color": "#3B82F6",
+                    "folderId": null,
+                    "createdAt": "2026-11-21T12:00:00Z",
+                    "updatedAt": "2026-11-21T12:30:00Z",
+                    "isDeleted": false
+                },
+                {
+                    "id": Uuid::new_v4(),
+                    "name": "Assigned folderId",
+                    "description": "In folder on server",
+                    "color": "#3B82F6",
+                    "folderId": folder_uuid,
+                    "createdAt": "2026-11-21T12:00:00Z",
+                    "updatedAt": "2026-11-21T12:30:00Z",
+                    "isDeleted": false
+                }
+            ],
+            "sessions": []
+        });
+
+        let parsed: SyncResponse = serde_json::from_value(json).unwrap();
+        assert!(parsed.folders.is_empty());
+        assert_eq!(parsed.projects.len(), 3);
+        assert_eq!(parsed.projects[0].folder_id, None);
+        assert_eq!(parsed.projects[1].folder_id, Some(None));
+        assert_eq!(parsed.projects[2].folder_id, Some(Some(folder_uuid)));
+    }
+
+    #[tokio::test]
+    async fn legacy_server_omitting_folder_id_preserves_local_project_folder_assignment() {
+        let pool = setup_test_pool().await;
+
+        let folder_id = create_folder_in_pool(&pool, "DHBW".into(), "#3B82F6".into(), None)
+            .await
+            .unwrap();
+        let project_id = create_project_in_pool(
+            &pool,
+            "Linux".into(),
+            "OS Course".into(),
+            "#10B981".into(),
+            Some(folder_id.clone()),
+        )
+        .await
+        .unwrap();
+
+        // Simulate legacy Spring API returning a newer project WITHOUT a folderId field
+        let response_json = serde_json::json!({
+            "syncTimestamp": "2099-01-01T00:00:00Z",
+            "projects": [{
+                "id": project_id,
+                "name": "Linux",
+                "description": "OS Course",
+                "color": "#10B981",
+                "createdAt": "2026-11-21T12:00:00Z",
+                "updatedAt": "2099-01-01T00:00:00Z",
+                "isDeleted": false
+            }],
+            "sessions": []
+        })
+        .to_string();
+
+        let (base_url, _captured, server) = spawn_sync_mock(response_json).await;
+        let api = ApiState::new_with_store(base_url, Arc::new(DummyTokenStore));
+        *api.access_token.lock().unwrap() = Some("valid_jwt".to_string());
+
+        SyncService::execute_sync(&api, &pool).await.unwrap();
+
+        let projects = get_projects_in_pool(&pool).await.unwrap();
+        let proj = projects.iter().find(|p| p.id == project_id).unwrap();
+        assert_eq!(proj.folder_id.as_deref(), Some(folder_id.as_str()));
+
+        server.abort();
+    }
+
+    #[tokio::test]
+    async fn explicit_null_folder_id_from_server_unassigns_local_project_folder() {
+        let pool = setup_test_pool().await;
+
+        let folder_id = create_folder_in_pool(&pool, "DHBW".into(), "#3B82F6".into(), None)
+            .await
+            .unwrap();
+        let project_id = create_project_in_pool(
+            &pool,
+            "Linux".into(),
+            "OS Course".into(),
+            "#10B981".into(),
+            Some(folder_id),
+        )
+        .await
+        .unwrap();
+
+        // Simulate updated Spring API explicitly clearing folderId to null
+        let response_json = serde_json::json!({
+            "syncTimestamp": "2099-01-01T00:00:00Z",
+            "folders": [],
+            "projects": [{
+                "id": project_id,
+                "name": "Linux",
+                "description": "OS Course",
+                "color": "#10B981",
+                "folderId": null,
+                "createdAt": "2026-11-21T12:00:00Z",
+                "updatedAt": "2099-01-01T00:00:00Z",
+                "isDeleted": false
+            }],
+            "sessions": []
+        })
+        .to_string();
+
+        let (base_url, _captured, server) = spawn_sync_mock(response_json).await;
+        let api = ApiState::new_with_store(base_url, Arc::new(DummyTokenStore));
+        *api.access_token.lock().unwrap() = Some("valid_jwt".to_string());
+
+        SyncService::execute_sync(&api, &pool).await.unwrap();
+
+        let projects = get_projects_in_pool(&pool).await.unwrap();
+        let proj = projects.iter().find(|p| p.id == project_id).unwrap();
+        assert_eq!(proj.folder_id, None);
+
+        server.abort();
     }
 }

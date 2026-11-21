@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { listen } from '@tauri-apps/api/event';
 import { invoke } from '@tauri-apps/api/core';
+import { useQueryClient } from '@tanstack/react-query';
 import phaseChangeSound from '@assets/pomodoro-phase-change.mp3';
 import { Project } from '@features/projects/ProjectsPage.tsx';
 import { useSettings } from '@/features/settings/hooks/useSettings';
@@ -35,6 +36,7 @@ async function ensureModuleListeners() {
 }
 
 export function useTimer() {
+  const queryClient = useQueryClient();
   const { settings } = useSettings();
   const { updatePresence } = usePresence();
 
@@ -111,12 +113,14 @@ export function useTimer() {
     await invoke('start_timer');
     await updatePresence(PresenceState.Working);
     setIsRunning(true);
+    queryClient.invalidateQueries({ queryKey: ['timer_projects'] });
   };
 
   const stop = async () => {
     await invoke('stop_timer');
     await updatePresence(PresenceState.Idle);
     setIsRunning(false);
+    queryClient.invalidateQueries({ queryKey: ['timer_projects'] });
   };
 
   const reset = async () => {
@@ -145,6 +149,7 @@ export function useTimer() {
   const switchSelectedProject = async (project: Project | null) => {
     setSelectedProject(project);
     await invoke('set_selected_project', { project });
+    queryClient.invalidateQueries({ queryKey: ['timer_projects'] });
     if (isRunning) {
       await updatePresence(PresenceState.Working);
     }
