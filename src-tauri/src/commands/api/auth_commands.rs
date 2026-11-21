@@ -13,13 +13,7 @@ pub struct CommandResponse {
 
 #[tauri::command]
 pub async fn is_logged_in(api_state: State<'_, ApiState>) -> Result<bool, String> {
-    let token_guard = api_state.access_token.lock().unwrap();
-
-    if token_guard.is_some() {
-        Ok(true)
-    } else {
-        Ok(false)
-    }
+    Ok(api_state.is_logged_in())
 }
 
 #[tauri::command]

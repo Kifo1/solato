@@ -6,7 +6,7 @@ mod services;
 mod window;
 
 use crate::api::api_client::ApiState;
-use crate::services::api::auth_service::{AuthService, RefreshRequest};
+use crate::services::api::auth_service::{AuthService, RefreshError};
 use crate::services::api::sync_service::SyncService;
 use crate::services::discord_service;
 use crate::services::discord_service::{DiscordState, PresenceState};
@@ -119,7 +119,10 @@ pub fn run() {
                     selected_project_ids: std::sync::Mutex::new(initial_selected_project_ids),
                 });
 
-                handle.manage(ApiState::new(base_url));
+                let auth_event_handle = handle.clone();
+                handle.manage(ApiState::new(base_url).with_auth_change_listener(move || {
+                    let _ = auth_event_handle.emit("auth-status-changed", ());
+                }));
 
                 handle.manage(DiscordState {
                     client: Mutex::new(None),
@@ -128,36 +131,38 @@ pub fn run() {
                 pool
             });
 
-            let app_handle_for_startup = app.handle().clone();
-            let pool_for_sync = pool.clone();
-
+            let app_handle_for_discord = app.handle().clone();
             tauri::async_runtime::spawn(async move {
                 if let Err(e) = discord_service::set_discord_presence(
-                    app_handle_for_startup.clone(),
+                    app_handle_for_discord,
                     PresenceState::Idle,
                 )
                 .await
                 {
                     log::error!("Failed to set initial Discord presence: {}", e);
                 }
+            });
 
+            let app_handle_for_startup = app.handle().clone();
+            let pool_for_sync = pool.clone();
+
+            tauri::async_runtime::spawn(async move {
                 let api_state = app_handle_for_startup.state::<ApiState>();
 
-                if let Some(token) = AuthService::get_stored_refresh_token().await {
-                    log::info!("Found stored refresh token, attempting refresh...");
-                    match AuthService::refresh(
-                        &api_state,
-                        RefreshRequest {
-                            old_refresh_token: token,
-                        },
-                    )
-                    .await
-                    {
-                        Ok(_) => log::info!("Auto-login refresh succeeded."),
-                        Err(e) => log::warn!("Auto-login refresh failed: {}", e),
+                match AuthService::restore_session(&api_state).await {
+                    Ok(_) => log::info!("Auto-login refresh succeeded."),
+                    Err(RefreshError::NoRefreshToken) => {
+                        log::info!("No stored refresh token found.");
                     }
-                } else {
-                    log::info!("No stored refresh token found.");
+                    Err(RefreshError::SessionExpired(msg)) => {
+                        log::warn!("Auto-login failed: stored session expired ({}).", msg);
+                    }
+                    Err(RefreshError::Transient(msg)) => {
+                        log::warn!(
+                            "Auto-login temporarily failed (will retry when online): {}",
+                            msg
+                        );
+                    }
                 }
 
                 let _ = app_handle_for_startup.emit("auth-status-changed", ());

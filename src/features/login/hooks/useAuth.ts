@@ -2,21 +2,20 @@ import {
   CommandResponse,
   LoginRequest,
   RegisterRequest,
-  UserInfo,
   VerifyRequest,
 } from '@/shared/lib/models/auth';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { invoke } from '@tauri-apps/api/core';
 
-const AUTH_QUERY_KEY = ['auth-user'];
+const AUTH_QUERY_KEY = ['loginStatus'];
 
 export function useAuth() {
   const queryClient = useQueryClient();
 
-  const { data: user, isLoading } = useQuery<UserInfo | null>({
+  const { data: loggedIn, isLoading } = useQuery<boolean>({
     queryKey: AUTH_QUERY_KEY,
     queryFn: async () => {
-      return await invoke<UserInfo | null>('get_current_user');
+      return await invoke<boolean>('is_logged_in');
     },
   });
 
@@ -51,8 +50,7 @@ export function useAuth() {
   });
 
   return {
-    user,
-    isLoggedIn: !!user,
+    isLoggedIn: Boolean(loggedIn),
     isLoading,
 
     login: loginMutation.mutateAsync,

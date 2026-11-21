@@ -2,6 +2,7 @@ use chrono::{DateTime, Utc};
 use sqlx::SqlitePool;
 use uuid::Uuid;
 
+use crate::api::api_client::RefreshError;
 use crate::database::models::session::{SessionType, TimerMode};
 use crate::models::sync::project_sync::ProjectSync;
 use crate::models::sync::session_sync::SessionSync;
@@ -51,6 +52,25 @@ impl SyncService {
     }
 
     pub async fn execute_sync(api_state: &ApiState, pool: &SqlitePool) -> Result<(), String> {
+        match api_state.ensure_authenticated().await {
+            Ok(true) => {}
+            Ok(false) | Err(RefreshError::NoRefreshToken) => {
+                log::debug!("Skipping cloud sync: user is not logged in.");
+                return Ok(());
+            }
+            Err(RefreshError::SessionExpired(msg)) => {
+                log::warn!("Skipping cloud sync: session expired ({})", msg);
+                return Err(format!("Sync cancelled: Session expired ({})", msg));
+            }
+            Err(RefreshError::Transient(msg)) => {
+                log::warn!(
+                    "Skipping cloud sync: authentication refresh temporarily failed ({})",
+                    msg
+                );
+                return Err(format!("Sync cancelled: {}", msg));
+            }
+        }
+
         log::info!("Starting cloud synchronization via SyncService...");
 
         let last_synced_at = Self::get_last_synced_at(pool).await;

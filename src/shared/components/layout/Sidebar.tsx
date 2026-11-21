@@ -48,11 +48,23 @@ export default function Sidebar() {
   });
 
   useEffect(() => {
-    const unlisten = listen('auth-status-changed', () => {
+    let cancelled = false;
+    let unlistenFn: (() => void) | undefined;
+
+    listen('auth-status-changed', () => {
       queryClient.invalidateQueries({ queryKey: ['loginStatus'] });
+    }).then((f) => {
+      if (cancelled) {
+        f();
+      } else {
+        unlistenFn = f;
+        queryClient.invalidateQueries({ queryKey: ['loginStatus'] });
+      }
     });
+
     return () => {
-      unlisten.then((f) => f());
+      cancelled = true;
+      unlistenFn?.();
     };
   }, [queryClient]);
 
