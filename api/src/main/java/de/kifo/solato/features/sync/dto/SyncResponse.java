@@ -5,6 +5,7 @@ import java.util.List;
 
 public record SyncResponse (
         Instant syncTimestamp,
+        List<FolderSync> folders,
         List<ProjectSync> projects,
         List<SessionSync> sessions
 ) {}

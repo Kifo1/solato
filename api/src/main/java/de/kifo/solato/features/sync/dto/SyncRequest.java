@@ -9,6 +9,9 @@ public record SyncRequest (
 
         Instant lastSyncedAt,
 
+        @Valid
+        List<FolderSync> folders,
+
         @NotNull(message = "Projects list cannot be null")
         @Valid
         List<ProjectSync> projects,

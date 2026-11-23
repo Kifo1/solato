@@ -27,6 +27,9 @@ public class Project {
     private String description = "";
     private String color = "#3B82F6";
 
+    @Column(name = "folder_id")
+    private UUID folderId; // No ManyToOne since business logic stays on client side
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 

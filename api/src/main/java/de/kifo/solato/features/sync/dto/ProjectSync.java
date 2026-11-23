@@ -23,6 +23,8 @@ public record ProjectSync (
         @Size(max = 9, message = "Color string is too long")
         String color,
 
+        UUID folderId,
+
         @NotNull(message = "Created at timestamp cannot be null")
         Instant createdAt,
 
