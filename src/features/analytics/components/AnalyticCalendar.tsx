@@ -61,7 +61,11 @@ function getLevel(seconds: number, max: number): number {
   return 1;
 }
 
-export function AnalyticCalendar() {
+interface AnalyticCalendarProps {
+  onSelectDay?: (dateKey: string) => void;
+}
+
+export function AnalyticCalendar({ onSelectDay }: Readonly<AnalyticCalendarProps> = {}) {
   const [year, setYear] = useState(() => getYear(startOfToday()));
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -190,6 +194,9 @@ export function AnalyticCalendar() {
           >
             <p className="font-semibold">{formatSecondsToString(tooltip.seconds)}</p>
             <p className="text-blue-200/70">{format(tooltip.date, 'EEEE, MMM d, yyyy')}</p>
+            {onSelectDay && (
+              <p className="mt-0.5 text-[10px] text-blue-300/70">Click to view sessions</p>
+            )}
           </div>,
           document.body,
         )}
@@ -225,6 +232,12 @@ export function AnalyticCalendar() {
                       key={day.key}
                       onMouseEnter={(e) => handleMouseEnter(e, day)}
                       onMouseLeave={() => setTooltip(null)}
+                      onClick={() => {
+                        if (day.inYear && onSelectDay) {
+                          setTooltip(null);
+                          onSelectDay(day.key);
+                        }
+                      }}
                       className={`h-3 w-3 rounded-sm transition-transform md:h-3.5 md:w-3.5 ${
                         day.inYear
                           ? `${LEVEL_COLORS[getLevel(day.seconds, maxSeconds)]} cursor-pointer hover:scale-125`

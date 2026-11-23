@@ -58,6 +58,12 @@ fn order_folders_parents_first(folders: Vec<FolderSync>) -> Vec<FolderSync> {
     ordered
 }
 
+#[derive(Debug, PartialEq, Eq)]
+pub enum SyncOutcome {
+    Synced,
+    NotLoggedIn,
+}
+
 pub struct SyncService;
 
 impl SyncService {
@@ -90,11 +96,22 @@ impl SyncService {
     }
 
     pub async fn execute_sync(api_state: &ApiState, pool: &SqlitePool) -> Result<(), String> {
+        Self::execute_sync_with_status(api_state, pool)
+            .await
+            .map(|_| ())
+    }
+
+    pub async fn execute_sync_with_status(
+        api_state: &ApiState,
+        pool: &SqlitePool,
+    ) -> Result<SyncOutcome, String> {
+        let _sync_guard = api_state.lock_sync().await;
+
         match api_state.ensure_authenticated().await {
             Ok(true) => {}
             Ok(false) | Err(RefreshError::NoRefreshToken) => {
                 log::debug!("Skipping cloud sync: user is not logged in.");
-                return Ok(());
+                return Ok(SyncOutcome::NotLoggedIn);
             }
             Err(RefreshError::SessionExpired(msg)) => {
                 log::warn!("Skipping cloud sync: session expired ({})", msg);
@@ -411,7 +428,7 @@ impl SyncService {
                 mode = excluded.mode,
                 updated_at = excluded.updated_at,
                 is_deleted = excluded.is_deleted
-            WHERE excluded.updated_at > sessions.updated_at
+            WHERE sessions.updated_at IS NULL OR excluded.updated_at > sessions.updated_at
         "#,
         s_id,
         s_project_id,
@@ -435,7 +452,7 @@ impl SyncService {
             .map_err(|e| format!("Failed to update local sync timestamp: {}", e))?;
 
         log::info!("Cloud sync completed successfully.");
-        Ok(())
+        Ok(SyncOutcome::Synced)
     }
 }
 
@@ -803,5 +820,149 @@ mod tests {
         assert_eq!(proj.folder_id, None);
 
         server.abort();
+    }
+
+    #[tokio::test]
+    async fn edited_and_deleted_sessions_upload_updated_state_to_api() {
+        use crate::database::models::session::UpdateSessionInput;
+        use crate::services::session_service::{
+            delete_session_in_pool_at, update_session_in_pool_at,
+        };
+
+        let pool = setup_test_pool().await;
+
+        let project_a = create_project_in_pool(
+            &pool,
+            "Project A".into(),
+            "Desc".into(),
+            "#3B82F6".into(),
+            None,
+        )
+        .await
+        .unwrap();
+        let project_b = create_project_in_pool(
+            &pool,
+            "Project B".into(),
+            "Desc".into(),
+            "#10B981".into(),
+            None,
+        )
+        .await
+        .unwrap();
+
+        let session_id = Uuid::new_v4().to_string();
+        sqlx::query(
+            "INSERT INTO sessions (id, project_id, start_time, end_time, session_type, mode, updated_at, is_deleted)
+             VALUES (?, ?, ?, ?, 'FOCUS', 'STOPWATCH', ?, 0)",
+        )
+        .bind(&session_id)
+        .bind(&project_a)
+        .bind("2026-11-23T10:00:00Z")
+        .bind("2026-11-23T18:00:00Z")
+        .bind("2026-11-23T18:00:00Z")
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        // Simulate a prior completed sync at 18:05:00Z
+        SyncService::set_last_synced_at(
+            &pool,
+            DateTime::parse_from_rfc3339("2026-11-23T18:05:00Z")
+                .unwrap()
+                .with_timezone(&Utc),
+        )
+        .await
+        .unwrap();
+
+        // User edits the session right at 18:05:00Z (same second as last sync!) to trim forgotten timer
+        let edit_now = DateTime::parse_from_rfc3339("2026-11-23T18:05:00Z")
+            .unwrap()
+            .with_timezone(&Utc);
+        let new_start = DateTime::parse_from_rfc3339("2026-11-23T10:00:00Z")
+            .unwrap()
+            .with_timezone(&Utc);
+        let new_end = DateTime::parse_from_rfc3339("2026-11-23T11:30:00Z")
+            .unwrap()
+            .with_timezone(&Utc);
+
+        update_session_in_pool_at(
+            &pool,
+            UpdateSessionInput {
+                id: session_id.clone(),
+                project_id: project_b.clone(),
+                start_time: new_start,
+                end_time: new_end,
+                session_type: SessionType::ShortBreak,
+                mode: TimerMode::Pomodoro,
+            },
+            None,
+            edit_now,
+        )
+        .await
+        .unwrap();
+
+        // 1) Sync after edit
+        let edit_response = serde_json::json!({
+            "syncTimestamp": "2026-11-23T18:05:05Z",
+            "folders": [],
+            "projects": [],
+            "sessions": []
+        })
+        .to_string();
+        let (base_url, captured_edit, server_edit) = spawn_sync_mock(edit_response).await;
+        let api = ApiState::new_with_store(base_url, Arc::new(DummyTokenStore));
+        *api.access_token.lock().unwrap() = Some("valid_jwt".to_string());
+
+        let outcome = SyncService::execute_sync_with_status(&api, &pool)
+            .await
+            .unwrap();
+        assert_eq!(outcome, SyncOutcome::Synced);
+
+        let sent_edit_body = captured_edit.lock().unwrap().clone().unwrap();
+        let sent_edit_json: serde_json::Value = serde_json::from_str(&sent_edit_body).unwrap();
+        let sent_sessions = sent_edit_json["sessions"].as_array().unwrap();
+        assert_eq!(sent_sessions.len(), 1);
+        assert_eq!(sent_sessions[0]["id"], session_id);
+        assert_eq!(sent_sessions[0]["projectId"], project_b);
+        assert_eq!(sent_sessions[0]["startTime"], "2026-11-23T10:00:00Z");
+        assert_eq!(sent_sessions[0]["endTime"], "2026-11-23T11:30:00Z");
+        assert_eq!(sent_sessions[0]["sessionType"], "SHORT_BREAK");
+        assert_eq!(sent_sessions[0]["mode"], "POMODORO");
+        assert_eq!(sent_sessions[0]["isDeleted"], false);
+        assert_eq!(sent_sessions[0]["updatedAt"], "2026-11-23T18:05:01Z");
+        server_edit.abort();
+
+        // 2) Soft-delete the session and verify deletion syncs with newer updatedAt
+        let delete_now = DateTime::parse_from_rfc3339("2026-11-23T18:05:05Z")
+            .unwrap()
+            .with_timezone(&Utc);
+        delete_session_in_pool_at(&pool, session_id.clone(), None, delete_now)
+            .await
+            .unwrap();
+
+        let delete_response = serde_json::json!({
+            "syncTimestamp": "2026-11-23T18:05:10Z",
+            "folders": [],
+            "projects": [],
+            "sessions": []
+        })
+        .to_string();
+        let (base_url_del, captured_del, server_del) = spawn_sync_mock(delete_response).await;
+        let api_del = ApiState::new_with_store(base_url_del, Arc::new(DummyTokenStore));
+        *api_del.access_token.lock().unwrap() = Some("valid_jwt".to_string());
+
+        let del_outcome = SyncService::execute_sync_with_status(&api_del, &pool)
+            .await
+            .unwrap();
+        assert_eq!(del_outcome, SyncOutcome::Synced);
+
+        let sent_del_body = captured_del.lock().unwrap().clone().unwrap();
+        let sent_del_json: serde_json::Value = serde_json::from_str(&sent_del_body).unwrap();
+        let sent_del_sessions = sent_del_json["sessions"].as_array().unwrap();
+        assert_eq!(sent_del_sessions.len(), 1);
+        assert_eq!(sent_del_sessions[0]["id"], session_id);
+        assert_eq!(sent_del_sessions[0]["isDeleted"], true);
+        assert_eq!(sent_del_sessions[0]["updatedAt"], "2026-11-23T18:05:06Z");
+        server_del.abort();
     }
 }

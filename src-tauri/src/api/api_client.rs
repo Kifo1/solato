@@ -52,6 +52,7 @@ pub struct ApiState {
     pub client: Client,
     token_store: Arc<dyn TokenStore>,
     refresh_lock: tokio::sync::Mutex<()>,
+    sync_lock: tokio::sync::Mutex<()>,
     has_stored_session: AtomicBool,
     auth_epoch: AtomicU64,
     on_auth_state_changed: Option<Arc<dyn Fn() + Send + Sync>>,
@@ -75,11 +76,16 @@ impl ApiState {
             client,
             token_store,
             refresh_lock: tokio::sync::Mutex::new(()),
+            sync_lock: tokio::sync::Mutex::new(()),
             // Start optimistic so the first startup/sync check inspects the OS keyring once.
             has_stored_session: AtomicBool::new(true),
             auth_epoch: AtomicU64::new(0),
             on_auth_state_changed: None,
         }
+    }
+
+    pub async fn lock_sync(&self) -> tokio::sync::MutexGuard<'_, ()> {
+        self.sync_lock.lock().await
     }
 
     pub fn with_auth_change_listener<F>(mut self, listener: F) -> Self

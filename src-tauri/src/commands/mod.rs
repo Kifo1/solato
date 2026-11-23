@@ -3,5 +3,6 @@ pub mod api;
 pub mod discord_commands;
 pub mod folder_commands;
 pub mod project_commands;
+pub mod session_commands;
 pub mod settings_commands;
 pub mod timer_commands;
