@@ -26,7 +26,7 @@ function getActiveDotClasses(kind: PhaseKind): string {
     case 'long':
       return 'w-6 bg-sky-400 shadow-[0_0_10px_rgba(56,189,248,0.55)]';
     default:
-      return 'w-6 bg-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.55)]';
+      return 'w-6 bg-amber-400 shadow-[0_0_10px_var(--accent-glow)]';
   }
 }
 
@@ -75,7 +75,7 @@ export function PomodoroPhases({ currentPhase, isRunning = false }: Readonly<Pro
                     ? getActiveDotClasses(phase.kind)
                     : isCompleted
                       ? getCompletedDotClasses(phase.kind)
-                      : 'w-2 bg-white/[0.14]',
+                      : 'w-2 bg-tint-strong',
                   isCurrent && isRunning && 'opacity-100',
                 )}
               />

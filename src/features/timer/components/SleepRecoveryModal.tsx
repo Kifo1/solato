@@ -142,25 +142,25 @@ export default function SleepRecoveryModal() {
             <div className="flex items-center gap-2">
               <h2
                 id="sleep-recovery-title"
-                className="text-lg font-semibold tracking-tight text-[#F4F5F7]"
+                className="text-lg font-semibold tracking-tight text-fg"
               >
                 Device Sleep Detected
               </h2>
-              <span className="rounded-full border border-white/[0.08] bg-white/[0.04] px-2 py-0.5 text-[10px] font-medium tracking-wider text-[#9CA3B0] uppercase">
+              <span className="rounded-full border border-line bg-tint px-2 py-0.5 text-[10px] font-medium tracking-wider text-fg-secondary uppercase">
                 {recovery.mode}
               </span>
             </div>
             {recovery.phase_ended_during_sleep && scheduledPhaseEndLabel ? (
-              <p className="text-sm leading-relaxed text-[#9CA3B0]">
+              <p className="text-sm leading-relaxed text-fg-secondary">
                 Your Pomodoro phase would have finished at{' '}
-                <span className="font-mono font-medium text-[#F4F5F7]">
+                <span className="font-mono font-medium text-fg">
                   {scheduledPhaseEndLabel}
                 </span>
                 . End the session at sleep time, or save the completed phase and pause for the next
                 one.
               </p>
             ) : (
-              <p className="text-sm leading-relaxed text-[#9CA3B0]">
+              <p className="text-sm leading-relaxed text-fg-secondary">
                 Were you still working while your device was asleep, or did you forget to pause the
                 timer?
               </p>
@@ -171,26 +171,26 @@ export default function SleepRecoveryModal() {
         {/* Structured sleep summary grid */}
         <div className="surface-well grid grid-cols-2 gap-3 rounded-xl p-3.5">
           <div className="flex flex-col gap-0.5">
-            <span className="text-[11px] font-medium text-[#646C7A]">Time Slept</span>
-            <span className="font-mono text-sm font-semibold text-[#F4F5F7] tabular-nums">
+            <span className="text-[11px] font-medium text-fg-muted">Time Slept</span>
+            <span className="font-mono text-sm font-semibold text-fg tabular-nums">
               {sleepTimeLabel}
             </span>
           </div>
           <div className="flex flex-col gap-0.5">
-            <span className="text-[11px] font-medium text-[#646C7A]">Time Woke</span>
-            <span className="font-mono text-sm font-semibold text-[#F4F5F7] tabular-nums">
+            <span className="text-[11px] font-medium text-fg-muted">Time Woke</span>
+            <span className="font-mono text-sm font-semibold text-fg tabular-nums">
               {wokeTimeLabel}
             </span>
           </div>
-          <div className="flex flex-col gap-0.5 border-t border-white/[0.06] pt-2.5">
-            <span className="text-[11px] font-medium text-[#646C7A]">Sleep Duration</span>
+          <div className="flex flex-col gap-0.5 border-t border-line-subtle pt-2.5">
+            <span className="text-[11px] font-medium text-fg-muted">Sleep Duration</span>
             <span className="font-mono text-sm font-semibold text-amber-400 tabular-nums">
               {sleepDurationLabel}
             </span>
           </div>
-          <div className="flex flex-col gap-0.5 border-t border-white/[0.06] pt-2.5">
-            <span className="text-[11px] font-medium text-[#646C7A]">Elapsed Before Sleep</span>
-            <span className="font-mono text-sm font-semibold text-[#F4F5F7] tabular-nums">
+          <div className="flex flex-col gap-0.5 border-t border-line-subtle pt-2.5">
+            <span className="text-[11px] font-medium text-fg-muted">Elapsed Before Sleep</span>
+            <span className="font-mono text-sm font-semibold text-fg tabular-nums">
               {elapsedBeforeSleepLabel}
             </span>
           </div>
@@ -238,7 +238,7 @@ export default function SleepRecoveryModal() {
             {submittingAction === 'end_at_sleep' ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              <Clock className="h-4 w-4 text-[#9CA3B0]" />
+              <Clock className="h-4 w-4 text-fg-secondary" />
             )}
             <span>{`End session at ${sleepTimeLabel}`}</span>
           </Button>

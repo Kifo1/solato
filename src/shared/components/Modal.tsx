@@ -89,7 +89,7 @@ function Modal({
             type="button"
             aria-label="Close modal"
             onClick={() => setIsOpen(false)}
-            className="absolute top-4 right-4 z-10 flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-[#9CA3B0] transition-colors hover:bg-white/[0.08] hover:text-[#F4F5F7] focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none"
+            className="absolute top-4 right-4 z-10 flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-fg-secondary transition-colors hover:bg-tint-strong hover:text-fg focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none"
           >
             <X className="h-4 w-4" />
           </button>

@@ -98,8 +98,8 @@ export default function ProjectsPage() {
     <div className="mx-auto w-full max-w-6xl px-6 py-6 sm:px-8">
       <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
-          <h1 className="text-2xl font-semibold tracking-tight text-[#F4F5F7]">Projects</h1>
-          <p className="mt-0.5 text-xs text-[#9CA3B0] sm:text-sm">
+          <h1 className="text-2xl font-semibold tracking-tight text-fg">Projects</h1>
+          <p className="mt-0.5 text-xs text-fg-secondary sm:text-sm">
             Launch focus sessions, organize folders, and track deep work.
           </p>
         </div>
@@ -114,17 +114,17 @@ export default function ProjectsPage() {
           <div aria-label="Workspace momentum summary" className="flex flex-wrap items-center gap-2">
             <div
               title="Tracked focus time today across all projects"
-              className="inline-flex h-8 items-center gap-1.5 rounded-full border border-white/[0.08] bg-[#13161E]/90 px-3 text-xs shadow-[0_1px_0_rgba(255,255,255,0.04)_inset]"
+              className="inline-flex h-8 items-center gap-1.5 rounded-full border border-line bg-well/90 px-3 text-xs shadow-[0_1px_0_rgba(255,255,255,0.04)_inset]"
             >
               <Clock className="h-3.5 w-3.5 shrink-0 text-amber-400" />
-              <span className="text-[#9CA3B0]">Today</span>
-              <span className="text-[#646C7A]" aria-hidden="true">
+              <span className="text-fg-secondary">Today</span>
+              <span className="text-fg-muted" aria-hidden="true">
                 ·
               </span>
               {todaysTimeLoading ? (
                 <Skeleton className="h-3.5 w-11 rounded" />
               ) : (
-                <span className="font-mono font-medium text-[#F4F5F7] tabular-nums">
+                <span className="font-mono font-medium text-fg tabular-nums">
                   {formatSecondsToString(todaysTotalSeconds || 0)}
                 </span>
               )}
@@ -136,11 +136,11 @@ export default function ProjectsPage() {
                   ? `Most active project: ${trimmedMostActive}`
                   : 'Most active project: none recorded yet'
               }
-              className="inline-flex h-8 max-w-[220px] items-center gap-1.5 rounded-full border border-white/[0.08] bg-[#13161E]/90 px-3 text-xs shadow-[0_1px_0_rgba(255,255,255,0.04)_inset]"
+              className="inline-flex h-8 max-w-[220px] items-center gap-1.5 rounded-full border border-line bg-well/90 px-3 text-xs shadow-[0_1px_0_rgba(255,255,255,0.04)_inset]"
             >
               <Flame className="h-3.5 w-3.5 shrink-0 text-teal-400" />
-              <span className="shrink-0 text-[#9CA3B0]">Top</span>
-              <span className="shrink-0 text-[#646C7A]" aria-hidden="true">
+              <span className="shrink-0 text-fg-secondary">Top</span>
+              <span className="shrink-0 text-fg-muted" aria-hidden="true">
                 ·
               </span>
               {mostActiveLoading ? (
@@ -149,7 +149,7 @@ export default function ProjectsPage() {
                 <span
                   className={cn(
                     'truncate font-medium',
-                    trimmedMostActive ? 'text-[#F4F5F7]' : 'text-[#646C7A]',
+                    trimmedMostActive ? 'text-fg' : 'text-fg-muted',
                   )}
                 >
                   {trimmedMostActive || 'None yet'}
@@ -159,13 +159,13 @@ export default function ProjectsPage() {
 
             <div
               title={`${projects.length} ${projects.length === 1 ? 'project' : 'projects'} across ${folders.length} ${folders.length === 1 ? 'folder' : 'folders'}`}
-              className="inline-flex h-8 items-center gap-1.5 rounded-full border border-white/[0.08] bg-[#13161E]/90 px-3 text-xs shadow-[0_1px_0_rgba(255,255,255,0.04)_inset]"
+              className="inline-flex h-8 items-center gap-1.5 rounded-full border border-line bg-well/90 px-3 text-xs shadow-[0_1px_0_rgba(255,255,255,0.04)_inset]"
             >
               <FolderKanban className="h-3.5 w-3.5 shrink-0 text-sky-400" />
-              <span className="font-mono font-medium text-[#F4F5F7] tabular-nums">
+              <span className="font-mono font-medium text-fg tabular-nums">
                 {projects.length}
               </span>
-              <span className="text-[#9CA3B0]">
+              <span className="text-fg-secondary">
                 {projects.length === 1 ? 'project' : 'projects'}
               </span>
             </div>
@@ -181,8 +181,8 @@ export default function ProjectsPage() {
             <AlertCircle className="h-5 w-5" />
           </div>
           <div className="space-y-1">
-            <p className="text-sm font-medium text-[#F4F5F7]">Couldn&apos;t load your projects</p>
-            <p className="max-w-md text-xs text-[#9CA3B0]">
+            <p className="text-sm font-medium text-fg">Couldn&apos;t load your projects</p>
+            <p className="max-w-md text-xs text-fg-secondary">
               {getErrorMessage(queryError, 'An unexpected error occurred while reading local data.')}
             </p>
           </div>

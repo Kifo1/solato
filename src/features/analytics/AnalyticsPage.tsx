@@ -159,7 +159,7 @@ function AnalyticsExecutiveStrip() {
       {/* 1. Total Tracked */}
       <div className="surface-card flex flex-col justify-between rounded-2xl p-4">
         <div className="flex items-center justify-between gap-2">
-          <span className="text-[11px] font-semibold tracking-[0.07em] text-[#646C7A] uppercase">
+          <span className="text-[11px] font-semibold tracking-[0.07em] text-fg-muted uppercase">
             Total Tracked
           </span>
           <span className="flex h-6.5 w-6.5 items-center justify-center rounded-lg border border-amber-500/20 bg-amber-500/10 text-amber-400">
@@ -169,11 +169,11 @@ function AnalyticsExecutiveStrip() {
         {shareLoading ? (
           <Skeleton className="mt-3 h-7 w-24" />
         ) : (
-          <p className="mt-2.5 font-mono text-2xl font-semibold tracking-tight tabular-nums text-[#F4F5F7]">
+          <p className="mt-2.5 font-mono text-2xl font-semibold tracking-tight tabular-nums text-fg">
             {formatSecondsToString(metrics.totalSeconds)}
           </p>
         )}
-        <p className="mt-1 truncate text-[11px] text-[#646C7A]">
+        <p className="mt-1 truncate text-[11px] text-fg-muted">
           {metrics.activeProjectCount > 0
             ? `Across ${metrics.activeProjectCount} active project${metrics.activeProjectCount === 1 ? '' : 's'}`
             : 'No tracked sessions yet'}
@@ -183,7 +183,7 @@ function AnalyticsExecutiveStrip() {
       {/* 2. Current Streak */}
       <div className="surface-card flex flex-col justify-between rounded-2xl p-4">
         <div className="flex items-center justify-between gap-2">
-          <span className="text-[11px] font-semibold tracking-[0.07em] text-[#646C7A] uppercase">
+          <span className="text-[11px] font-semibold tracking-[0.07em] text-fg-muted uppercase">
             Current Streak
           </span>
           <span className="flex h-6.5 w-6.5 items-center justify-center rounded-lg border border-amber-500/20 bg-amber-500/10 text-amber-400">
@@ -194,7 +194,7 @@ function AnalyticsExecutiveStrip() {
           <Skeleton className="mt-3 h-7 w-16" />
         ) : (
           <div className="mt-2.5 flex items-center gap-2">
-            <p className="font-mono text-2xl font-semibold tracking-tight tabular-nums text-[#F4F5F7]">
+            <p className="font-mono text-2xl font-semibold tracking-tight tabular-nums text-fg">
               {metrics.currentStreak}d
             </p>
             <span
@@ -208,7 +208,7 @@ function AnalyticsExecutiveStrip() {
             />
           </div>
         )}
-        <p className="mt-1 truncate text-[11px] text-[#646C7A]">
+        <p className="mt-1 truncate text-[11px] text-fg-muted">
           {metrics.activeToday ? 'Logged focus time today' : 'Start a session to extend'}
         </p>
       </div>
@@ -216,7 +216,7 @@ function AnalyticsExecutiveStrip() {
       {/* 3. Daily Average */}
       <div className="surface-card flex flex-col justify-between rounded-2xl p-4">
         <div className="flex items-center justify-between gap-2">
-          <span className="text-[11px] font-semibold tracking-[0.07em] text-[#646C7A] uppercase">
+          <span className="text-[11px] font-semibold tracking-[0.07em] text-fg-muted uppercase">
             Daily Average
           </span>
           <span className="flex h-6.5 w-6.5 items-center justify-center rounded-lg border border-teal-400/20 bg-teal-400/10 text-teal-300">
@@ -226,11 +226,11 @@ function AnalyticsExecutiveStrip() {
         {calendarLoading ? (
           <Skeleton className="mt-3 h-7 w-20" />
         ) : (
-          <p className="mt-2.5 font-mono text-2xl font-semibold tracking-tight tabular-nums text-[#F4F5F7]">
+          <p className="mt-2.5 font-mono text-2xl font-semibold tracking-tight tabular-nums text-fg">
             {formatSecondsToString(metrics.dailyAvgSeconds)}
           </p>
         )}
-        <p className="mt-1 truncate text-[11px] text-[#646C7A]">
+        <p className="mt-1 truncate text-[11px] text-fg-muted">
           {metrics.activeDayCount > 0
             ? `Across ${metrics.activeDayCount} active day${metrics.activeDayCount === 1 ? '' : 's'}`
             : 'Per active focus day'}
@@ -240,7 +240,7 @@ function AnalyticsExecutiveStrip() {
       {/* 4. Peak Rhythm */}
       <div className="surface-card flex flex-col justify-between rounded-2xl p-4">
         <div className="flex items-center justify-between gap-2">
-          <span className="text-[11px] font-semibold tracking-[0.07em] text-[#646C7A] uppercase">
+          <span className="text-[11px] font-semibold tracking-[0.07em] text-fg-muted uppercase">
             Peak Rhythm
           </span>
           <span className="flex h-6.5 w-6.5 items-center justify-center rounded-lg border border-sky-400/20 bg-sky-400/10 text-sky-300">
@@ -250,11 +250,11 @@ function AnalyticsExecutiveStrip() {
         {peakLoading ? (
           <Skeleton className="mt-3 h-7 w-28" />
         ) : (
-          <p className="mt-2.5 truncate font-mono text-2xl font-semibold tracking-tight tabular-nums text-[#F4F5F7]">
+          <p className="mt-2.5 truncate font-mono text-2xl font-semibold tracking-tight tabular-nums text-fg">
             {metrics.peakRhythm}
           </p>
         )}
-        <p className="mt-1 truncate text-[11px] text-[#646C7A]">Strongest day &amp; hour window</p>
+        <p className="mt-1 truncate text-[11px] text-fg-muted">Strongest day &amp; hour window</p>
       </div>
     </div>
   );
@@ -370,10 +370,10 @@ export default function AnalyticsPage() {
     <div className="mx-auto w-full max-w-6xl px-6 py-7 sm:px-8">
       <header className="mb-7 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-[#F4F5F7] sm:text-3xl">
+          <h1 className="text-2xl font-semibold tracking-tight text-fg sm:text-3xl">
             Analytics
           </h1>
-          <p className="mt-1.5 text-sm text-[#9CA3B0]">
+          <p className="mt-1.5 text-sm text-fg-secondary">
             {activeTab === 'sessions'
               ? 'Browse, filter, and refine every recorded focus and break session.'
               : 'Insights, streaks, and focus patterns across your projects.'}
@@ -396,14 +396,14 @@ export default function AnalyticsPage() {
                 className={cn(
                   'inline-flex h-7.5 cursor-pointer items-center gap-1.5 rounded-lg px-3 text-xs font-medium transition-all duration-150 focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none',
                   activeTab === 'overview'
-                    ? 'bg-[#1F2430] text-[#F4F5F7] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]'
-                    : 'text-[#646C7A] hover:text-[#9CA3B0]',
+                    ? 'bg-elevated text-fg shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]'
+                    : 'text-fg-muted hover:text-fg-secondary',
                 )}
               >
                 <BarChart3
                   className={cn(
                     'h-3.5 w-3.5',
-                    activeTab === 'overview' ? 'text-amber-400' : 'text-[#646C7A]',
+                    activeTab === 'overview' ? 'text-amber-400' : 'text-fg-muted',
                   )}
                 />
                 <span>Overview</span>
@@ -417,14 +417,14 @@ export default function AnalyticsPage() {
                 className={cn(
                   'inline-flex h-7.5 cursor-pointer items-center gap-1.5 rounded-lg px-3 text-xs font-medium transition-all duration-150 focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none',
                   activeTab === 'sessions'
-                    ? 'bg-[#1F2430] text-[#F4F5F7] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]'
-                    : 'text-[#646C7A] hover:text-[#9CA3B0]',
+                    ? 'bg-elevated text-fg shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]'
+                    : 'text-fg-muted hover:text-fg-secondary',
                 )}
               >
                 <History
                   className={cn(
                     'h-3.5 w-3.5',
-                    activeTab === 'sessions' ? 'text-amber-400' : 'text-[#646C7A]',
+                    activeTab === 'sessions' ? 'text-amber-400' : 'text-fg-muted',
                   )}
                 />
                 <span>Session Log</span>

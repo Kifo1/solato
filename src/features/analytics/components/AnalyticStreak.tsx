@@ -37,8 +37,8 @@ export default function AnalyticStreak() {
   return (
     <div className="surface-card flex h-full flex-col justify-between rounded-2xl p-6">
       <div>
-        <h3 className="text-sm font-semibold tracking-tight text-[#F4F5F7]">Focus Streak</h3>
-        <p className="mt-1 text-xs text-[#646C7A]">Consecutive days with focus time</p>
+        <h3 className="text-sm font-semibold tracking-tight text-fg">Focus Streak</h3>
+        <p className="mt-1 text-xs text-fg-muted">Consecutive days with focus time</p>
       </div>
 
       <div className="my-6 flex flex-1 flex-col items-center justify-center text-center">
@@ -46,8 +46,8 @@ export default function AnalyticStreak() {
           className={cn(
             'relative flex h-15 w-15 items-center justify-center rounded-2xl border transition-all duration-300',
             activeToday
-              ? 'border-amber-400/35 bg-amber-500/15 shadow-[0_0_28px_-4px_rgba(245,158,11,0.5)]'
-              : 'border-white/[0.08] bg-white/[0.03]',
+              ? 'border-amber-400/35 bg-amber-500/15 shadow-[0_0_28px_-4px_var(--accent-glow)]'
+              : 'border-line bg-tint-subtle',
           )}
         >
           <Flame
@@ -55,7 +55,7 @@ export default function AnalyticStreak() {
               'h-8 w-8 transition-colors',
               activeToday
                 ? 'fill-amber-400 text-amber-400'
-                : 'fill-[#252A34] text-[#646C7A]',
+                : 'fill-[#252A34] text-fg-muted',
             )}
           />
         </div>
@@ -64,12 +64,12 @@ export default function AnalyticStreak() {
           <span
             className={cn(
               'font-mono text-5xl font-semibold tracking-tight tabular-nums',
-              activeToday ? 'text-[#F4F5F7]' : 'text-[#9CA3B0]',
+              activeToday ? 'text-fg' : 'text-fg-secondary',
             )}
           >
             {streak}
           </span>
-          <span className="text-sm font-medium text-[#646C7A]">
+          <span className="text-sm font-medium text-fg-muted">
             {streak === 1 ? 'day' : 'days'}
           </span>
         </div>
@@ -81,8 +81,8 @@ export default function AnalyticStreak() {
               Active today
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.03] px-3 py-1 text-xs font-medium text-[#9CA3B0]">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#646C7A]" />
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-line bg-tint-subtle px-3 py-1 text-xs font-medium text-fg-secondary">
+              <span className="h-1.5 w-1.5 rounded-full bg-fg-muted" />
               Start a session to keep streak
             </span>
           )}

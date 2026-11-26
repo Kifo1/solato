@@ -18,6 +18,7 @@ import { invoke } from '@tauri-apps/api/core';
 import React, { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useTheme } from '@/shared/context/ThemeContext';
 
 interface CalendarData {
   history: Record<string, number>;
@@ -53,14 +54,6 @@ const CELL_GAP_PX = 4;
 const WEEK_COL_STEP_PX = CELL_SIZE_PX + CELL_GAP_PX;
 const TOOLTIP_HALF_WIDTH = 104;
 
-const LEVEL_COLORS = [
-  'bg-[#1A1E26] border border-white/[0.05]',
-  'bg-[#4A3210] border border-[#614114]',
-  'bg-[#7C4D0E] border border-[#965D11]',
-  'bg-[#B86D0B] border border-[#D47E0D]',
-  'bg-[#F59E0B] border border-[#FBBF24]',
-];
-
 function getLevel(seconds: number, max: number): number {
   if (!seconds || seconds <= 0 || max <= 0) return 0;
   const ratio = seconds / max;
@@ -75,6 +68,8 @@ interface AnalyticCalendarProps {
 }
 
 export function AnalyticCalendar({ onSelectDay }: Readonly<AnalyticCalendarProps> = {}) {
+  const { theme } = useTheme();
+  const heatmapColors = theme.charts.heatmap;
   const today = useMemo(() => startOfToday(), []);
   const todayKey = useMemo(() => format(today, 'yyyy-MM-dd'), [today]);
 
@@ -202,11 +197,11 @@ export function AnalyticCalendar({ onSelectDay }: Readonly<AnalyticCalendarProps
     <div className="surface-card rounded-2xl p-6">
       <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h3 className="text-sm font-semibold tracking-tight text-[#F4F5F7]">Activity Heatmap</h3>
-          <p className="mt-1 font-mono text-xs tabular-nums text-[#646C7A]">
-            <span className="font-medium text-[#9CA3B0]">{activeDays}</span> active day
+          <h3 className="text-sm font-semibold tracking-tight text-fg">Activity Heatmap</h3>
+          <p className="mt-1 font-mono text-xs tabular-nums text-fg-muted">
+            <span className="font-medium text-fg-secondary">{activeDays}</span> active day
             {activeDays === 1 ? '' : 's'} ·{' '}
-            <span className="font-medium text-[#9CA3B0]">
+            <span className="font-medium text-fg-secondary">
               {formatSecondsToString(totalSeconds)}
             </span>{' '}
             in {year}
@@ -225,7 +220,7 @@ export function AnalyticCalendar({ onSelectDay }: Readonly<AnalyticCalendarProps
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <span className="w-13 text-center font-mono text-xs font-semibold tabular-nums text-[#F4F5F7]">
+          <span className="w-13 text-center font-mono text-xs font-semibold tabular-nums text-fg">
             {year}
           </span>
           <Button
@@ -253,10 +248,10 @@ export function AnalyticCalendar({ onSelectDay }: Readonly<AnalyticCalendarProps
             )}
             style={{ left: tooltip.x, top: tooltip.y }}
           >
-            <p className="font-mono font-semibold tabular-nums text-[#F4F5F7]">
+            <p className="font-mono font-semibold tabular-nums text-fg">
               {tooltip.isFuture ? 'Upcoming' : formatSecondsToString(tooltip.seconds)}
             </p>
-            <p className="mt-0.5 text-[#9CA3B0]">{format(tooltip.date, 'EEEE, MMM d, yyyy')}</p>
+            <p className="mt-0.5 text-fg-secondary">{format(tooltip.date, 'EEEE, MMM d, yyyy')}</p>
             {onSelectDay && !tooltip.isFuture && (
               <p className="mt-1 text-[10px] font-medium text-amber-400">Click to view sessions</p>
             )}
@@ -271,7 +266,7 @@ export function AnalyticCalendar({ onSelectDay }: Readonly<AnalyticCalendarProps
             {WEEKDAY_LABELS.map((label, i) => (
               <span
                 key={i}
-                className="flex h-3.5 items-center font-mono text-[10px] leading-none text-[#646C7A]"
+                className="flex h-3.5 items-center font-mono text-[10px] leading-none text-fg-muted"
               >
                 {label}
               </span>
@@ -284,7 +279,7 @@ export function AnalyticCalendar({ onSelectDay }: Readonly<AnalyticCalendarProps
               {monthLabels.map(({ weekIndex, label }) => (
                 <span
                   key={weekIndex}
-                  className="absolute font-mono text-[10px] text-[#646C7A]"
+                  className="absolute font-mono text-[10px] text-fg-muted"
                   style={{ left: `${weekIndex * WEEK_COL_STEP_PX}px` }}
                 >
                   {label}
@@ -323,16 +318,16 @@ export function AnalyticCalendar({ onSelectDay }: Readonly<AnalyticCalendarProps
                             onSelectDay(day.key);
                           }
                         }}
+                        style={{ backgroundColor: heatmapColors[level] }}
                         className={cn(
-                          'h-3.5 w-3.5 rounded-[3px] transition-transform duration-100 focus-visible:ring-2 focus-visible:ring-amber-400/70 focus-visible:outline-none',
-                          LEVEL_COLORS[level],
+                          'h-3.5 w-3.5 rounded-[3px] border border-line-subtle transition-transform duration-100 focus-visible:ring-2 focus-visible:ring-amber-400/70 focus-visible:outline-none',
                           day.isFuture
                             ? 'cursor-default opacity-35'
                             : canOpen
                               ? 'cursor-pointer hover:scale-125'
                               : 'cursor-default',
                           day.isToday &&
-                            'ring-1 ring-[#F4F5F7]/85 ring-offset-1 ring-offset-[#14171D]',
+                            'ring-1 ring-fg/85 ring-offset-1 ring-offset-surface',
                         )}
                       />
                     );
@@ -345,11 +340,15 @@ export function AnalyticCalendar({ onSelectDay }: Readonly<AnalyticCalendarProps
       </div>
 
       <div className="mt-3 flex items-center justify-end gap-1.5">
-        <span className="mr-1 font-mono text-[10px] text-[#646C7A]">Less</span>
-        {LEVEL_COLORS.map((colorClass, i) => (
-          <div key={i} className={cn('h-3 w-3 rounded-[3px]', colorClass)} />
+        <span className="mr-1 font-mono text-[10px] text-fg-muted">Less</span>
+        {heatmapColors.map((hex, i) => (
+          <div
+            key={i}
+            style={{ backgroundColor: hex }}
+            className="h-3 w-3 rounded-[3px] border border-line-subtle"
+          />
         ))}
-        <span className="ml-1 font-mono text-[10px] text-[#646C7A]">More</span>
+        <span className="ml-1 font-mono text-[10px] text-fg-muted">More</span>
       </div>
     </div>
   );

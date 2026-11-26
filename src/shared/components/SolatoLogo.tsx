@@ -1,23 +1,29 @@
 import { useId } from 'react';
 import { cn } from '@shared/lib/utils';
+import { useTheme, type ThemeDefinition } from '@shared/context/ThemeContext';
 
 interface SolatoLogoProps {
   size?: number;
   isActive?: boolean;
   showFrame?: boolean;
+  themeOverride?: ThemeDefinition;
   className?: string;
 }
 
 /**
  * Solato brand mark derived directly from the signature dual-arc timer circle.
- * When `isActive` is true, the opposing quarter-arcs rotate 90deg just like the stopwatch dial.
+ * Adapts automatically to the active studio theme (or an explicit `themeOverride` for previews).
  */
 export function SolatoLogo({
   size = 34,
   isActive = false,
   showFrame = true,
+  themeOverride,
   className,
 }: Readonly<SolatoLogoProps>) {
+  const { theme: activeTheme } = useTheme();
+  const svg = (themeOverride ?? activeTheme).svg;
+
   const uid = useId();
   const bgId = `solato-bg-${uid}`;
   const arcAId = `solato-arc-a-${uid}`;
@@ -35,16 +41,16 @@ export function SolatoLogo({
     >
       <defs>
         <radialGradient id={bgId} cx="50%" cy="22%" r="82%">
-          <stop offset="0%" stopColor="#202530" />
-          <stop offset="100%" stopColor="#0C0E12" />
+          <stop offset="0%" stopColor={svg.logoBgTop} />
+          <stop offset="100%" stopColor={svg.logoBgBottom} />
         </radialGradient>
         <linearGradient id={arcAId} x1="32" y1="11" x2="53" y2="32" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#FDE68A" />
-          <stop offset="100%" stopColor="#F59E0B" />
+          <stop offset="0%" stopColor={svg.arcStart} />
+          <stop offset="100%" stopColor={svg.arcMid} />
         </linearGradient>
         <linearGradient id={arcBId} x1="32" y1="53" x2="11" y2="32" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#FBBF24" />
-          <stop offset="100%" stopColor="#D97706" />
+          <stop offset="0%" stopColor={svg.arcMid} />
+          <stop offset="100%" stopColor={svg.arcEnd} />
         </linearGradient>
       </defs>
 
@@ -56,22 +62,16 @@ export function SolatoLogo({
           height="60"
           rx="16"
           fill={`url(#${bgId})`}
-          stroke="rgba(255,255,255,0.10)"
+          stroke={svg.logoBorder}
           strokeWidth="1.5"
         />
       )}
 
       {/* Subtle ambient glow when timer is actively running */}
-      {isActive && <circle cx="32" cy="32" r="21" fill="#F59E0B" opacity="0.12" />}
+      {isActive && <circle cx="32" cy="32" r="21" fill={svg.arcGlow} opacity="0.14" />}
 
       {/* Base full timer track */}
-      <circle
-        cx="32"
-        cy="32"
-        r="19"
-        stroke="rgba(255,255,255,0.15)"
-        strokeWidth="3.2"
-      />
+      <circle cx="32" cy="32" r="19" stroke={svg.logoTrack} strokeWidth="3.2" />
 
       {/* Signature opposing quarter-arcs (mirroring TimerDisplay ring) */}
       <g
@@ -100,11 +100,11 @@ export function SolatoLogo({
         cx="32"
         cy="32"
         r={isActive ? '5.2' : '4.2'}
-        fill="#F59E0B"
+        fill={svg.arcMid}
         opacity={isActive ? '0.28' : '0.16'}
         className="transition-all duration-500"
       />
-      <circle cx="32" cy="32" r="2.6" fill="#FBBF24" />
+      <circle cx="32" cy="32" r="2.6" fill={svg.arcMid} />
     </svg>
   );
 }

@@ -10,6 +10,7 @@ import {
   History,
   Hourglass,
   Maximize2,
+  Palette,
   PanelLeft,
   Play,
   RotateCcw,
@@ -18,13 +19,14 @@ import {
   Timer,
 } from 'lucide-react';
 import { useLayout } from '@shared/context/LayoutContext';
+import { useTheme } from '@shared/context/ThemeContext';
 import { useToast } from '@shared/context/ToastContext';
 import { getFolderPathMap, type Folder, type Project } from '@shared/lib/models/project';
 import { cn, getErrorMessage } from '@shared/lib/utils';
 
 interface CommandItem {
   id: string;
-  group: 'Navigation' | 'Timer Controls' | 'Focus Project' | 'Workspace';
+  group: 'Navigation' | 'Timer Controls' | 'Focus Project' | 'Appearance' | 'Workspace';
   label: string;
   subtitle?: string;
   shortcut?: string;
@@ -37,6 +39,7 @@ const GROUP_ORDER: CommandItem['group'][] = [
   'Focus Project',
   'Timer Controls',
   'Navigation',
+  'Appearance',
   'Workspace',
 ];
 
@@ -49,6 +52,7 @@ export function CommandPalette() {
     toggleZenMode,
     isZenMode,
   } = useLayout();
+  const { themeId, themes, setTheme } = useTheme();
   const toast = useToast();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -96,7 +100,7 @@ export function CommandPalette() {
         group: 'Navigation',
         label: 'Go to Projects',
         subtitle: 'Manage projects and nested folders',
-        icon: <FolderDot className="h-4 w-4 text-[#9CA3B0]" />,
+        icon: <FolderDot className="h-4 w-4 text-fg-secondary" />,
         keywords: 'folders tasks workspace',
         onSelect: () => navigate('/projects'),
       },
@@ -105,7 +109,7 @@ export function CommandPalette() {
         group: 'Navigation',
         label: 'Go to Analytics Overview',
         subtitle: 'Streaks, charts, and yearly activity heatmap',
-        icon: <ChartLine className="h-4 w-4 text-[#9CA3B0]" />,
+        icon: <ChartLine className="h-4 w-4 text-fg-secondary" />,
         keywords: 'stats charts heatmap streak',
         onSelect: () => navigate('/analytics'),
       },
@@ -114,7 +118,7 @@ export function CommandPalette() {
         group: 'Navigation',
         label: 'Open Session Log',
         subtitle: 'Browse, filter, and edit past focus sessions',
-        icon: <History className="h-4 w-4 text-[#9CA3B0]" />,
+        icon: <History className="h-4 w-4 text-fg-secondary" />,
         keywords: 'history log entries edit',
         onSelect: () => navigate('/analytics?tab=sessions'),
       },
@@ -123,7 +127,7 @@ export function CommandPalette() {
         group: 'Navigation',
         label: 'Open Settings',
         subtitle: 'Focus rhythm, power, Discord, and shortcuts',
-        icon: <Settings className="h-4 w-4 text-[#9CA3B0]" />,
+        icon: <Settings className="h-4 w-4 text-fg-secondary" />,
         keywords: 'preferences pomodoro discord power',
         onSelect: () => navigate('/settings'),
       },
@@ -197,7 +201,7 @@ export function CommandPalette() {
         label: 'Reset Timer',
         subtitle: 'Reset current timer interval',
         shortcut: 'R',
-        icon: <RotateCcw className="h-4 w-4 text-[#9CA3B0]" />,
+        icon: <RotateCcw className="h-4 w-4 text-fg-secondary" />,
         keywords: 'clear restart zero',
         onSelect: async () => {
           try {
@@ -217,7 +221,7 @@ export function CommandPalette() {
         label: isSidebarCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar',
         subtitle: 'Toggle compact icon rail',
         shortcut: '⌘B',
-        icon: <PanelLeft className="h-4 w-4 text-[#9CA3B0]" />,
+        icon: <PanelLeft className="h-4 w-4 text-fg-secondary" />,
         keywords: 'navigation rail fold hide',
         onSelect: () => toggleSidebar(),
       },
@@ -246,7 +250,7 @@ export function CommandPalette() {
         keywords: `${project.description} ${folderPath ?? ''}`,
         icon: (
           <span
-            className="h-3 w-3 rounded-full ring-2 ring-white/10"
+            className="h-3 w-3 rounded-full ring-2 ring-line"
             style={{ backgroundColor: project.color || '#F59E0B' }}
           />
         ),
@@ -263,7 +267,38 @@ export function CommandPalette() {
       };
     });
 
-    return [...navItems, ...timerItems, ...workspaceItems, ...projectItems];
+    const themeItems: CommandItem[] = [
+      {
+        id: 'nav-appearance',
+        group: 'Appearance',
+        label: 'Open Appearance & Themes',
+        subtitle: 'Preview all dark and daylight studio themes',
+        icon: <Palette className="h-4 w-4 text-amber-400" />,
+        keywords: 'theme dark light color studio appearance',
+        onSelect: () => navigate('/settings?section=appearance'),
+      },
+      ...themes.map((def) => ({
+        id: `theme-${def.id}`,
+        group: 'Appearance' as const,
+        label: `Theme: ${def.name}`,
+        subtitle: def.id === themeId ? `Active · ${def.tagline}` : def.tagline,
+        keywords: `theme color appearance ${def.mode} ${def.name} ${def.tagline}`,
+        icon: (
+          <span
+            className="h-3.5 w-3.5 rounded-full ring-2 ring-line"
+            style={{
+              background: `linear-gradient(135deg, ${def.preview.canvas} 45%, ${def.preview.accent} 45%)`,
+            }}
+          />
+        ),
+        onSelect: () => {
+          setTheme(def.id);
+          toast.success(`Theme switched to ${def.name}`);
+        },
+      })),
+    ];
+
+    return [...navItems, ...timerItems, ...workspaceItems, ...themeItems, ...projectItems];
   }, [
     projects,
     folderPaths,
@@ -274,6 +309,9 @@ export function CommandPalette() {
     toggleSidebar,
     isZenMode,
     toggleZenMode,
+    themes,
+    themeId,
+    setTheme,
   ]);
 
   const filteredItems = useMemo(() => {
@@ -372,7 +410,7 @@ export function CommandPalette() {
         className="surface-elevated animate-modal-panel flex w-full max-w-xl flex-col overflow-hidden rounded-2xl"
       >
         {/* Search Header */}
-        <div className="flex items-center gap-3 border-b border-white/[0.07] px-4 py-3.5">
+        <div className="flex items-center gap-3 border-b border-line-subtle px-4 py-3.5">
           <Search className="h-4 w-4 shrink-0 text-amber-400" />
           <input
             ref={inputRef}
@@ -380,9 +418,9 @@ export function CommandPalette() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Switch project, jump to view, or run a timer command..."
-            className="w-full bg-transparent text-sm text-[#F4F5F7] placeholder-[#646C7A] focus:outline-none"
+            className="w-full bg-transparent text-sm text-fg placeholder-fg-muted focus:outline-none"
           />
-          <kbd className="rounded-md border border-white/[0.08] bg-white/[0.04] px-1.5 py-0.5 font-mono text-[10px] text-[#646C7A]">
+          <kbd className="rounded-md border border-line bg-tint px-1.5 py-0.5 font-mono text-[10px] text-fg-muted">
             Esc
           </kbd>
         </div>
@@ -390,13 +428,13 @@ export function CommandPalette() {
         {/* Results */}
         <div ref={listRef} className="max-h-[54vh] overflow-y-auto p-2">
           {flatVisible.length === 0 ? (
-            <div className="py-10 text-center text-xs text-[#646C7A]">
+            <div className="py-10 text-center text-xs text-fg-muted">
               No matching commands or projects found.
             </div>
           ) : (
             Array.from(grouped.entries()).map(([groupName, items]) => (
               <div key={groupName} className="mb-2 last:mb-0">
-                <div className="px-2.5 pt-2 pb-1 text-[10px] font-semibold tracking-[0.09em] text-[#646C7A] uppercase">
+                <div className="px-2.5 pt-2 pb-1 text-[10px] font-semibold tracking-[0.09em] text-fg-muted uppercase">
                   {groupName}
                 </div>
                 <div className="flex flex-col gap-0.5">
@@ -413,25 +451,25 @@ export function CommandPalette() {
                         className={cn(
                           'flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2 text-left transition-colors',
                           isActive
-                            ? 'bg-amber-500/[0.12] text-[#F4F5F7]'
-                            : 'text-[#9CA3B0] hover:bg-white/[0.04]',
+                            ? 'bg-amber-500/[0.12] text-fg'
+                            : 'text-fg-secondary hover:bg-tint',
                         )}
                       >
-                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-white/[0.06] bg-[#12151C]">
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-line-subtle bg-well">
                           {item.icon}
                         </span>
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-medium text-[#F4F5F7]">
+                          <span className="block truncate text-sm font-medium text-fg">
                             {item.label}
                           </span>
                           {item.subtitle && (
-                            <span className="block truncate text-[11px] text-[#646C7A]">
+                            <span className="block truncate text-[11px] text-fg-muted">
                               {item.subtitle}
                             </span>
                           )}
                         </span>
                         {item.shortcut ? (
-                          <kbd className="shrink-0 rounded-md border border-white/[0.08] bg-white/[0.04] px-1.5 py-0.5 font-mono text-[10px] text-[#9CA3B0]">
+                          <kbd className="shrink-0 rounded-md border border-line bg-tint px-1.5 py-0.5 font-mono text-[10px] text-fg-secondary">
                             {item.shortcut}
                           </kbd>
                         ) : isActive ? (
@@ -447,22 +485,22 @@ export function CommandPalette() {
         </div>
 
         {/* Footer hints */}
-        <div className="flex items-center justify-between border-t border-white/[0.06] bg-[#101218] px-4 py-2 text-[11px] text-[#646C7A]">
+        <div className="flex items-center justify-between border-t border-line-subtle bg-well px-4 py-2 text-[11px] text-fg-muted">
           <div className="flex items-center gap-3">
             <span className="inline-flex items-center gap-1">
-              <kbd className="rounded border border-white/[0.08] bg-white/[0.04] px-1 font-mono text-[10px]">
+              <kbd className="rounded border border-line bg-tint px-1 font-mono text-[10px]">
                 ↑↓
               </kbd>
               Navigate
             </span>
             <span className="inline-flex items-center gap-1">
-              <kbd className="rounded border border-white/[0.08] bg-white/[0.04] px-1 font-mono text-[10px]">
+              <kbd className="rounded border border-line bg-tint px-1 font-mono text-[10px]">
                 ↵
               </kbd>
               Run
             </span>
           </div>
-          <span className="font-mono text-[10px] text-[#646C7A]">Solato Command</span>
+          <span className="font-mono text-[10px] text-fg-muted">Solato Command</span>
         </div>
       </div>
     </div>,

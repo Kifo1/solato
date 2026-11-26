@@ -143,14 +143,14 @@ export function CustomSelect<T extends string>({
       ? cn(
           'inline-flex h-8.5 min-w-36 items-center justify-between gap-2 rounded-xl border px-3 text-left text-xs font-medium transition-all duration-150 hover:cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/50',
           isOpen
-            ? 'border-amber-500/60 bg-[#14171F] text-[#F4F5F7] ring-2 ring-amber-500/15'
-            : 'border-white/[0.09] bg-[#0E1015] text-[#F4F5F7] hover:border-white/[0.16] hover:bg-[#14171F]',
+            ? 'border-amber-500/60 bg-surface text-fg ring-2 ring-amber-500/15'
+            : 'border-line bg-well text-fg hover:border-line-strong hover:bg-surface',
         )
       : cn(
           'flex h-10 w-full items-center justify-between gap-2 rounded-xl border px-3.5 text-left text-sm transition-all duration-150 hover:cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/50',
           isOpen
-            ? 'border-amber-500/60 bg-[#0E1015] text-[#F4F5F7] ring-2 ring-amber-500/20'
-            : 'border-white/[0.09] bg-[#0E1015] text-[#F4F5F7] hover:border-white/[0.16]',
+            ? 'border-amber-500/60 bg-well text-fg ring-2 ring-amber-500/20'
+            : 'border-line bg-well text-fg hover:border-line-strong',
         );
 
   return (
@@ -187,8 +187,8 @@ export function CustomSelect<T extends string>({
         <ChevronDown
           className={cn(
             variant === 'filter' ? 'h-3.5 w-3.5' : 'h-4 w-4',
-            'shrink-0 text-[#646C7A] transition-transform duration-150',
-            isOpen && 'rotate-180 text-[#9CA3B0]',
+            'shrink-0 text-fg-muted transition-transform duration-150',
+            isOpen && 'rotate-180 text-fg-secondary',
           )}
         />
       </button>
@@ -234,10 +234,10 @@ export function CustomSelect<T extends string>({
                     className={cn(
                       'flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm transition-colors hover:cursor-pointer',
                       isSelected
-                        ? 'bg-amber-500/12 font-medium text-[#F4F5F7]'
+                        ? 'bg-amber-500/12 font-medium text-fg'
                         : isHighlighted
-                          ? 'bg-white/[0.06] text-[#F4F5F7]'
-                          : 'text-[#D0D5DE] hover:bg-white/[0.05]',
+                          ? 'bg-tint text-fg'
+                          : 'text-fg-bright hover:bg-tint',
                     )}
                   >
                     {option.dotColor && (

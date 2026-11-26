@@ -164,28 +164,28 @@ export default function PhaseDurationSliders() {
           label: 'Focus',
           minutes: focus,
           pct: (focus / totalMinutes) * 100,
-          barClass: 'bg-gradient-to-r from-amber-500 to-amber-400 text-[#0A0B0E]',
+          barClass: 'bg-gradient-to-r from-amber-500 to-amber-400 text-on-accent',
         },
         {
           id: 'short-1',
           label: 'Short',
           minutes: shortBreak,
           pct: (shortBreak / totalMinutes) * 100,
-          barClass: 'bg-teal-400/90 text-[#0A0B0E]',
+          barClass: 'bg-teal-400/90 text-on-accent',
         },
         {
           id: 'focus-2',
           label: 'Focus',
           minutes: focus,
           pct: (focus / totalMinutes) * 100,
-          barClass: 'bg-gradient-to-r from-amber-500 to-amber-400 text-[#0A0B0E]',
+          barClass: 'bg-gradient-to-r from-amber-500 to-amber-400 text-on-accent',
         },
         {
           id: 'long-1',
           label: 'Long',
           minutes: longBreak,
           pct: (longBreak / totalMinutes) * 100,
-          barClass: 'bg-sky-400/90 text-[#0A0B0E]',
+          barClass: 'bg-sky-400/90 text-on-accent',
         },
       ],
     };
@@ -255,10 +255,10 @@ export default function PhaseDurationSliders() {
       {/* 4 Tactile Rhythm Presets */}
       <div className="space-y-2.5">
         <div className="flex items-center justify-between px-0.5">
-          <span className="text-[11px] font-semibold tracking-[0.08em] text-[#646C7A] uppercase">
+          <span className="text-[11px] font-semibold tracking-[0.08em] text-fg-muted uppercase">
             Quick Presets
           </span>
-          <span className="font-mono text-[11px] text-[#646C7A]">
+          <span className="font-mono text-[11px] text-fg-muted">
             {activePresetId ? 'Preset active' : 'Custom cadence'}
           </span>
         </div>
@@ -276,15 +276,15 @@ export default function PhaseDurationSliders() {
                 className={cn(
                   'group relative flex cursor-pointer flex-col items-start rounded-2xl border p-3.5 text-left transition-all duration-150 focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60',
                   isSelected
-                    ? 'border-amber-400/45 bg-amber-500/[0.09] shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_24px_-10px_rgba(245,158,11,0.6)]'
-                    : 'surface-card hover:border-white/[0.14] hover:bg-[#1A1E27]',
+                    ? 'border-amber-400/45 bg-amber-500/[0.09] shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_24px_-10px_var(--accent-glow)]'
+                    : 'surface-card hover:border-line-strong hover:bg-elevated',
                 )}
               >
                 <div className="flex w-full items-center justify-between gap-2">
                   <span
                     className={cn(
                       'text-sm font-semibold tracking-tight transition-colors',
-                      isSelected ? 'text-amber-300' : 'text-[#F4F5F7]',
+                      isSelected ? 'text-amber-300' : 'text-fg',
                     )}
                   >
                     {preset.name}
@@ -294,15 +294,15 @@ export default function PhaseDurationSliders() {
                     className={cn(
                       'flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full border transition-all',
                       isSelected
-                        ? 'border-amber-400 bg-amber-400 text-[#0A0B0E]'
-                        : 'border-white/[0.10] bg-white/[0.02] text-transparent group-hover:border-white/[0.20]',
+                        ? 'border-amber-400 bg-amber-400 text-on-accent'
+                        : 'border-line bg-tint-subtle text-transparent group-hover:border-line-strong',
                     )}
                   >
                     <Check className="h-2.5 w-2.5 stroke-[3]" />
                   </span>
                 </div>
 
-                <span className="mt-1 text-[11px] leading-snug text-[#9CA3B0]">
+                <span className="mt-1 text-[11px] leading-snug text-fg-secondary">
                   {preset.tagline}
                 </span>
 
@@ -311,13 +311,13 @@ export default function PhaseDurationSliders() {
                     'mt-3 inline-flex items-center gap-1 rounded-lg border px-2 py-0.5 font-mono text-[11px] font-medium tabular-nums',
                     isSelected
                       ? 'border-amber-400/30 bg-amber-500/15 text-amber-200'
-                      : 'border-white/[0.07] bg-[#0F1116] text-[#9CA3B0]',
+                      : 'border-line-subtle bg-well text-fg-secondary',
                   )}
                 >
                   <span>{preset.focus_duration}</span>
-                  <span className="text-[#646C7A]">/</span>
+                  <span className="text-fg-muted">/</span>
                   <span>{preset.short_break}</span>
-                  <span className="text-[#646C7A]">/</span>
+                  <span className="text-fg-muted">/</span>
                   <span>{preset.long_break}</span>
                 </div>
               </button>
@@ -330,13 +330,13 @@ export default function PhaseDurationSliders() {
       <div className="surface-card rounded-2xl p-5">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <div>
-            <h3 className="text-sm font-semibold tracking-tight text-[#F4F5F7]">Cycle Cadence</h3>
-            <p className="mt-0.5 text-xs text-[#646C7A]">
+            <h3 className="text-sm font-semibold tracking-tight text-fg">Cycle Cadence</h3>
+            <p className="mt-0.5 text-xs text-fg-muted">
               Proportional 4-step Pomodoro loop preview
             </p>
           </div>
-          <div className="font-mono text-xs tabular-nums text-[#9CA3B0]">
-            <span className="font-semibold text-[#F4F5F7]">{cycleMetrics.totalMinutes} min</span>{' '}
+          <div className="font-mono text-xs tabular-nums text-fg-secondary">
+            <span className="font-semibold text-fg">{cycleMetrics.totalMinutes} min</span>{' '}
             full cycle <span className="mx-1 text-white/20">·</span>
             <span className="font-semibold text-amber-400">{cycleMetrics.focusRatio}%</span> focus
             ratio
@@ -370,21 +370,21 @@ export default function PhaseDurationSliders() {
         </div>
 
         {/* Legend Strip */}
-        <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1.5 font-mono text-[11px] tabular-nums text-[#9CA3B0]">
+        <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1.5 font-mono text-[11px] tabular-nums text-fg-secondary">
           <span className="inline-flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full bg-amber-400" />
             <span>Focus ×2</span>
-            <span className="text-[#646C7A]">({cycleMetrics.focus * 2}m)</span>
+            <span className="text-fg-muted">({cycleMetrics.focus * 2}m)</span>
           </span>
           <span className="inline-flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full bg-teal-400" />
             <span>Short Break</span>
-            <span className="text-[#646C7A]">({cycleMetrics.shortBreak}m)</span>
+            <span className="text-fg-muted">({cycleMetrics.shortBreak}m)</span>
           </span>
           <span className="inline-flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full bg-sky-400" />
             <span>Long Break</span>
-            <span className="text-[#646C7A]">({cycleMetrics.longBreak}m)</span>
+            <span className="text-fg-muted">({cycleMetrics.longBreak}m)</span>
           </span>
         </div>
       </div>
@@ -421,10 +421,10 @@ export default function PhaseDurationSliders() {
                   <Icon className="h-4 w-4" />
                 </div>
                 <div className="min-w-0">
-                  <h4 className="truncate text-sm font-semibold tracking-tight text-[#F4F5F7]">
+                  <h4 className="truncate text-sm font-semibold tracking-tight text-fg">
                     {ctrl.title}
                   </h4>
-                  <p className="truncate text-[11px] text-[#646C7A]">{ctrl.subtitle}</p>
+                  <p className="truncate text-[11px] text-fg-muted">{ctrl.subtitle}</p>
                 </div>
               </div>
 
@@ -436,7 +436,7 @@ export default function PhaseDurationSliders() {
                   aria-label={`Decrease ${ctrl.title} by ${ctrl.step} minutes`}
                   onClick={() => stepBy(-ctrl.step)}
                   className={cn(
-                    'flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-white/[0.08] bg-[#161A22] text-[#9CA3B0] transition-colors focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-35',
+                    'flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-line bg-surface text-fg-secondary transition-colors focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-35',
                     styles.stepperHover,
                   )}
                 >
@@ -444,7 +444,7 @@ export default function PhaseDurationSliders() {
                 </button>
 
                 <div className="flex items-baseline justify-center gap-1 select-none">
-                  <span className="font-mono text-2xl font-semibold tracking-tight tabular-nums text-[#F4F5F7]">
+                  <span className="font-mono text-2xl font-semibold tracking-tight tabular-nums text-fg">
                     {value}
                   </span>
                   <span className={cn('font-mono text-xs font-medium', styles.valueTint)}>min</span>
@@ -456,7 +456,7 @@ export default function PhaseDurationSliders() {
                   aria-label={`Increase ${ctrl.title} by ${ctrl.step} minutes`}
                   onClick={() => stepBy(ctrl.step)}
                   className={cn(
-                    'flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-white/[0.08] bg-[#161A22] text-[#9CA3B0] transition-colors focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-35',
+                    'flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-line bg-surface text-fg-secondary transition-colors focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-35',
                     styles.stepperHover,
                   )}
                 >
@@ -478,7 +478,7 @@ export default function PhaseDurationSliders() {
                   onChangeCommitted={(val) => void handleCommitChange(ctrl.key, val)}
                   className="px-0.5 pt-2 pb-1.5"
                 />
-                <div className="flex items-center justify-between px-0.5 font-mono text-[10px] tabular-nums text-[#646C7A]">
+                <div className="flex items-center justify-between px-0.5 font-mono text-[10px] tabular-nums text-fg-muted">
                   <span>{ctrl.min}m</span>
                   <span>{ctrl.max}m</span>
                 </div>

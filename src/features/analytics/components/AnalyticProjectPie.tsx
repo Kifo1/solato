@@ -48,9 +48,9 @@ function PieTooltip({ active, payload }: Readonly<PieTooltipProps>) {
           className="h-2 w-2 shrink-0 rounded-full"
           style={{ backgroundColor: slice.color }}
         />
-        <p className="font-semibold text-[#F4F5F7]">{slice.name}</p>
+        <p className="font-semibold text-fg">{slice.name}</p>
       </div>
-      <p className="mt-1 font-mono tabular-nums text-[#9CA3B0]">
+      <p className="mt-1 font-mono tabular-nums text-fg-secondary">
         <span className="font-semibold text-amber-400">{slice.percentage.toFixed(1)}%</span> ·{' '}
         {formatSecondsToString(slice.seconds)}
       </p>
@@ -189,7 +189,7 @@ export default function AnalyticProjectPie() {
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
-            <h3 className="text-sm font-semibold tracking-tight text-[#F4F5F7]">
+            <h3 className="text-sm font-semibold tracking-tight text-fg">
               Project Distribution
             </h3>
             {soloedProjectId && (
@@ -199,7 +199,7 @@ export default function AnalyticProjectPie() {
               </span>
             )}
           </div>
-          <p className="mt-1 text-xs text-[#646C7A]">
+          <p className="mt-1 text-xs text-fg-muted">
             {hasData
               ? canSoloFilter
                 ? `Across ${slices.length} project${slices.length === 1 ? '' : 's'} · Click a row to filter`
@@ -208,7 +208,7 @@ export default function AnalyticProjectPie() {
           </p>
         </div>
 
-        <span className="shrink-0 rounded-lg border border-white/[0.08] bg-[#0F1116] px-2.5 py-1 font-mono text-xs font-semibold tabular-nums text-[#F4F5F7]">
+        <span className="shrink-0 rounded-lg border border-line bg-well px-2.5 py-1 font-mono text-xs font-semibold tabular-nums text-fg">
           {formatSecondsToString(totalSeconds)}
         </span>
       </div>
@@ -264,12 +264,12 @@ export default function AnalyticProjectPie() {
           <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-5 text-center">
             {hasData ? (
               <>
-                <span className="font-mono text-lg font-semibold tracking-tight tabular-nums text-[#F4F5F7]">
+                <span className="font-mono text-lg font-semibold tracking-tight tabular-nums text-fg">
                   {activeSlice
                     ? formatSecondsToString(activeSlice.seconds)
                     : formatSecondsToString(totalSeconds)}
                 </span>
-                <span className="mt-0.5 max-w-full truncate text-[11px] text-[#9CA3B0]">
+                <span className="mt-0.5 max-w-full truncate text-[11px] text-fg-secondary">
                   {activeSlice ? activeSlice.name : 'Total focus'}
                 </span>
                 {activeSlice && (
@@ -280,10 +280,10 @@ export default function AnalyticProjectPie() {
               </>
             ) : (
               <>
-                <span className="font-mono text-lg font-semibold tabular-nums text-[#646C7A]">
+                <span className="font-mono text-lg font-semibold tabular-nums text-fg-muted">
                   0m
                 </span>
-                <span className="mt-0.5 text-[11px] text-[#646C7A]">No data</span>
+                <span className="mt-0.5 text-[11px] text-fg-muted">No data</span>
               </>
             )}
           </div>
@@ -318,15 +318,15 @@ export default function AnalyticProjectPie() {
                     isSoloed
                       ? 'border-amber-500/30 bg-amber-500/[0.08]'
                       : isHighlighted
-                        ? 'border-white/[0.08] bg-white/[0.06]'
-                        : 'border-transparent hover:bg-white/[0.04]',
+                        ? 'border-line bg-tint'
+                        : 'border-transparent hover:bg-tint',
                   )}
                 >
                   <span
                     className="h-2.5 w-2.5 shrink-0 rounded-full"
                     style={{ backgroundColor: slice.color }}
                   />
-                  <span className="min-w-0 flex-1 truncate text-xs font-medium text-[#F4F5F7]">
+                  <span className="min-w-0 flex-1 truncate text-xs font-medium text-fg">
                     {slice.name}
                   </span>
                   {isSoloed && (
@@ -334,10 +334,10 @@ export default function AnalyticProjectPie() {
                       All
                     </span>
                   )}
-                  <span className="shrink-0 font-mono text-xs tabular-nums text-[#646C7A]">
+                  <span className="shrink-0 font-mono text-xs tabular-nums text-fg-muted">
                     {slice.percentage.toFixed(0)}%
                   </span>
-                  <span className="w-14 shrink-0 text-right font-mono text-xs font-medium tabular-nums text-[#D0D5DE]">
+                  <span className="w-14 shrink-0 text-right font-mono text-xs font-medium tabular-nums text-fg-bright">
                     {formatSecondsToString(slice.seconds)}
                   </span>
                 </button>
@@ -345,9 +345,9 @@ export default function AnalyticProjectPie() {
             })}
           </div>
         ) : (
-          <div className="flex flex-1 flex-col items-start justify-center rounded-xl border border-white/[0.05] bg-[#0F1116]/70 p-4 text-left">
-            <p className="text-sm font-medium text-[#D0D5DE]">{emptyTitle}</p>
-            <p className="mt-1 text-xs leading-relaxed text-[#646C7A]">{emptySubtitle}</p>
+          <div className="flex flex-1 flex-col items-start justify-center rounded-xl border border-line-subtle bg-well/70 p-4 text-left">
+            <p className="text-sm font-medium text-fg-bright">{emptyTitle}</p>
+            <p className="mt-1 text-xs leading-relaxed text-fg-muted">{emptySubtitle}</p>
           </div>
         )}
       </div>

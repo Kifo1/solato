@@ -127,11 +127,11 @@ export function FolderModal({
         <div className="pr-8">
           <div className="flex items-center gap-2.5">
             <FolderIcon className="h-5 w-5 shrink-0" style={{ color: folderColor }} />
-            <h2 className="text-xl font-semibold tracking-tight text-[#F4F5F7]">
+            <h2 className="text-xl font-semibold tracking-tight text-fg">
               {isEditing ? 'Edit Folder' : 'New Folder'}
             </h2>
           </div>
-          <p className="mt-1 text-xs text-[#9CA3B0]">
+          <p className="mt-1 text-xs text-fg-secondary">
             {isEditing
               ? 'Rename, recolor, or nest this folder inside another.'
               : 'Group related projects into nested folders for effortless filtering.'}
@@ -151,10 +151,10 @@ export function FolderModal({
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center justify-between">
-              <label htmlFor={nameInputId} className="text-xs font-medium text-[#D1D5DE]">
+              <label htmlFor={nameInputId} className="text-xs font-medium text-fg-bright">
                 Folder Name
               </label>
-              <span className="font-mono text-[11px] text-[#646C7A] tabular-nums">
+              <span className="font-mono text-[11px] text-fg-muted tabular-nums">
                 {folderName.length}/30
               </span>
             </div>
@@ -173,7 +173,7 @@ export function FolderModal({
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <span className="text-xs font-medium text-[#D1D5DE]">Parent Folder</span>
+            <span className="text-xs font-medium text-fg-bright">Parent Folder</span>
             <FolderSelect
               folders={folders}
               value={parentId}
@@ -187,10 +187,10 @@ export function FolderModal({
 
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between">
-              <label htmlFor={colorInputId} className="text-xs font-medium text-[#D1D5DE]">
+              <label htmlFor={colorInputId} className="text-xs font-medium text-fg-bright">
                 Color
               </label>
-              <span className="font-mono text-[11px] tracking-wide text-[#9CA3B0] uppercase">
+              <span className="font-mono text-[11px] tracking-wide text-fg-secondary uppercase">
                 {folderColor}
               </span>
             </div>
@@ -207,11 +207,11 @@ export function FolderModal({
                     onClick={() => setFolderColor(swatch.hex)}
                     className={cn(
                       'flex h-7 w-7 cursor-pointer items-center justify-center rounded-full transition-transform duration-150 hover:scale-110 focus-visible:ring-2 focus-visible:ring-amber-400/70 focus-visible:outline-none',
-                      isSelected && 'scale-105 ring-2 ring-white ring-offset-2 ring-offset-[#0F1116]',
+                      isSelected && 'scale-105 ring-2 ring-white ring-offset-2 ring-offset-well',
                     )}
                     style={{ backgroundColor: swatch.hex }}
                   >
-                    {isSelected && <Check className="h-3.5 w-3.5 text-[#0A0B0E] stroke-[3]" />}
+                    {isSelected && <Check className="h-3.5 w-3.5 text-on-accent stroke-[3]" />}
                   </button>
                 );
               })}
@@ -219,10 +219,10 @@ export function FolderModal({
               <label
                 htmlFor={colorInputId}
                 title="Custom color"
-                className="ml-auto flex h-7 cursor-pointer items-center gap-1.5 rounded-lg border border-white/[0.1] bg-[#191D26] px-2 text-[11px] font-medium text-[#9CA3B0] transition-colors hover:border-white/[0.2] hover:text-[#F4F5F7]"
+                className="ml-auto flex h-7 cursor-pointer items-center gap-1.5 rounded-lg border border-line bg-elevated px-2 text-[11px] font-medium text-fg-secondary transition-colors hover:border-line-strong hover:text-fg"
               >
                 <span
-                  className="h-3.5 w-3.5 rounded-full border border-white/20"
+                  className="h-3.5 w-3.5 rounded-full border border-line-strong"
                   style={{ backgroundColor: folderColor }}
                 />
                 <span>Custom</span>
@@ -240,7 +240,7 @@ export function FolderModal({
           </div>
         </div>
 
-        <div className="mt-1 flex items-center justify-end gap-2.5 border-t border-white/[0.06] pt-4">
+        <div className="mt-1 flex items-center justify-end gap-2.5 border-t border-line-subtle pt-4">
           <Button
             type="button"
             variant="secondary"

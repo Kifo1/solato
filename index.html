@@ -1,10 +1,23 @@
 <!doctype html>
-<html lang="en" class="dark bg-[#0A0B0E] text-[#F4F5F7] antialiased">
+<html lang="en" data-theme="solar-obsidian" data-mode="dark" class="dark antialiased">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/solato-logo.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Solato — Calm, precision focus timer and project time analytics." />
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem('solato.theme') || 'solar-obsidian';
+          var light = t === 'nordic-daylight' || t === 'paper-minimal';
+          var el = document.documentElement;
+          el.dataset.theme = t;
+          el.dataset.mode = light ? 'light' : 'dark';
+          el.classList.toggle('dark', !light);
+          el.classList.toggle('light', light);
+        } catch (e) {}
+      })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -15,7 +28,7 @@
     <title>Solato</title>
   </head>
 
-  <body class="bg-[#0A0B0E] text-[#F4F5F7] selection:bg-amber-500/25 selection:text-amber-200">
+  <body class="bg-canvas text-fg selection:bg-amber-500/25 selection:text-amber-300">
     <div id="root" class="h-screen w-screen overflow-hidden"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

@@ -44,11 +44,11 @@ export default function Switch({
       disabled={disabled}
       onClick={() => setIsOn(!isOn)}
       className={cn(
-        'relative inline-flex shrink-0 cursor-pointer items-center rounded-full border p-[2px] transition-all duration-200 focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#14171D] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-45',
+        'relative inline-flex shrink-0 cursor-pointer items-center rounded-full border p-[2px] transition-all duration-200 focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-surface focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-45',
         TRACK_SIZES[scale],
         isOn
-          ? 'border-amber-400/50 bg-amber-500 shadow-[0_0_16px_-4px_rgba(245,158,11,0.65)]'
-          : 'border-white/[0.10] bg-[#1F242E] hover:border-white/[0.16]',
+          ? 'border-amber-400/50 bg-amber-500 solar-glow'
+          : 'border-line bg-elevated hover:border-line-strong',
         className,
       )}
     >
@@ -56,7 +56,7 @@ export default function Switch({
         className={cn(
           'pointer-events-none block rounded-full shadow-sm transition-transform duration-200 ease-out',
           KNOB_SIZES[scale],
-          isOn ? cn(KNOB_TRANSLATE[scale], 'bg-[#0A0B0E]') : 'translate-x-0 bg-[#D0D5DE]',
+          isOn ? cn(KNOB_TRANSLATE[scale], 'bg-on-accent') : 'translate-x-0 bg-fg-secondary',
         )}
       />
     </button>

@@ -148,18 +148,18 @@ function ProjectListRow({
     });
 
   return (
-    <tr className="group border-b border-white/[0.05] transition-colors last:border-b-0 hover:bg-white/[0.025]">
+    <tr className="group border-b border-line-subtle transition-colors last:border-b-0 hover:bg-tint-subtle">
       <td className="py-3.5 pr-3 pl-5">
         <div className="flex min-w-0 items-center gap-3">
           <span
-            className="h-2.5 w-2.5 shrink-0 rounded-full ring-2 ring-white/10"
+            className="h-2.5 w-2.5 shrink-0 rounded-full ring-2 ring-line"
             style={{ backgroundColor: project.color }}
           />
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-[#F4F5F7]" title={project.name}>
+            <p className="truncate text-sm font-medium text-fg" title={project.name}>
               {project.name}
             </p>
-            <p className="mt-0.5 truncate text-xs text-[#9CA3B0]" title={project.description}>
+            <p className="mt-0.5 truncate text-xs text-fg-secondary" title={project.description}>
               {project.description}
             </p>
           </div>
@@ -179,12 +179,12 @@ function ProjectListRow({
       </td>
 
       <td className="w-[104px] px-3 py-3.5 whitespace-nowrap">
-        <div className="flex items-center gap-1.5 text-[#F4F5F7]">
-          <Clock3 className="h-3.5 w-3.5 shrink-0 text-[#646C7A]" />
+        <div className="flex items-center gap-1.5 text-fg">
+          <Clock3 className="h-3.5 w-3.5 shrink-0 text-fg-muted" />
           {isTimeLoading ? (
             <Skeleton className="h-4 w-12" />
           ) : (
-            <span className="font-mono text-xs font-medium text-[#D1D5DE] tabular-nums sm:text-sm">
+            <span className="font-mono text-xs font-medium text-fg-bright tabular-nums sm:text-sm">
               {formatSecondsToString(totalSeconds || 0)}
             </span>
           )}
@@ -209,7 +209,7 @@ function ProjectListRow({
               disabled={deleteMutation.isPending}
               onClick={onCancelDelete}
               aria-label={`Cancel delete ${project.name}`}
-              className="inline-flex h-7 cursor-pointer items-center rounded-lg px-2 text-xs font-medium text-[#9CA3B0] transition-colors hover:bg-white/[0.06] hover:text-[#F4F5F7] focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none disabled:opacity-50"
+              className="inline-flex h-7 cursor-pointer items-center rounded-lg px-2 text-xs font-medium text-fg-secondary transition-colors hover:bg-tint hover:text-fg focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none disabled:opacity-50"
             >
               Cancel
             </button>
@@ -222,7 +222,7 @@ function ProjectListRow({
               aria-label={`Focus on ${project.name}`}
               title={`Launch focus timer for ${project.name}`}
               onClick={() => focusMutation.mutate()}
-              className="mr-1 inline-flex h-7.5 cursor-pointer items-center gap-1.5 rounded-lg border border-white/[0.08] bg-white/[0.03] px-2.5 text-xs font-medium text-[#D1D5DE] transition-all group-hover:border-amber-500/25 group-hover:text-[#F4F5F7] hover:!border-amber-500/45 hover:!bg-amber-500/15 hover:!text-amber-300 focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none active:scale-[0.97] disabled:opacity-50"
+              className="mr-1 inline-flex h-7.5 cursor-pointer items-center gap-1.5 rounded-lg border border-line bg-tint-subtle px-2.5 text-xs font-medium text-fg-bright transition-all group-hover:border-amber-500/25 group-hover:text-fg hover:!border-amber-500/45 hover:!bg-amber-500/15 hover:!text-amber-300 focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none active:scale-[0.97] disabled:opacity-50"
             >
               <Play className="h-3 w-3 fill-current" />
               <span>Focus</span>
@@ -234,7 +234,7 @@ function ProjectListRow({
                 aria-label={`Edit project ${project.name}`}
                 title="Edit project"
                 onClick={onEdit}
-                className="flex h-7.5 w-7.5 cursor-pointer items-center justify-center rounded-lg text-[#9CA3B0] transition-colors hover:bg-white/[0.07] hover:text-[#F4F5F7] focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none"
+                className="flex h-7.5 w-7.5 cursor-pointer items-center justify-center rounded-lg text-fg-secondary transition-colors hover:bg-tint-strong hover:text-fg focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none"
               >
                 <Pencil className="h-3.5 w-3.5" />
               </button>
@@ -243,7 +243,7 @@ function ProjectListRow({
                 aria-label={`Delete project ${project.name}`}
                 title="Delete project"
                 onClick={onRequestDelete}
-                className="flex h-7.5 w-7.5 cursor-pointer items-center justify-center rounded-lg text-[#9CA3B0] transition-colors hover:bg-rose-500/15 hover:text-rose-400 focus-visible:ring-2 focus-visible:ring-rose-400/60 focus-visible:outline-none"
+                className="flex h-7.5 w-7.5 cursor-pointer items-center justify-center rounded-lg text-fg-secondary transition-colors hover:bg-rose-500/15 hover:text-rose-400 focus-visible:ring-2 focus-visible:ring-rose-400/60 focus-visible:outline-none"
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
@@ -275,7 +275,7 @@ function ProjectGridCard({
     });
 
   return (
-    <article className="surface-card group flex flex-col overflow-hidden rounded-2xl transition-all duration-150 hover:border-white/[0.14] hover:bg-[#161A24]/95">
+    <article className="surface-card group flex flex-col overflow-hidden rounded-2xl transition-all duration-150 hover:border-line-strong hover:bg-surface/95">
       {/* Crisp top color accent bar */}
       <div
         className="h-[2.5px] w-full shrink-0"
@@ -289,11 +289,11 @@ function ProjectGridCard({
         <div className="flex items-start justify-between gap-2.5">
           <div className="flex min-w-0 items-center gap-2.5">
             <span
-              className="h-2.5 w-2.5 shrink-0 rounded-full ring-2 ring-white/10"
+              className="h-2.5 w-2.5 shrink-0 rounded-full ring-2 ring-line"
               style={{ backgroundColor: project.color }}
             />
             <h3
-              className="truncate text-sm font-semibold tracking-tight text-[#F4F5F7]"
+              className="truncate text-sm font-semibold tracking-tight text-fg"
               title={project.name}
             >
               {project.name}
@@ -302,9 +302,9 @@ function ProjectGridCard({
 
           <div
             title="Total tracked focus time"
-            className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-white/[0.06] bg-white/[0.03] px-2 py-0.5 text-[#D1D5DE]"
+            className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-line-subtle bg-tint-subtle px-2 py-0.5 text-fg-bright"
           >
-            <Clock3 className="h-3 w-3 shrink-0 text-[#646C7A]" />
+            <Clock3 className="h-3 w-3 shrink-0 text-fg-muted" />
             {isTimeLoading ? (
               <Skeleton className="h-3.5 w-10 rounded" />
             ) : (
@@ -317,7 +317,7 @@ function ProjectGridCard({
 
         {/* 2-line clamped description */}
         <p
-          className="line-clamp-2 min-h-[2.25rem] text-xs leading-relaxed text-[#9CA3B0]"
+          className="line-clamp-2 min-h-[2.25rem] text-xs leading-relaxed text-fg-secondary"
           title={project.description}
         >
           {project.description}
@@ -339,7 +339,7 @@ function ProjectGridCard({
       </div>
 
       {/* Bottom action bar */}
-      <div className="flex items-center justify-between gap-2 border-t border-white/[0.06] bg-white/[0.015] px-4 py-2.5">
+      <div className="flex items-center justify-between gap-2 border-t border-line-subtle bg-tint-subtle px-4 py-2.5">
         {isConfirmingDelete ? (
           <>
             <span className="truncate text-xs font-medium text-rose-200">Delete project?</span>
@@ -359,7 +359,7 @@ function ProjectGridCard({
                 disabled={deleteMutation.isPending}
                 onClick={onCancelDelete}
                 aria-label={`Cancel delete ${project.name}`}
-                className="inline-flex h-7.5 cursor-pointer items-center rounded-lg px-2 text-xs font-medium text-[#9CA3B0] transition-colors hover:bg-white/[0.06] hover:text-[#F4F5F7] focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none disabled:opacity-50"
+                className="inline-flex h-7.5 cursor-pointer items-center rounded-lg px-2 text-xs font-medium text-fg-secondary transition-colors hover:bg-tint hover:text-fg focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -385,7 +385,7 @@ function ProjectGridCard({
                 aria-label={`Edit project ${project.name}`}
                 title="Edit project"
                 onClick={onEdit}
-                className="flex h-7.5 w-7.5 cursor-pointer items-center justify-center rounded-lg text-[#9CA3B0] transition-colors hover:bg-white/[0.07] hover:text-[#F4F5F7] focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none"
+                className="flex h-7.5 w-7.5 cursor-pointer items-center justify-center rounded-lg text-fg-secondary transition-colors hover:bg-tint-strong hover:text-fg focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none"
               >
                 <Pencil className="h-3.5 w-3.5" />
               </button>
@@ -394,7 +394,7 @@ function ProjectGridCard({
                 aria-label={`Delete project ${project.name}`}
                 title="Delete project"
                 onClick={onRequestDelete}
-                className="flex h-7.5 w-7.5 cursor-pointer items-center justify-center rounded-lg text-[#9CA3B0] transition-colors hover:bg-rose-500/15 hover:text-rose-400 focus-visible:ring-2 focus-visible:ring-rose-400/60 focus-visible:outline-none"
+                className="flex h-7.5 w-7.5 cursor-pointer items-center justify-center rounded-lg text-fg-secondary transition-colors hover:bg-rose-500/15 hover:text-rose-400 focus-visible:ring-2 focus-visible:ring-rose-400/60 focus-visible:outline-none"
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
@@ -451,14 +451,14 @@ export function ProjectTable({
       <div className="surface-card flex flex-col items-center justify-center gap-3 rounded-2xl px-6 py-14 text-center">
         {emptyVariant === 'search' ? (
           <>
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.03] text-[#9CA3B0]">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-line bg-tint-subtle text-fg-secondary">
               <SearchX className="h-5 w-5" />
             </div>
             <div className="space-y-1">
-              <p className="text-sm font-medium text-[#F4F5F7]">No matching projects</p>
-              <p className="max-w-xs text-xs text-[#9CA3B0]">
+              <p className="text-sm font-medium text-fg">No matching projects</p>
+              <p className="max-w-xs text-xs text-fg-secondary">
                 No projects match{' '}
-                <span className="text-[#F4F5F7]">&ldquo;{searchQuery}&rdquo;</span> in this view.
+                <span className="text-fg">&ldquo;{searchQuery}&rdquo;</span> in this view.
               </p>
             </div>
             {onClearSearch && (
@@ -473,8 +473,8 @@ export function ProjectTable({
               <CircleSlash className="h-5 w-5" />
             </div>
             <div className="space-y-1">
-              <p className="text-sm font-medium text-[#F4F5F7]">No unassigned projects</p>
-              <p className="max-w-xs text-xs text-[#9CA3B0]">
+              <p className="text-sm font-medium text-fg">No unassigned projects</p>
+              <p className="max-w-xs text-xs text-fg-secondary">
                 Every project is neatly organized inside a folder.
               </p>
             </div>
@@ -485,10 +485,10 @@ export function ProjectTable({
               <FolderOpen className="h-5 w-5" />
             </div>
             <div className="space-y-1">
-              <p className="text-sm font-medium text-[#F4F5F7]">
+              <p className="text-sm font-medium text-fg">
                 {emptyVariant === 'all' ? 'No projects yet' : 'This folder is empty'}
               </p>
-              <p className="max-w-xs text-xs text-[#9CA3B0]">
+              <p className="max-w-xs text-xs text-fg-secondary">
                 {emptyVariant === 'all'
                   ? 'Create a project to start tracking focused work sessions.'
                   : 'Add a project here or assign an existing one using the folder selector.'}
@@ -513,7 +513,7 @@ export function ProjectTable({
   const renderPaginationControls = () =>
     maxPage > 1 ? (
       <div className="flex items-center gap-2">
-        <span className="mr-1 font-mono text-xs text-[#646C7A] tabular-nums">
+        <span className="mr-1 font-mono text-xs text-fg-muted tabular-nums">
           Page {page} / {maxPage}
         </span>
         <Button
@@ -540,13 +540,13 @@ export function ProjectTable({
     ) : null;
 
   const renderCountSummary = () => (
-    <p className="text-xs text-[#9CA3B0]">
+    <p className="text-xs text-fg-secondary">
       Showing{' '}
-      <span className="font-mono font-medium text-[#F4F5F7] tabular-nums">
+      <span className="font-mono font-medium text-fg tabular-nums">
         {startIdx + 1}–{endIdx}
       </span>{' '}
       of{' '}
-      <span className="font-mono font-medium text-[#F4F5F7] tabular-nums">{projects.length}</span>{' '}
+      <span className="font-mono font-medium text-fg tabular-nums">{projects.length}</span>{' '}
       {projects.length === 1 ? 'project' : 'projects'}
     </p>
   );
@@ -628,17 +628,17 @@ export function ProjectTable({
           <div className="overflow-x-auto">
             <table className="w-full table-fixed border-collapse">
               <thead>
-                <tr className="border-b border-white/[0.06] bg-white/[0.015]">
-                  <th className="py-3 pr-3 pl-5 text-left text-[11px] font-semibold tracking-wider text-[#646C7A] uppercase">
+                <tr className="border-b border-line-subtle bg-tint-subtle">
+                  <th className="py-3 pr-3 pl-5 text-left text-[11px] font-semibold tracking-wider text-fg-muted uppercase">
                     Project
                   </th>
-                  <th className="w-[168px] px-3 py-3 text-left text-[11px] font-semibold tracking-wider text-[#646C7A] uppercase">
+                  <th className="w-[168px] px-3 py-3 text-left text-[11px] font-semibold tracking-wider text-fg-muted uppercase">
                     Folder
                   </th>
-                  <th className="w-[104px] px-3 py-3 text-left text-[11px] font-semibold tracking-wider text-[#646C7A] uppercase">
+                  <th className="w-[104px] px-3 py-3 text-left text-[11px] font-semibold tracking-wider text-fg-muted uppercase">
                     Total Time
                   </th>
-                  <th className="w-[188px] py-3 pr-5 pl-2 text-right text-[11px] font-semibold tracking-wider text-[#646C7A] uppercase">
+                  <th className="w-[188px] py-3 pr-5 pl-2 text-right text-[11px] font-semibold tracking-wider text-fg-muted uppercase">
                     Actions
                   </th>
                 </tr>
@@ -668,7 +668,7 @@ export function ProjectTable({
             </table>
           </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.06] bg-white/[0.015] px-5 py-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line-subtle bg-tint-subtle px-5 py-3">
             {renderCountSummary()}
             {renderPaginationControls()}
           </div>

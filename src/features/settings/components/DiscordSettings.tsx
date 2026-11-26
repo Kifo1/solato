@@ -59,7 +59,7 @@ export default function DiscordSettings() {
               'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border transition-colors duration-200',
               isEnabled
                 ? 'border-sky-400/30 bg-sky-400/12 text-sky-300'
-                : 'border-white/[0.08] bg-white/[0.03] text-[#646C7A]',
+                : 'border-line bg-tint-subtle text-fg-muted',
             )}
           >
             <Radio className="h-4.5 w-4.5" />
@@ -67,7 +67,7 @@ export default function DiscordSettings() {
 
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h3 className="text-sm font-semibold tracking-tight text-[#F4F5F7]">
+              <h3 className="text-sm font-semibold tracking-tight text-fg">
                 Discord Rich Presence
               </h3>
               <span
@@ -75,19 +75,19 @@ export default function DiscordSettings() {
                   'inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-medium transition-colors',
                   isEnabled
                     ? 'border-sky-400/25 bg-sky-400/10 text-sky-300'
-                    : 'border-white/[0.08] bg-white/[0.03] text-[#646C7A]',
+                    : 'border-line bg-tint-subtle text-fg-muted',
                 )}
               >
                 <span
                   className={cn(
                     'h-1.5 w-1.5 rounded-full',
-                    isEnabled ? 'bg-sky-400' : 'bg-[#646C7A]',
+                    isEnabled ? 'bg-sky-400' : 'bg-fg-muted',
                   )}
                 />
                 {isEnabled ? 'Live' : 'Hidden'}
               </span>
             </div>
-            <p className="mt-1 text-xs leading-relaxed text-[#9CA3B0]">
+            <p className="mt-1 text-xs leading-relaxed text-fg-secondary">
               Share your active focus or idle state directly on your Discord profile while Solato is
               open.
             </p>
@@ -103,13 +103,13 @@ export default function DiscordSettings() {
       </div>
 
       {/* Live Discord Rich Presence Preview Card */}
-      <div className="mt-5 border-t border-white/[0.06] pt-5">
+      <div className="mt-5 border-t border-line-subtle pt-5">
         <div className="mb-3 flex items-center justify-between gap-2">
-          <span className="text-[11px] font-semibold tracking-[0.08em] text-[#646C7A] uppercase">
+          <span className="text-[11px] font-semibold tracking-[0.08em] text-fg-muted uppercase">
             Live Profile Preview
           </span>
           {!isEnabled && (
-            <span className="rounded-full border border-white/[0.08] bg-white/[0.03] px-2.5 py-0.5 text-[11px] font-medium text-[#9CA3B0]">
+            <span className="rounded-full border border-line bg-tint-subtle px-2.5 py-0.5 text-[11px] font-medium text-fg-secondary">
               Presence hidden
             </span>
           )}
@@ -117,10 +117,10 @@ export default function DiscordSettings() {
 
         <div
           className={cn(
-            'relative overflow-hidden rounded-xl border bg-[#0B0D12] p-4 transition-all duration-300',
+            'relative overflow-hidden rounded-xl border bg-well p-4 transition-all duration-300',
             isEnabled
-              ? 'border-white/[0.09] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_12px_28px_-16px_rgba(0,0,0,0.85)]'
-              : 'border-white/[0.05] opacity-45 grayscale-[30%]',
+              ? 'border-line shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_12px_28px_-16px_rgba(0,0,0,0.85)]'
+              : 'border-line-subtle opacity-45 grayscale-[30%]',
           )}
         >
           {/* Subtle ambient glow when enabled */}
@@ -132,10 +132,10 @@ export default function DiscordSettings() {
           )}
 
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[10px] font-semibold tracking-[0.09em] text-[#9CA3B0] uppercase">
+            <span className="text-[10px] font-semibold tracking-[0.09em] text-fg-secondary uppercase">
               Playing on Discord
             </span>
-            <span className="inline-flex items-center gap-1.5 text-[11px] text-[#9CA3B0]">
+            <span className="inline-flex items-center gap-1.5 text-[11px] text-fg-secondary">
               <span className="relative flex h-2 w-2">
                 {isEnabled && (
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-teal-400 opacity-65" />
@@ -143,7 +143,7 @@ export default function DiscordSettings() {
                 <span
                   className={cn(
                     'relative inline-flex h-2 w-2 rounded-full',
-                    isEnabled ? 'bg-teal-400' : 'bg-[#646C7A]',
+                    isEnabled ? 'bg-teal-400' : 'bg-fg-muted',
                   )}
                 />
               </span>
@@ -157,15 +157,15 @@ export default function DiscordSettings() {
               <span
                 aria-hidden="true"
                 className={cn(
-                  'absolute -right-0.5 -bottom-0.5 h-3 w-3 rounded-full ring-2 ring-[#0B0D12]',
-                  isEnabled ? 'bg-teal-400' : 'bg-[#646C7A]',
+                  'absolute -right-0.5 -bottom-0.5 h-3 w-3 rounded-full ring-2 ring-well',
+                  isEnabled ? 'bg-teal-400' : 'bg-fg-muted',
                 )}
               />
             </div>
 
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold tracking-tight text-[#F4F5F7]">Solato</p>
-              <p className="mt-0.5 truncate text-xs text-[#9CA3B0]">Focusing · Solato Desktop</p>
+              <p className="truncate text-sm font-semibold tracking-tight text-fg">Solato</p>
+              <p className="mt-0.5 truncate text-xs text-fg-secondary">Focusing · Solato Desktop</p>
               <p className="mt-1 font-mono text-[11px] tabular-nums text-amber-400/90">
                 24:10 elapsed
               </p>
@@ -173,7 +173,7 @@ export default function DiscordSettings() {
           </div>
         </div>
 
-        <p className="mt-3 text-[11px] leading-relaxed text-[#646C7A]">
+        <p className="mt-3 text-[11px] leading-relaxed text-fg-muted">
           Requires the Discord desktop app running locally. Status syncs automatically when you
           start, pause, or complete focus sessions.
         </p>

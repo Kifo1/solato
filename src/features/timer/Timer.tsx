@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { invoke } from '@tauri-apps/api/core';
 import { AlertCircle, Maximize2, Minimize2, X } from 'lucide-react';
 import { useLayout } from '@shared/context/LayoutContext';
+import { useTheme } from '@shared/context/ThemeContext';
 import { useToast } from '@shared/context/ToastContext';
 import { cn, formatSecondsToString, getErrorMessage } from '@shared/lib/utils';
 import { useSettings } from '@/features/settings/hooks/useSettings';
@@ -65,14 +66,18 @@ function isEditableElement(target: EventTarget | null): boolean {
   return Boolean(target.closest('input, textarea, select, [contenteditable="true"]'));
 }
 
-function getAmbientGlowStyle(mode: 'stopwatch' | 'pomodoro', pomodoroPhase: number): string {
+function getAmbientGlowStyle(
+  mode: 'stopwatch' | 'pomodoro',
+  pomodoroPhase: number,
+  ambientRgb: string,
+): string {
   if (mode === 'pomodoro' && pomodoroPhase === 1) {
     return 'radial-gradient(circle, rgba(45, 212, 191, 0.16) 0%, rgba(45, 212, 191, 0.045) 44%, transparent 72%)';
   }
   if (mode === 'pomodoro' && pomodoroPhase === 3) {
     return 'radial-gradient(circle, rgba(56, 189, 248, 0.16) 0%, rgba(56, 189, 248, 0.045) 44%, transparent 72%)';
   }
-  return 'radial-gradient(circle, rgba(245, 158, 11, 0.16) 0%, rgba(245, 158, 11, 0.045) 44%, transparent 72%)';
+  return `radial-gradient(circle, rgba(${ambientRgb}, 0.16) 0%, rgba(${ambientRgb}, 0.045) 44%, transparent 72%)`;
 }
 
 export default function Timer() {
@@ -93,6 +98,7 @@ export default function Timer() {
   } = useTimer();
 
   const { isZenMode, setZenMode, toggleZenMode, openCommandPalette } = useLayout();
+  const { theme } = useTheme();
   const { settings, updateSettings, isUpdating: isUpdatingSettings } = useSettings();
   const toast = useToast();
 
@@ -190,12 +196,12 @@ export default function Timer() {
           type="button"
           onClick={() => setZenMode(false)}
           title="Exit Zen Focus Mode (Esc or F)"
-          className="surface-well fixed top-5 right-6 z-20 inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-full px-3 text-[11px] font-medium text-[#9CA3B0] opacity-30 transition-all duration-200 select-none hover:border-white/[0.15] hover:text-[#F4F5F7] hover:opacity-100 focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:opacity-100 focus-visible:outline-none"
+          className="surface-well fixed top-5 right-6 z-20 inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-full px-3 text-[11px] font-medium text-fg-secondary opacity-30 transition-all duration-200 select-none hover:border-line-strong hover:text-fg hover:opacity-100 focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:opacity-100 focus-visible:outline-none"
         >
           <Minimize2 className="h-3 w-3" />
           <span>Exit Zen</span>
           <span className="text-white/20">·</span>
-          <span className="font-mono text-[10px] text-[#646C7A]">Esc</span>
+          <span className="font-mono text-[10px] text-fg-muted">Esc</span>
         </button>
       ) : (
         /* Top Floating Studio Bar */
@@ -221,21 +227,21 @@ export default function Timer() {
               onClick={() => setIsTodayDrawerOpen(true)}
               title="View today's completed sessions"
               aria-label={`Today's focus time: ${todaysLabel}. Open today's sessions`}
-              className="surface-well group inline-flex h-9 cursor-pointer items-center gap-2 rounded-full px-3 text-xs whitespace-nowrap transition-all duration-150 select-none hover:border-white/[0.14] hover:bg-[#151922] focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0B0E] focus-visible:outline-none"
+              className="surface-well group inline-flex h-9 cursor-pointer items-center gap-2 rounded-full px-3 text-xs whitespace-nowrap transition-all duration-150 select-none hover:border-line-strong hover:bg-surface focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas focus-visible:outline-none"
             >
               <span
                 className={cn(
                   'h-1.5 w-1.5 rounded-full transition-colors duration-300',
                   isRunning
-                    ? 'bg-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.75)]'
-                    : 'bg-[#646C7A]/70 group-hover:bg-amber-400/80',
+                    ? 'bg-amber-400 shadow-[0_0_8px_var(--accent-glow)]'
+                    : 'bg-fg-muted/70 group-hover:bg-amber-400/80',
                 )}
               />
-              <span className="text-[#9CA3B0] transition-colors group-hover:text-[#D6DAE2]">
+              <span className="text-fg-secondary transition-colors group-hover:text-fg-bright">
                 Today
               </span>
-              <span className="text-white/15">·</span>
-              <span className="font-mono font-medium text-[#F4F5F7] tabular-nums">
+              <span className="text-line-strong">·</span>
+              <span className="font-mono font-medium text-fg tabular-nums">
                 {todaysLabel}
               </span>
             </button>
@@ -246,7 +252,7 @@ export default function Timer() {
               title="Zen Focus Mode (F)"
               aria-label="Zen Focus Mode"
               aria-pressed={isZenMode}
-              className="surface-well inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-[#9CA3B0] transition-all duration-150 select-none hover:border-white/[0.14] hover:bg-[#151922] hover:text-[#F4F5F7] focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0B0E] focus-visible:outline-none"
+              className="surface-well inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-fg-secondary transition-all duration-150 select-none hover:border-line-strong hover:bg-surface hover:text-fg focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas focus-visible:outline-none"
             >
               <Maximize2 className="h-3.5 w-3.5" />
             </button>
@@ -258,7 +264,7 @@ export default function Timer() {
       <div className="relative my-2 flex items-center justify-center">
         <div
           aria-hidden="true"
-          style={{ background: getAmbientGlowStyle(mode, pomodoroPhase) }}
+          style={{ background: getAmbientGlowStyle(mode, pomodoroPhase, theme.svg.ambientRgb) }}
           className={cn(
             'pointer-events-none absolute -inset-12 rounded-full transition-opacity duration-700',
             isRunning ? 'animate-solar-breath opacity-95' : 'opacity-25',
@@ -336,7 +342,7 @@ export default function Timer() {
                         'cursor-pointer rounded-full px-2.5 py-1 font-mono text-[11px] font-medium tabular-nums transition-all duration-150 focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50',
                         isActive
                           ? 'border border-amber-500/30 bg-amber-500/15 text-amber-300 shadow-[0_1px_0_rgba(255,255,255,0.06)_inset]'
-                          : 'border border-transparent text-[#858E9E] hover:bg-white/[0.04] hover:text-[#F4F5F7]',
+                          : 'border border-transparent text-fg-secondary hover:bg-tint hover:text-fg',
                       )}
                     >
                       {preset.label}
@@ -347,10 +353,10 @@ export default function Timer() {
             ) : showShortcutBar ? (
               <div
                 aria-label="Keyboard shortcuts"
-                className="hidden items-center gap-2.5 text-[11px] text-[#525A68] select-none sm:inline-flex"
+                className="hidden items-center gap-2.5 text-[11px] text-fg-muted select-none sm:inline-flex"
               >
                 <span className="inline-flex items-center gap-1">
-                  <kbd className="rounded border border-white/[0.06] bg-white/[0.03] px-1.5 py-0.5 font-mono text-[10px] text-[#7A8292]">
+                  <kbd className="rounded border border-line-subtle bg-tint-subtle px-1.5 py-0.5 font-mono text-[10px] text-fg-muted">
                     Space
                   </kbd>
                   <span>{isRunning ? 'Pause' : 'Start'}</span>
@@ -359,7 +365,7 @@ export default function Timer() {
                   ·
                 </span>
                 <span className="inline-flex items-center gap-1">
-                  <kbd className="rounded border border-white/[0.06] bg-white/[0.03] px-1.5 py-0.5 font-mono text-[10px] text-[#7A8292]">
+                  <kbd className="rounded border border-line-subtle bg-tint-subtle px-1.5 py-0.5 font-mono text-[10px] text-fg-muted">
                     R
                   </kbd>
                   <span>Reset</span>
@@ -368,7 +374,7 @@ export default function Timer() {
                   ·
                 </span>
                 <span className="inline-flex items-center gap-1">
-                  <kbd className="rounded border border-white/[0.06] bg-white/[0.03] px-1.5 py-0.5 font-mono text-[10px] text-[#7A8292]">
+                  <kbd className="rounded border border-line-subtle bg-tint-subtle px-1.5 py-0.5 font-mono text-[10px] text-fg-muted">
                     F
                   </kbd>
                   <span>Zen</span>
@@ -379,9 +385,9 @@ export default function Timer() {
                 <button
                   type="button"
                   onClick={openCommandPalette}
-                  className="inline-flex cursor-pointer items-center gap-1 rounded transition-colors hover:text-[#9CA3B0] focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none"
+                  className="inline-flex cursor-pointer items-center gap-1 rounded transition-colors hover:text-fg-secondary focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none"
                 >
-                  <kbd className="rounded border border-white/[0.06] bg-white/[0.03] px-1.5 py-0.5 font-mono text-[10px] text-[#7A8292]">
+                  <kbd className="rounded border border-line-subtle bg-tint-subtle px-1.5 py-0.5 font-mono text-[10px] text-fg-muted">
                     ⌘K
                   </kbd>
                   <span>Command</span>

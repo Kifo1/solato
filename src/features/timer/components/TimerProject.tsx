@@ -402,20 +402,20 @@ export function TimerProjectDropdown({
         onClick={() => handleSelectProject(project)}
         style={options?.indentPx ? { paddingLeft: `${options.indentPx}px` } : undefined}
         className={cn(
-          'flex w-full cursor-pointer items-center gap-2.5 py-2 pr-3 text-left transition-colors hover:bg-white/[0.05] focus-visible:bg-white/[0.06] focus-visible:outline-none',
+          'flex w-full cursor-pointer items-center gap-2.5 py-2 pr-3 text-left transition-colors hover:bg-tint focus-visible:bg-tint focus-visible:outline-none',
           !options?.indentPx && 'pl-3',
-          isSelected ? 'bg-amber-500/10 text-[#F4F5F7]' : 'text-[#D6DAE2]',
+          isSelected ? 'bg-amber-500/10 text-fg' : 'text-fg-bright',
         )}
       >
         <span
-          className="h-2.5 w-2.5 shrink-0 rounded-full ring-1 ring-white/15"
+          className="h-2.5 w-2.5 shrink-0 rounded-full ring-1 ring-line"
           style={{ backgroundColor: project.color }}
         />
         <span className="min-w-0 flex-1 truncate text-sm font-medium">{project.name}</span>
         {options?.showFolderBadge && projectFolder && (
           <span
             title={folderPath}
-            className="inline-flex max-w-28 shrink-0 items-center gap-1 truncate rounded-md border px-1.5 py-0.5 text-[10px] font-medium text-[#D6DAE2]"
+            className="inline-flex max-w-28 shrink-0 items-center gap-1 truncate rounded-md border px-1.5 py-0.5 text-[10px] font-medium text-fg-bright"
             style={{
               borderColor: `${projectFolder.color}40`,
               backgroundColor: `${projectFolder.color}18`,
@@ -444,17 +444,17 @@ export function TimerProjectDropdown({
           type="button"
           onClick={() => toggleGroup(group.id)}
           style={{ paddingLeft: `${headerPadLeft}px` }}
-          className="flex w-full cursor-pointer items-center gap-2 py-1.5 pr-3 text-left text-xs font-medium text-[#9CA3B0] transition-colors hover:bg-white/[0.04] hover:text-[#F4F5F7]"
+          className="flex w-full cursor-pointer items-center gap-2 py-1.5 pr-3 text-left text-xs font-medium text-fg-secondary transition-colors hover:bg-tint hover:text-fg"
         >
           <ChevronRight
             className={cn(
-              'h-3.5 w-3.5 shrink-0 text-[#646C7A] transition-transform duration-150',
+              'h-3.5 w-3.5 shrink-0 text-fg-muted transition-transform duration-150',
               expanded && 'rotate-90',
             )}
           />
           <FolderIcon className="h-3.5 w-3.5 shrink-0" style={{ color: group.color }} />
           <span className="truncate">{group.name}</span>
-          <span className="ml-auto font-mono text-[11px] text-[#646C7A] tabular-nums">
+          <span className="ml-auto font-mono text-[11px] text-fg-muted tabular-nums">
             {group.totalProjects}
           </span>
         </button>
@@ -496,17 +496,17 @@ export function TimerProjectDropdown({
             >
               {isQuickCreateOpen ? (
                 <form onSubmit={handleQuickCreateSubmit} className="flex flex-col">
-                  <div className="flex items-center justify-between border-b border-white/[0.07] px-3 py-2.5">
+                  <div className="flex items-center justify-between border-b border-line-subtle px-3 py-2.5">
                     <button
                       type="button"
                       onClick={resetQuickCreate}
-                      className="inline-flex cursor-pointer items-center gap-1.5 text-xs font-medium text-[#9CA3B0] transition-colors hover:text-[#F4F5F7]"
+                      className="inline-flex cursor-pointer items-center gap-1.5 text-xs font-medium text-fg-secondary transition-colors hover:text-fg"
                     >
                       <ArrowLeft className="h-3.5 w-3.5" />
                       <span>Quick create project</span>
                     </button>
                     <span
-                      className="h-2.5 w-2.5 rounded-full ring-2 ring-white/10"
+                      className="h-2.5 w-2.5 rounded-full ring-2 ring-line"
                       style={{ backgroundColor: quickColor }}
                     />
                   </div>
@@ -527,7 +527,7 @@ export function TimerProjectDropdown({
                         }}
                         placeholder="Project name"
                         maxLength={64}
-                        className="w-full rounded-lg border border-white/[0.08] bg-[#0F1116] px-2.5 py-2 text-xs text-[#F4F5F7] placeholder-[#646C7A] transition-colors focus:border-amber-500/45 focus:outline-none"
+                        className="w-full rounded-lg border border-line bg-well px-2.5 py-2 text-xs text-fg placeholder-fg-muted transition-colors focus:border-amber-500/45 focus:outline-none"
                       />
                     </div>
 
@@ -542,12 +542,12 @@ export function TimerProjectDropdown({
                         onChange={(e) => setQuickDescription(e.target.value)}
                         placeholder="Short description (optional)"
                         maxLength={120}
-                        className="w-full rounded-lg border border-white/[0.08] bg-[#0F1116] px-2.5 py-2 text-xs text-[#F4F5F7] placeholder-[#646C7A] transition-colors focus:border-amber-500/45 focus:outline-none"
+                        className="w-full rounded-lg border border-line bg-well px-2.5 py-2 text-xs text-fg placeholder-fg-muted transition-colors focus:border-amber-500/45 focus:outline-none"
                       />
                     </div>
 
                     <div className="flex items-center justify-between gap-2 pt-0.5">
-                      <span className="text-[11px] font-medium text-[#646C7A]">Color</span>
+                      <span className="text-[11px] font-medium text-fg-muted">Color</span>
                       <div className="flex items-center gap-1.5">
                         {QUICK_CREATE_COLORS.map((swatch) => {
                           const isActive = quickColor === swatch.hex;
@@ -563,8 +563,8 @@ export function TimerProjectDropdown({
                               className={cn(
                                 'h-4 w-4 cursor-pointer rounded-full transition-transform duration-150 hover:scale-110 focus-visible:ring-2 focus-visible:ring-amber-400/70 focus-visible:outline-none',
                                 isActive
-                                  ? 'scale-110 ring-2 ring-[#F4F5F7] ring-offset-2 ring-offset-[#171B23]'
-                                  : 'ring-1 ring-white/15',
+                                  ? 'scale-110 ring-2 ring-fg ring-offset-2 ring-offset-surface'
+                                  : 'ring-1 ring-line',
                               )}
                             />
                           );
@@ -583,14 +583,14 @@ export function TimerProjectDropdown({
                         type="button"
                         onClick={resetQuickCreate}
                         disabled={quickCreateMutation.isPending}
-                        className="cursor-pointer rounded-lg px-2.5 py-1.5 text-xs font-medium text-[#9CA3B0] transition-colors hover:bg-white/[0.06] hover:text-[#F4F5F7] disabled:opacity-50"
+                        className="cursor-pointer rounded-lg px-2.5 py-1.5 text-xs font-medium text-fg-secondary transition-colors hover:bg-tint hover:text-fg disabled:opacity-50"
                       >
                         Cancel
                       </button>
                       <button
                         type="submit"
                         disabled={quickCreateMutation.isPending}
-                        className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-semibold text-[#0A0B0E] transition-colors hover:bg-amber-400 disabled:opacity-60"
+                        className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-semibold text-on-accent transition-colors hover:bg-amber-400 disabled:opacity-60"
                       >
                         {quickCreateMutation.isPending ? (
                           <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -605,21 +605,21 @@ export function TimerProjectDropdown({
               ) : (
                 <>
                   {/* Search bar */}
-                  <div className="flex shrink-0 items-center gap-2 border-b border-white/[0.07] px-3 py-2.5">
-                    <Search className="h-3.5 w-3.5 shrink-0 text-[#646C7A]" />
+                  <div className="flex shrink-0 items-center gap-2 border-b border-line-subtle px-3 py-2.5">
+                    <Search className="h-3.5 w-3.5 shrink-0 text-fg-muted" />
                     <input
                       type="text"
                       autoFocus
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Search projects or folders..."
-                      className="w-full bg-transparent text-xs text-[#F4F5F7] placeholder-[#646C7A] focus:outline-none"
+                      className="w-full bg-transparent text-xs text-fg placeholder-fg-muted focus:outline-none"
                     />
                     {isSearching && (
                       <button
                         type="button"
                         onClick={() => setSearchQuery('')}
-                        className="cursor-pointer rounded p-0.5 text-[#646C7A] transition-colors hover:bg-white/[0.06] hover:text-[#F4F5F7]"
+                        className="cursor-pointer rounded p-0.5 text-fg-muted transition-colors hover:bg-tint hover:text-fg"
                         aria-label="Clear search"
                       >
                         <X className="h-3.5 w-3.5" />
@@ -633,8 +633,8 @@ export function TimerProjectDropdown({
                       <div className="flex flex-col gap-1.5 px-3 py-2" aria-label="Loading projects">
                         {[0, 1, 2].map((i) => (
                           <div key={i} className="flex items-center gap-2.5 py-1">
-                            <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-white/[0.08]" />
-                            <span className="h-3.5 flex-1 animate-pulse rounded bg-white/[0.06]" />
+                            <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-tint-strong" />
+                            <span className="h-3.5 flex-1 animate-pulse rounded bg-tint" />
                           </div>
                         ))}
                       </div>
@@ -645,7 +645,7 @@ export function TimerProjectDropdown({
                         )
                       ) : (
                         <div className="flex flex-col items-center gap-2 px-3 py-5 text-center">
-                          <p className="text-xs text-[#646C7A]">No matching projects</p>
+                          <p className="text-xs text-fg-muted">No matching projects</p>
                           <button
                             type="button"
                             onClick={() => openQuickCreate(searchQuery.trim())}
@@ -665,14 +665,14 @@ export function TimerProjectDropdown({
                           aria-selected={isUntracked}
                           onClick={() => handleSelectProject(null)}
                           className={cn(
-                            'flex w-full cursor-pointer items-center gap-2.5 px-3 py-2 text-left transition-colors hover:bg-white/[0.05]',
-                            isUntracked ? 'bg-amber-500/10 text-[#F4F5F7]' : 'text-[#9CA3B0]',
+                            'flex w-full cursor-pointer items-center gap-2.5 px-3 py-2 text-left transition-colors hover:bg-tint',
+                            isUntracked ? 'bg-amber-500/10 text-fg' : 'text-fg-secondary',
                           )}
                         >
                           <CircleSlash
                             className={cn(
                               'h-3.5 w-3.5 shrink-0',
-                              isUntracked ? 'text-amber-400' : 'text-[#646C7A]',
+                              isUntracked ? 'text-amber-400' : 'text-fg-muted',
                             )}
                           />
                           <span className={cn('text-sm', isUntracked && 'font-medium')}>
@@ -682,14 +682,14 @@ export function TimerProjectDropdown({
                         </button>
 
                         {projects.length === 0 && !isLoading && (
-                          <div className="px-3 py-3 text-xs text-[#646C7A]">
+                          <div className="px-3 py-3 text-xs text-fg-muted">
                             No projects yet — create one below to track your time.
                           </div>
                         )}
 
                         {/* Recommended quick-picks */}
                         {recommended.length > 0 && (
-                          <div className="mt-1 border-t border-white/[0.07] pt-1">
+                          <div className="mt-1 border-t border-line-subtle pt-1">
                             <div className="flex items-center gap-1.5 px-3 py-1 text-[10px] font-semibold tracking-wider text-amber-400/90 uppercase">
                               <Sparkles className="h-3 w-3" />
                               <span>Recommended</span>
@@ -702,17 +702,17 @@ export function TimerProjectDropdown({
 
                         {/* Collapsible nested folders or compact remaining list */}
                         {hasFoldersWithProjects ? (
-                          <div className="mt-1 border-t border-white/[0.07] pt-1">
-                            <div className="px-3 py-1 text-[10px] font-semibold tracking-wider text-[#646C7A] uppercase">
+                          <div className="mt-1 border-t border-line-subtle pt-1">
+                            <div className="px-3 py-1 text-[10px] font-semibold tracking-wider text-fg-muted uppercase">
                               Folders
                             </div>
                             {folderTreeGroups.map((group) => renderFolderGroup(group))}
                           </div>
                         ) : (
                           remainingFlatProjects.length > 0 && (
-                            <div className="mt-1 border-t border-white/[0.07] pt-1">
+                            <div className="mt-1 border-t border-line-subtle pt-1">
                               {recommended.length > 0 && (
-                                <div className="px-3 py-1 text-[10px] font-semibold tracking-wider text-[#646C7A] uppercase">
+                                <div className="px-3 py-1 text-[10px] font-semibold tracking-wider text-fg-muted uppercase">
                                   All projects
                                 </div>
                               )}
@@ -725,7 +725,7 @@ export function TimerProjectDropdown({
                   </div>
 
                   {/* Quick actions footer */}
-                  <div className="flex shrink-0 items-center justify-between gap-2 border-t border-white/[0.07] bg-white/[0.015] px-2.5 py-2">
+                  <div className="flex shrink-0 items-center justify-between gap-2 border-t border-line-subtle bg-tint-subtle px-2.5 py-2">
                     <button
                       type="button"
                       onClick={() => openQuickCreate(isSearching ? searchQuery.trim() : '')}
@@ -738,10 +738,10 @@ export function TimerProjectDropdown({
                     <button
                       type="button"
                       onClick={handleNavigateManageProjects}
-                      className="inline-flex cursor-pointer items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-[#9CA3B0] transition-colors hover:bg-white/[0.06] hover:text-[#F4F5F7] focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none"
+                      className="inline-flex cursor-pointer items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-fg-secondary transition-colors hover:bg-tint hover:text-fg focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none"
                     >
                       <span>Manage</span>
-                      <ArrowUpRight className="h-3 w-3 text-[#646C7A]" />
+                      <ArrowUpRight className="h-3 w-3 text-fg-muted" />
                     </button>
                   </div>
                 </>
@@ -767,26 +767,26 @@ export function TimerProjectDropdown({
           }
           onClick={() => (isOpen ? closeDropdown() : setIsOpen(true))}
           className={cn(
-            'surface-well group inline-flex h-9 max-w-[240px] cursor-pointer items-center gap-2 rounded-full px-3 text-left transition-all duration-150 select-none focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0B0E] focus-visible:outline-none',
+            'surface-well group inline-flex h-9 max-w-[240px] cursor-pointer items-center gap-2 rounded-full px-3 text-left transition-all duration-150 select-none focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas focus-visible:outline-none',
             isOpen
-              ? 'border-amber-500/40 bg-[#151922] shadow-[0_0_0_1px_rgba(245,158,11,0.18)]'
-              : 'hover:border-white/[0.14] hover:bg-[#151922]',
+              ? 'border-amber-500/40 bg-surface shadow-[0_0_0_1px_var(--accent-glow)]'
+              : 'hover:border-line-strong hover:bg-surface',
           )}
         >
           {currentProject ? (
             <>
               <span
                 aria-hidden="true"
-                className="h-2 w-2 shrink-0 rounded-full ring-2 ring-white/10"
+                className="h-2 w-2 shrink-0 rounded-full ring-2 ring-line"
                 style={{ backgroundColor: currentProject.color }}
               />
-              <span className="min-w-0 truncate text-xs font-medium text-[#F4F5F7]">
+              <span className="min-w-0 truncate text-xs font-medium text-fg">
                 {currentProject.name}
               </span>
               {currentFolder && (
                 <span
                   title={folderPathMap.get(currentFolder.id)}
-                  className="hidden max-w-[74px] shrink-0 items-center truncate rounded-full border px-1.5 py-0.5 text-[10px] leading-none font-medium text-[#D6DAE2] md:inline-flex"
+                  className="hidden max-w-[74px] shrink-0 items-center truncate rounded-full border px-1.5 py-0.5 text-[10px] leading-none font-medium text-fg-bright md:inline-flex"
                   style={{
                     borderColor: `${currentFolder.color}40`,
                     backgroundColor: `${currentFolder.color}18`,
@@ -798,8 +798,8 @@ export function TimerProjectDropdown({
             </>
           ) : (
             <>
-              <CircleSlash className="h-3.5 w-3.5 shrink-0 text-[#646C7A]" />
-              <span className="min-w-0 truncate text-xs font-medium text-[#9CA3B0]">
+              <CircleSlash className="h-3.5 w-3.5 shrink-0 text-fg-muted" />
+              <span className="min-w-0 truncate text-xs font-medium text-fg-secondary">
                 No project
               </span>
             </>
@@ -807,7 +807,7 @@ export function TimerProjectDropdown({
 
           <ChevronDown
             className={cn(
-              'ml-0.5 h-3.5 w-3.5 shrink-0 text-[#646C7A] transition-transform duration-150 group-hover:text-[#9CA3B0]',
+              'ml-0.5 h-3.5 w-3.5 shrink-0 text-fg-muted transition-transform duration-150 group-hover:text-fg-secondary',
               isOpen && 'rotate-180 text-amber-400 group-hover:text-amber-400',
             )}
           />
@@ -828,26 +828,26 @@ export function TimerProjectDropdown({
           aria-expanded={isOpen}
           onClick={() => (isOpen ? closeDropdown() : setIsOpen(true))}
           className={cn(
-            'surface-card flex w-full cursor-pointer items-center justify-between gap-2.5 rounded-xl px-3.5 py-2.5 text-left transition-all duration-150 focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0B0E] focus-visible:outline-none',
+            'surface-card flex w-full cursor-pointer items-center justify-between gap-2.5 rounded-xl px-3.5 py-2.5 text-left transition-all duration-150 focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas focus-visible:outline-none',
             isOpen
-              ? 'border-amber-500/40 shadow-[0_0_0_1px_rgba(245,158,11,0.18)]'
-              : 'hover:border-white/[0.14]',
+              ? 'border-amber-500/40 shadow-[0_0_0_1px_var(--accent-glow)]'
+              : 'hover:border-line-strong',
           )}
         >
           <div className="flex min-w-0 items-center gap-2.5 overflow-hidden">
             {currentProject ? (
               <>
                 <span
-                  className="h-2.5 w-2.5 shrink-0 rounded-full ring-2 ring-white/10"
+                  className="h-2.5 w-2.5 shrink-0 rounded-full ring-2 ring-line"
                   style={{ backgroundColor: currentProject.color }}
                 />
-                <span className="truncate text-sm font-medium text-[#F4F5F7]">
+                <span className="truncate text-sm font-medium text-fg">
                   {currentProject.name}
                 </span>
                 {currentFolder && (
                   <span
                     title={folderPathMap.get(currentFolder.id)}
-                    className="inline-flex max-w-24 shrink-0 items-center gap-1 truncate rounded-md border px-1.5 py-0.5 text-[10px] font-medium text-[#D6DAE2]"
+                    className="inline-flex max-w-24 shrink-0 items-center gap-1 truncate rounded-md border px-1.5 py-0.5 text-[10px] font-medium text-fg-bright"
                     style={{
                       borderColor: `${currentFolder.color}40`,
                       backgroundColor: `${currentFolder.color}18`,
@@ -859,22 +859,22 @@ export function TimerProjectDropdown({
               </>
             ) : (
               <>
-                <CircleSlash className="h-4 w-4 shrink-0 text-[#646C7A]" />
-                <span className="truncate text-sm text-[#9CA3B0]">No project selected</span>
+                <CircleSlash className="h-4 w-4 shrink-0 text-fg-muted" />
+                <span className="truncate text-sm text-fg-secondary">No project selected</span>
               </>
             )}
           </div>
 
           <ChevronDown
             className={cn(
-              'h-4 w-4 shrink-0 text-[#646C7A] transition-transform duration-150',
+              'h-4 w-4 shrink-0 text-fg-muted transition-transform duration-150',
               isOpen && 'rotate-180 text-amber-400',
             )}
           />
         </button>
       </div>
 
-      <p className="text-center text-xs text-[#646C7A]">
+      <p className="text-center text-xs text-fg-muted">
         {isUntracked
           ? 'No project selected — sessions will not be tracked.'
           : 'Sessions are tracked to this project automatically.'}

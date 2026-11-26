@@ -3,14 +3,14 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@shared/lib/utils';
 
 const inputVariants = cva(
-  'w-full rounded-xl text-[#F4F5F7] placeholder-[#646C7A] transition-all duration-150 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50',
+  'w-full rounded-xl text-fg placeholder-fg-muted transition-all duration-150 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50',
   {
     variants: {
       variant: {
         default:
-          'bg-[#0E1015] border border-white/[0.09] hover:border-white/[0.15] focus:border-amber-500/60 focus:ring-2 focus:ring-amber-500/20',
+          'bg-well border border-line hover:border-line-strong focus:border-amber-500/60 focus:ring-2 focus:ring-amber-500/20',
         error:
-          'bg-[#0E1015] border border-rose-500/50 focus:border-rose-400 focus:ring-2 focus:ring-rose-500/20',
+          'bg-well border border-rose-500/50 focus:border-rose-400 focus:ring-2 focus:ring-rose-500/20',
       },
       scale: {
         sm: 'h-8.5 px-3 text-xs',

@@ -4,28 +4,338 @@
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
-  --color-canvas: #0a0b0e;
-  --color-sidebar: #0e1014;
-  --color-surface: #14171d;
-  --color-surface-elevated: #1a1e26;
-  --color-surface-subtle: #101217;
+  /* Semantic theme tokens wired to live CSS variables */
+  --color-canvas: var(--bg-canvas);
+  --color-sidebar: var(--bg-sidebar);
+  --color-surface: var(--bg-surface);
+  --color-surface-elevated: var(--bg-elevated);
+  --color-surface-subtle: var(--bg-well);
+  --color-elevated: var(--bg-elevated);
+  --color-well: var(--bg-well);
 
-  --color-accent: #f59e0b;
-  --color-accent-bright: #fbbf24;
-  --color-accent-deep: #d97706;
+  --color-fg: var(--text-primary);
+  --color-fg-bright: var(--text-bright);
+  --color-fg-secondary: var(--text-secondary);
+  --color-fg-muted: var(--text-muted);
+  --color-on-accent: var(--text-on-accent);
 
-  --color-break-short: #2dd4bf;
-  --color-break-long: #38bdf8;
-  --color-danger: #f43f5e;
+  --color-line-subtle: var(--border-subtle);
+  --color-line: var(--border-default);
+  --color-line-strong: var(--border-strong);
+
+  --color-tint-subtle: var(--overlay-subtle);
+  --color-tint: var(--overlay-default);
+  --color-tint-strong: var(--overlay-strong);
+}
+
+/* =====================================================================
+   Theme 1 (Default): Solar Obsidian (Dark)
+   ===================================================================== */
+:root,
+[data-theme='solar-obsidian'] {
+  color-scheme: dark;
+
+  --bg-canvas: #0a0b0e;
+  --bg-sidebar: #0e1014;
+  --bg-surface: #14171d;
+  --bg-elevated: #1a1e26;
+  --bg-well: #0f1116;
+
+  --text-primary: #f4f5f7;
+  --text-bright: #d1d5de;
+  --text-secondary: #9ca3b0;
+  --text-muted: #646c7a;
+  --text-on-accent: #0a0b0e;
+
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-default: rgba(255, 255, 255, 0.095);
+  --border-strong: rgba(255, 255, 255, 0.16);
+
+  --overlay-subtle: rgba(255, 255, 255, 0.03);
+  --overlay-default: rgba(255, 255, 255, 0.055);
+  --overlay-strong: rgba(255, 255, 255, 0.09);
+
+  --canvas-glow: rgba(245, 158, 11, 0.055);
+  --card-bg: linear-gradient(180deg, rgba(24, 28, 36, 0.88) 0%, rgba(19, 22, 28, 0.96) 100%);
+  --card-border: rgba(255, 255, 255, 0.065);
+  --card-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.045), 0 12px 32px -16px rgba(0, 0, 0, 0.65);
+
+  --elevated-bg: linear-gradient(180deg, #1b1f28 0%, #151820 100%);
+  --elevated-border: rgba(255, 255, 255, 0.095);
+  --elevated-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.065), 0 24px 60px -16px rgba(0, 0, 0, 0.78);
+
+  --well-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.35);
+  --accent-glow: rgba(245, 158, 11, 0.55);
+  --scrollbar-thumb: rgba(255, 255, 255, 0.12);
+  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.22);
+
+  /* Remappable primary accent scale (Tailwind amber-*) */
+  --color-amber-200: #fde68a;
+  --color-amber-300: #fcd34d;
+  --color-amber-400: #fbbf24;
+  --color-amber-500: #f59e0b;
+  --color-amber-600: #d97706;
+}
+
+/* =====================================================================
+   Theme 2: Nordic Daylight (Light)
+   ===================================================================== */
+[data-theme='nordic-daylight'] {
+  color-scheme: light;
+
+  --bg-canvas: #f5f3ee;
+  --bg-sidebar: #ebe7df;
+  --bg-surface: #ffffff;
+  --bg-elevated: #ffffff;
+  --bg-well: #efeae0;
+
+  --text-primary: #18181b;
+  --text-bright: #27272a;
+  --text-secondary: #57534e;
+  --text-muted: #847d73;
+  --text-on-accent: #ffffff;
+
+  --border-subtle: rgba(24, 24, 27, 0.075);
+  --border-default: rgba(24, 24, 27, 0.12);
+  --border-strong: rgba(24, 24, 27, 0.2);
+
+  --overlay-subtle: rgba(24, 24, 27, 0.03);
+  --overlay-default: rgba(24, 24, 27, 0.055);
+  --overlay-strong: rgba(24, 24, 27, 0.095);
+
+  --canvas-glow: rgba(217, 119, 6, 0.065);
+  --card-bg: linear-gradient(180deg, #ffffff 0%, #fcfbf8 100%);
+  --card-border: rgba(24, 24, 27, 0.085);
+  --card-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 8px 24px -14px rgba(24, 24, 27, 0.14);
+
+  --elevated-bg: #ffffff;
+  --elevated-border: rgba(24, 24, 27, 0.12);
+  --elevated-shadow: 0 22px 50px -16px rgba(24, 24, 27, 0.22), 0 4px 12px -4px rgba(24, 24, 27, 0.08);
+
+  --well-shadow: inset 0 1px 2px rgba(24, 24, 27, 0.06);
+  --accent-glow: rgba(217, 119, 6, 0.4);
+  --scrollbar-thumb: rgba(24, 24, 27, 0.16);
+  --scrollbar-thumb-hover: rgba(24, 24, 27, 0.28);
+
+  /* Burnt ochre accent tuned for crisp contrast on light paper */
+  --color-amber-200: #b45309;
+  --color-amber-300: #b45309;
+  --color-amber-400: #c2610c;
+  --color-amber-500: #d97706;
+  --color-amber-600: #b45309;
+
+  /* Deepen secondary semantic text tones for light mode legibility */
+  --color-teal-300: #0f766e;
+  --color-teal-400: #0d9488;
+  --color-sky-300: #0369a1;
+  --color-sky-400: #0284c7;
+  --color-rose-200: #9f1239;
+  --color-rose-300: #be123c;
+  --color-rose-400: #e11d48;
+}
+
+/* =====================================================================
+   Theme 3: Midnight Slate (Dark — Glacier Cyan)
+   ===================================================================== */
+[data-theme='midnight-slate'] {
+  color-scheme: dark;
+
+  --bg-canvas: #080c14;
+  --bg-sidebar: #0c121e;
+  --bg-surface: #111927;
+  --bg-elevated: #172234;
+  --bg-well: #0d1420;
+
+  --text-primary: #f1f5f9;
+  --text-bright: #cbd5e1;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --text-on-accent: #07131e;
+
+  --border-subtle: rgba(148, 163, 184, 0.09);
+  --border-default: rgba(148, 163, 184, 0.14);
+  --border-strong: rgba(148, 163, 184, 0.22);
+
+  --overlay-subtle: rgba(148, 163, 184, 0.045);
+  --overlay-default: rgba(148, 163, 184, 0.08);
+  --overlay-strong: rgba(148, 163, 184, 0.13);
+
+  --canvas-glow: rgba(56, 189, 248, 0.06);
+  --card-bg: linear-gradient(180deg, rgba(20, 30, 48, 0.9) 0%, rgba(15, 22, 36, 0.97) 100%);
+  --card-border: rgba(148, 163, 184, 0.1);
+  --card-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.045), 0 12px 32px -16px rgba(0, 0, 0, 0.72);
+
+  --elevated-bg: linear-gradient(180deg, #19253a 0%, #121b2b 100%);
+  --elevated-border: rgba(148, 163, 184, 0.15);
+  --elevated-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.065), 0 24px 60px -16px rgba(0, 0, 0, 0.82);
+
+  --well-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.42);
+  --accent-glow: rgba(56, 189, 248, 0.55);
+  --scrollbar-thumb: rgba(148, 163, 184, 0.16);
+  --scrollbar-thumb-hover: rgba(148, 163, 184, 0.28);
+
+  --color-amber-200: #bae6fd;
+  --color-amber-300: #7dd3fc;
+  --color-amber-400: #38bdf8;
+  --color-amber-500: #0ea5e9;
+  --color-amber-600: #0284c7;
+}
+
+/* =====================================================================
+   Theme 4: Forest Matcha (Dark — Organic Emerald)
+   ===================================================================== */
+[data-theme='forest-matcha'] {
+  color-scheme: dark;
+
+  --bg-canvas: #080d0a;
+  --bg-sidebar: #0c130f;
+  --bg-surface: #121c16;
+  --bg-elevated: #18261e;
+  --bg-well: #0d1510;
+
+  --text-primary: #eff5f1;
+  --text-bright: #cfe0d6;
+  --text-secondary: #96aca0;
+  --text-muted: #62786b;
+  --text-on-accent: #051610;
+
+  --border-subtle: rgba(167, 243, 208, 0.075);
+  --border-default: rgba(167, 243, 208, 0.12);
+  --border-strong: rgba(167, 243, 208, 0.2);
+
+  --overlay-subtle: rgba(167, 243, 208, 0.035);
+  --overlay-default: rgba(167, 243, 208, 0.065);
+  --overlay-strong: rgba(167, 243, 208, 0.11);
+
+  --canvas-glow: rgba(16, 185, 129, 0.06);
+  --card-bg: linear-gradient(180deg, rgba(21, 33, 26, 0.9) 0%, rgba(16, 25, 20, 0.97) 100%);
+  --card-border: rgba(167, 243, 208, 0.085);
+  --card-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 12px 32px -16px rgba(0, 0, 0, 0.72);
+
+  --elevated-bg: linear-gradient(180deg, #1b2a21 0%, #142019 100%);
+  --elevated-border: rgba(167, 243, 208, 0.13);
+  --elevated-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 24px 60px -16px rgba(0, 0, 0, 0.82);
+
+  --well-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.42);
+  --accent-glow: rgba(16, 185, 129, 0.55);
+  --scrollbar-thumb: rgba(167, 243, 208, 0.14);
+  --scrollbar-thumb-hover: rgba(167, 243, 208, 0.26);
+
+  --color-amber-200: #a7f3d0;
+  --color-amber-300: #6ee7b7;
+  --color-amber-400: #34d399;
+  --color-amber-500: #10b981;
+  --color-amber-600: #059669;
+}
+
+/* =====================================================================
+   Theme 5: Rosewood Dusk (Dark — Warm Espresso & Coral)
+   ===================================================================== */
+[data-theme='rosewood-dusk'] {
+  color-scheme: dark;
+
+  --bg-canvas: #0e0a0c;
+  --bg-sidebar: #140e11;
+  --bg-surface: #1b1418;
+  --bg-elevated: #241b20;
+  --bg-well: #130e11;
+
+  --text-primary: #f6f1f3;
+  --text-bright: #dfd2d8;
+  --text-secondary: #ac9ba3;
+  --text-muted: #7b6770;
+  --text-on-accent: #18080c;
+
+  --border-subtle: rgba(255, 228, 230, 0.075);
+  --border-default: rgba(255, 228, 230, 0.12);
+  --border-strong: rgba(255, 228, 230, 0.2);
+
+  --overlay-subtle: rgba(255, 228, 230, 0.035);
+  --overlay-default: rgba(255, 228, 230, 0.065);
+  --overlay-strong: rgba(255, 228, 230, 0.11);
+
+  --canvas-glow: rgba(251, 113, 133, 0.065);
+  --card-bg: linear-gradient(180deg, rgba(31, 23, 27, 0.9) 0%, rgba(24, 18, 21, 0.97) 100%);
+  --card-border: rgba(255, 228, 230, 0.085);
+  --card-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 12px 32px -16px rgba(0, 0, 0, 0.72);
+
+  --elevated-bg: linear-gradient(180deg, #271d22 0%, #1d1519 100%);
+  --elevated-border: rgba(255, 228, 230, 0.13);
+  --elevated-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 24px 60px -16px rgba(0, 0, 0, 0.82);
+
+  --well-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.42);
+  --accent-glow: rgba(251, 113, 133, 0.55);
+  --scrollbar-thumb: rgba(255, 228, 230, 0.14);
+  --scrollbar-thumb-hover: rgba(255, 228, 230, 0.26);
+
+  --color-amber-200: #fecdd3;
+  --color-amber-300: #fda4af;
+  --color-amber-400: #fb7185;
+  --color-amber-500: #f43f5e;
+  --color-amber-600: #e11d48;
+}
+
+/* =====================================================================
+   Theme 6: Paper Minimal (Light — Architectural Cobalt)
+   ===================================================================== */
+[data-theme='paper-minimal'] {
+  color-scheme: light;
+
+  --bg-canvas: #f8fafc;
+  --bg-sidebar: #f1f5f9;
+  --bg-surface: #ffffff;
+  --bg-elevated: #ffffff;
+  --bg-well: #f1f5f9;
+
+  --text-primary: #0f172a;
+  --text-bright: #1e293b;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+  --text-on-accent: #ffffff;
+
+  --border-subtle: rgba(15, 23, 42, 0.075);
+  --border-default: rgba(15, 23, 42, 0.12);
+  --border-strong: rgba(15, 23, 42, 0.2);
+
+  --overlay-subtle: rgba(15, 23, 42, 0.03);
+  --overlay-default: rgba(15, 23, 42, 0.055);
+  --overlay-strong: rgba(15, 23, 42, 0.095);
+
+  --canvas-glow: rgba(37, 99, 235, 0.055);
+  --card-bg: #ffffff;
+  --card-border: rgba(15, 23, 42, 0.085);
+  --card-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 8px 24px -14px rgba(15, 23, 42, 0.12);
+
+  --elevated-bg: #ffffff;
+  --elevated-border: rgba(15, 23, 42, 0.12);
+  --elevated-shadow: 0 22px 50px -16px rgba(15, 23, 42, 0.18), 0 4px 12px -4px rgba(15, 23, 42, 0.06);
+
+  --well-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.05);
+  --accent-glow: rgba(37, 99, 235, 0.35);
+  --scrollbar-thumb: rgba(15, 23, 42, 0.15);
+  --scrollbar-thumb-hover: rgba(15, 23, 42, 0.28);
+
+  --color-amber-200: #1d4ed8;
+  --color-amber-300: #1d4ed8;
+  --color-amber-400: #2563eb;
+  --color-amber-500: #2563eb;
+  --color-amber-600: #1d4ed8;
+
+  --color-teal-300: #0f766e;
+  --color-teal-400: #0d9488;
+  --color-sky-300: #0369a1;
+  --color-sky-400: #0284c7;
+  --color-rose-200: #9f1239;
+  --color-rose-300: #be123c;
+  --color-rose-400: #e11d48;
 }
 
 @layer base {
   html,
   body {
     font-family: var(--font-sans);
-    background-color: #0a0b0e;
-    color: #f4f5f7;
-    color-scheme: dark;
+    background-color: var(--bg-canvas);
+    color: var(--text-primary);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -33,7 +343,7 @@
   /* Custom refined scrollbars */
   * {
     scrollbar-width: thin;
-    scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+    scrollbar-color: var(--scrollbar-thumb) transparent;
   }
 
   *::-webkit-scrollbar {
@@ -46,45 +356,41 @@
   }
 
   *::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.12);
+    background: var(--scrollbar-thumb);
     border-radius: 9999px;
   }
 
   *::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.22);
+    background: var(--scrollbar-thumb-hover);
   }
 }
 
-/* Layered obsidian surface system */
+/* Theme-aware layered surface system */
 .studio-canvas {
-  background-color: #0a0b0e;
+  background-color: var(--bg-canvas);
   background-image: radial-gradient(
     ellipse 70% 42% at 50% -12%,
-    rgba(245, 158, 11, 0.055),
+    var(--canvas-glow),
     transparent 70%
   );
 }
 
 .surface-card {
-  background: linear-gradient(180deg, rgba(24, 28, 36, 0.88) 0%, rgba(19, 22, 28, 0.96) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.065);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.045),
-    0 12px 32px -16px rgba(0, 0, 0, 0.65);
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  box-shadow: var(--card-shadow);
 }
 
 .surface-elevated {
-  background: linear-gradient(180deg, #1b1f28 0%, #151820 100%);
-  border: 1px solid rgba(255, 255, 255, 0.095);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.065),
-    0 24px 60px -16px rgba(0, 0, 0, 0.78);
+  background: var(--elevated-bg);
+  border: 1px solid var(--elevated-border);
+  box-shadow: var(--elevated-shadow);
 }
 
 .surface-well {
-  background-color: #0f1116;
-  border: 1px solid rgba(255, 255, 255, 0.065);
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.35);
+  background-color: var(--bg-well);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--well-shadow);
 }
 
 /* Subtle micro-animations */
@@ -178,5 +484,5 @@
 }
 
 .solar-glow {
-  box-shadow: 0 0 12px rgba(245, 158, 11, 0.55);
+  box-shadow: 0 0 12px var(--accent-glow);
 }

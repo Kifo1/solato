@@ -48,10 +48,10 @@ export default function FirstProjectTutorial() {
       <div className="surface-card rounded-2xl p-6 sm:p-8">
         <div className="flex flex-col items-center text-center">
           <SolatoLogo size={48} className="mb-4" />
-          <h2 className="text-xl font-semibold tracking-tight text-[#F4F5F7] sm:text-2xl">
+          <h2 className="text-xl font-semibold tracking-tight text-fg sm:text-2xl">
             Start tracking with clarity
           </h2>
-          <p className="mt-2 max-w-md text-sm text-[#9CA3B0]">
+          <p className="mt-2 max-w-md text-sm text-fg-secondary">
             Create your first project to organize focus sessions, track daily momentum, and unlock
             studio analytics.
           </p>
@@ -69,13 +69,13 @@ export default function FirstProjectTutorial() {
                 >
                   <Icon className={`h-4 w-4 ${iconColorClass}`} />
                 </div>
-                <span className="font-mono text-xs font-semibold text-[#646C7A] tabular-nums">
+                <span className="font-mono text-xs font-semibold text-fg-muted tabular-nums">
                   {number}
                 </span>
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-[#F4F5F7]">{title}</h3>
-                <p className="mt-1 text-xs leading-relaxed text-[#9CA3B0]">{description}</p>
+                <h3 className="text-sm font-semibold text-fg">{title}</h3>
+                <p className="mt-1 text-xs leading-relaxed text-fg-secondary">{description}</p>
               </div>
             </div>
           ))}

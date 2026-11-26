@@ -102,9 +102,9 @@ export function ToastProvider({ children }: Readonly<{ children: ReactNode }>) {
                 >
                   <Icon className={cn('mt-0.5 h-4 w-4 shrink-0', cfg.iconClass)} />
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs font-medium text-[#F4F5F7]">{toast.message}</p>
+                    <p className="text-xs font-medium text-fg">{toast.message}</p>
                     {toast.description && (
-                      <p className="mt-0.5 text-[11px] leading-snug text-[#9CA3B0]">
+                      <p className="mt-0.5 text-[11px] leading-snug text-fg-secondary">
                         {toast.description}
                       </p>
                     )}
@@ -113,7 +113,7 @@ export function ToastProvider({ children }: Readonly<{ children: ReactNode }>) {
                     type="button"
                     aria-label="Dismiss notification"
                     onClick={() => dismiss(toast.id)}
-                    className="flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded-md text-[#646C7A] transition-colors hover:bg-white/[0.08] hover:text-[#F4F5F7]"
+                    className="flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded-md text-fg-muted transition-colors hover:bg-tint-strong hover:text-fg"
                   >
                     <X className="h-3.5 w-3.5" />
                   </button>

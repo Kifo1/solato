@@ -152,16 +152,16 @@ export function TodayTimelineDrawer({ isOpen, onClose }: Readonly<TodayTimelineD
         role="dialog"
         aria-modal="true"
         aria-label="Today's sessions"
-        className="surface-elevated animate-drawer-in relative z-10 flex h-full w-full max-w-sm flex-col border-l border-white/[0.08]"
+        className="surface-elevated animate-drawer-in relative z-10 flex h-full w-full max-w-sm flex-col border-l border-line"
       >
         {/* Header */}
-        <header className="shrink-0 border-b border-white/[0.07] px-5 pt-5 pb-4">
+        <header className="shrink-0 border-b border-line-subtle px-5 pt-5 pb-4">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-[11px] font-medium tracking-wide text-[#646C7A]">
+              <p className="text-[11px] font-medium tracking-wide text-fg-muted">
                 {todayDateLabel}
               </p>
-              <h2 className="mt-0.5 text-base font-semibold tracking-tight text-[#F4F5F7]">
+              <h2 className="mt-0.5 text-base font-semibold tracking-tight text-fg">
                 Today&apos;s Sessions
               </h2>
             </div>
@@ -170,7 +170,7 @@ export function TodayTimelineDrawer({ isOpen, onClose }: Readonly<TodayTimelineD
               type="button"
               onClick={onClose}
               aria-label="Close today's sessions"
-              className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-[#9CA3B0] transition-colors hover:bg-white/[0.07] hover:text-[#F4F5F7] focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none"
+              className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-fg-secondary transition-colors hover:bg-tint-strong hover:text-fg focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none"
             >
               <X className="h-4 w-4" />
             </button>
@@ -179,27 +179,27 @@ export function TodayTimelineDrawer({ isOpen, onClose }: Readonly<TodayTimelineD
           {/* Summary bar */}
           <div className="surface-well mt-3.5 flex items-center justify-between rounded-xl px-3.5 py-2.5">
             <div>
-              <span className="block text-[10px] font-semibold tracking-wider text-[#646C7A] uppercase">
+              <span className="block text-[10px] font-semibold tracking-wider text-fg-muted uppercase">
                 Total Focus
               </span>
-              <span className="mt-0.5 block font-mono text-base font-semibold text-[#F4F5F7] tabular-nums">
+              <span className="mt-0.5 block font-mono text-base font-semibold text-fg tabular-nums">
                 {totalFocusLabel}
               </span>
             </div>
 
             <div className="flex items-center gap-2 text-right">
-              <div className="rounded-lg border border-white/[0.06] bg-white/[0.03] px-2.5 py-1">
+              <div className="rounded-lg border border-line-subtle bg-tint-subtle px-2.5 py-1">
                 <span className="font-mono text-xs font-medium text-amber-300 tabular-nums">
                   {focusCount}
                 </span>
-                <span className="ml-1 text-[11px] text-[#9CA3B0]">focus</span>
+                <span className="ml-1 text-[11px] text-fg-secondary">focus</span>
               </div>
               {breakCount > 0 && (
-                <div className="rounded-lg border border-white/[0.06] bg-white/[0.03] px-2.5 py-1">
+                <div className="rounded-lg border border-line-subtle bg-tint-subtle px-2.5 py-1">
                   <span className="font-mono text-xs font-medium text-teal-300 tabular-nums">
                     {breakCount}
                   </span>
-                  <span className="ml-1 text-[11px] text-[#9CA3B0]">
+                  <span className="ml-1 text-[11px] text-fg-secondary">
                     {breakCount === 1 ? 'break' : 'breaks'}
                   </span>
                 </div>
@@ -215,18 +215,18 @@ export function TodayTimelineDrawer({ isOpen, onClose }: Readonly<TodayTimelineD
               {[0, 1, 2, 3].map((idx) => (
                 <div
                   key={idx}
-                  className="rounded-xl border border-white/[0.05] bg-white/[0.02] p-3.5"
+                  className="rounded-xl border border-line-subtle bg-tint-subtle p-3.5"
                 >
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
-                      <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-white/[0.1]" />
-                      <span className="h-3.5 w-28 animate-pulse rounded bg-white/[0.08]" />
+                      <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-tint-strong" />
+                      <span className="h-3.5 w-28 animate-pulse rounded bg-tint-strong" />
                     </div>
-                    <span className="h-5 w-12 animate-pulse rounded-md bg-white/[0.06]" />
+                    <span className="h-5 w-12 animate-pulse rounded-md bg-tint" />
                   </div>
                   <div className="mt-2.5 flex items-center justify-between">
-                    <span className="h-3 w-24 animate-pulse rounded bg-white/[0.05]" />
-                    <span className="h-3 w-16 animate-pulse rounded bg-white/[0.05]" />
+                    <span className="h-3 w-24 animate-pulse rounded bg-tint" />
+                    <span className="h-3 w-16 animate-pulse rounded bg-tint" />
                   </div>
                 </div>
               ))}
@@ -253,10 +253,10 @@ export function TodayTimelineDrawer({ isOpen, onClose }: Readonly<TodayTimelineD
             </div>
           ) : todaySessions.length === 0 ? (
             <div className="flex h-full min-h-[260px] flex-col items-center justify-center px-4 text-center">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/[0.07] bg-white/[0.03] text-[#646C7A]">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-line-subtle bg-tint-subtle text-fg-muted">
                 <Clock3 className="h-5 w-5" />
               </div>
-              <p className="mt-4 max-w-[240px] text-xs leading-relaxed text-[#9CA3B0]">
+              <p className="mt-4 max-w-[240px] text-xs leading-relaxed text-fg-secondary">
                 No sessions recorded today yet. Start the timer to log your first block.
               </p>
             </div>
@@ -265,7 +265,7 @@ export function TodayTimelineDrawer({ isOpen, onClose }: Readonly<TodayTimelineD
               {/* Subtle vertical timeline rail */}
               <span
                 aria-hidden="true"
-                className="pointer-events-none absolute top-3 bottom-3 left-[4.5px] w-px bg-white/[0.08]"
+                className="pointer-events-none absolute top-3 bottom-3 left-[4.5px] w-px bg-tint-strong"
               />
 
               {todaySessions.map((session) => {
@@ -279,10 +279,10 @@ export function TodayTimelineDrawer({ isOpen, onClose }: Readonly<TodayTimelineD
                     <span
                       aria-hidden="true"
                       style={{ backgroundColor: nodeColor }}
-                      className="absolute top-4 -left-4 h-2.5 w-2.5 rounded-full ring-[3px] ring-[#171B23]"
+                      className="absolute top-4 -left-4 h-2.5 w-2.5 rounded-full ring-[3px] ring-surface"
                     />
 
-                    <div className="rounded-xl border border-white/[0.06] bg-white/[0.025] px-3.5 py-2.5 transition-colors hover:border-white/[0.11] hover:bg-white/[0.04]">
+                    <div className="rounded-xl border border-line-subtle bg-tint-subtle px-3.5 py-2.5 transition-colors hover:border-line hover:bg-tint">
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex min-w-0 items-center gap-2">
                           <span
@@ -290,7 +290,7 @@ export function TodayTimelineDrawer({ isOpen, onClose }: Readonly<TodayTimelineD
                             className="h-2 w-2 shrink-0 rounded-full"
                             style={{ backgroundColor: session.project_color || '#F59E0B' }}
                           />
-                          <span className="truncate text-xs font-medium text-[#F4F5F7]">
+                          <span className="truncate text-xs font-medium text-fg">
                             {session.project_name || 'Unassigned'}
                           </span>
                         </div>
@@ -306,7 +306,7 @@ export function TodayTimelineDrawer({ isOpen, onClose }: Readonly<TodayTimelineD
                       </div>
 
                       <div className="mt-2 flex items-center justify-between gap-2 text-[11px]">
-                        <span className="font-mono text-[#9CA3B0] tabular-nums">
+                        <span className="font-mono text-fg-secondary tabular-nums">
                           {formatTimeRange(session.start_time, session.end_time)}
                         </span>
 
@@ -323,8 +323,8 @@ export function TodayTimelineDrawer({ isOpen, onClose }: Readonly<TodayTimelineD
                               {SESSION_TYPE_LABELS[session.session_type]}
                             </span>
                           )}
-                          <span className="inline-flex items-center gap-1 rounded-md border border-white/[0.06] bg-white/[0.03] px-1.5 py-0.5 text-[10px] font-medium text-[#9CA3B0]">
-                            <ModeIcon className="h-2.5 w-2.5 text-[#646C7A]" />
+                          <span className="inline-flex items-center gap-1 rounded-md border border-line-subtle bg-tint-subtle px-1.5 py-0.5 text-[10px] font-medium text-fg-secondary">
+                            <ModeIcon className="h-2.5 w-2.5 text-fg-muted" />
                             <span>{session.mode === 'POMODORO' ? 'Pomodoro' : 'Stopwatch'}</span>
                           </span>
                         </div>
@@ -338,14 +338,14 @@ export function TodayTimelineDrawer({ isOpen, onClose }: Readonly<TodayTimelineD
         </div>
 
         {/* Footer CTA */}
-        <footer className="shrink-0 border-t border-white/[0.07] px-5 py-3.5">
+        <footer className="shrink-0 border-t border-line-subtle px-5 py-3.5">
           <button
             type="button"
             onClick={handleOpenSessionLog}
-            className="group flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.035] px-4 py-2.5 text-xs font-medium text-[#F4F5F7] transition-all duration-150 hover:border-amber-500/30 hover:bg-amber-500/10 hover:text-amber-200 focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none"
+            className="group flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-line bg-tint-subtle px-4 py-2.5 text-xs font-medium text-fg transition-all duration-150 hover:border-amber-500/30 hover:bg-amber-500/10 hover:text-amber-200 focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none"
           >
             <span>Open full Session Log</span>
-            <ArrowRight className="h-3.5 w-3.5 text-[#646C7A] transition-transform duration-150 group-hover:translate-x-0.5 group-hover:text-amber-300" />
+            <ArrowRight className="h-3.5 w-3.5 text-fg-muted transition-transform duration-150 group-hover:translate-x-0.5 group-hover:text-amber-300" />
           </button>
         </footer>
       </aside>

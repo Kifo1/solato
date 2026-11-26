@@ -246,8 +246,8 @@ export function ProjectOverview({ projects, folders }: Readonly<ProjectOverviewP
           className={cn(
             'group relative flex items-center gap-1 rounded-xl border px-1.5 py-1 transition-colors',
             isSelected
-              ? 'border-amber-500/30 bg-amber-500/12 text-[#F4F5F7]'
-              : 'border-transparent text-[#9CA3B0] hover:bg-white/[0.04] hover:text-[#F4F5F7]',
+              ? 'border-amber-500/30 bg-amber-500/12 text-fg'
+              : 'border-transparent text-fg-secondary hover:bg-tint hover:text-fg',
           )}
         >
           {hasChildren ? (
@@ -256,7 +256,7 @@ export function ProjectOverview({ projects, folders }: Readonly<ProjectOverviewP
               aria-label={isCollapsed ? `Expand ${folder.name}` : `Collapse ${folder.name}`}
               aria-expanded={!isCollapsed}
               onClick={() => toggleCollapse(folder.id)}
-              className="flex h-6 w-5 shrink-0 cursor-pointer items-center justify-center rounded-md text-[#646C7A] transition-colors hover:bg-white/[0.08] hover:text-[#F4F5F7] focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none"
+              className="flex h-6 w-5 shrink-0 cursor-pointer items-center justify-center rounded-md text-fg-muted transition-colors hover:bg-tint-strong hover:text-fg focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none"
             >
               <ChevronRight
                 className={cn(
@@ -279,7 +279,7 @@ export function ProjectOverview({ projects, folders }: Readonly<ProjectOverviewP
             className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-lg py-1 pr-1 text-left text-xs font-medium focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none"
           >
             <span
-              className="h-2.5 w-2.5 shrink-0 rounded-full ring-1 ring-white/15"
+              className="h-2.5 w-2.5 shrink-0 rounded-full ring-1 ring-line"
               style={{ backgroundColor: folder.color }}
             />
             <span className="min-w-0 flex-1 truncate" title={folder.name}>
@@ -289,7 +289,7 @@ export function ProjectOverview({ projects, folders }: Readonly<ProjectOverviewP
               className={cn(
                 'shrink-0 rounded-md px-1.5 py-0.5 font-mono text-[11px] tabular-nums transition-opacity',
                 isConfirming ? 'opacity-0' : 'group-focus-within:opacity-0 group-hover:opacity-0',
-                isSelected ? 'bg-amber-500/20 text-amber-300' : 'bg-white/[0.05] text-[#646C7A]',
+                isSelected ? 'bg-amber-500/20 text-amber-300' : 'bg-tint text-fg-muted',
               )}
               title={
                 hasChildren
@@ -303,7 +303,7 @@ export function ProjectOverview({ projects, folders }: Readonly<ProjectOverviewP
 
           <div
             className={cn(
-              'absolute top-1/2 right-1.5 flex -translate-y-1/2 items-center gap-0.5 rounded-lg bg-[#161A22]/95 px-0.5 py-0.5 shadow-sm backdrop-blur-xs transition-opacity',
+              'absolute top-1/2 right-1.5 flex -translate-y-1/2 items-center gap-0.5 rounded-lg bg-surface/95 px-0.5 py-0.5 shadow-sm backdrop-blur-xs transition-opacity',
               isConfirming
                 ? 'pointer-events-auto opacity-100'
                 : 'pointer-events-none opacity-0 focus-within:pointer-events-auto focus-within:opacity-100 group-hover:pointer-events-auto group-hover:opacity-100',
@@ -314,7 +314,7 @@ export function ProjectOverview({ projects, folders }: Readonly<ProjectOverviewP
               aria-label={`Add subfolder inside ${folder.name}`}
               title="Add subfolder"
               onClick={() => openCreateFolder(folder.id)}
-              className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-md text-[#9CA3B0] transition-colors hover:bg-white/[0.08] hover:text-[#F4F5F7] focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none"
+              className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-md text-fg-secondary transition-colors hover:bg-tint-strong hover:text-fg focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none"
             >
               <FolderPlus className="h-3.5 w-3.5" />
             </button>
@@ -323,7 +323,7 @@ export function ProjectOverview({ projects, folders }: Readonly<ProjectOverviewP
               aria-label={`Edit folder ${folder.name}`}
               title="Edit folder"
               onClick={() => openEditFolder(folder)}
-              className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-md text-[#9CA3B0] transition-colors hover:bg-white/[0.08] hover:text-[#F4F5F7] focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none"
+              className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-md text-fg-secondary transition-colors hover:bg-tint-strong hover:text-fg focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none"
             >
               <Pencil className="h-3 w-3" />
             </button>
@@ -339,7 +339,7 @@ export function ProjectOverview({ projects, folders }: Readonly<ProjectOverviewP
                 'flex h-6 w-6 cursor-pointer items-center justify-center rounded-md transition-colors focus-visible:ring-2 focus-visible:ring-rose-400/60 focus-visible:outline-none',
                 isConfirming
                   ? 'bg-rose-500/20 text-rose-300'
-                  : 'text-[#9CA3B0] hover:bg-rose-500/15 hover:text-rose-400',
+                  : 'text-fg-secondary hover:bg-rose-500/15 hover:text-rose-400',
               )}
             >
               <Trash2 className="h-3 w-3" />
@@ -366,7 +366,7 @@ export function ProjectOverview({ projects, folders }: Readonly<ProjectOverviewP
                 type="button"
                 disabled={deleteFolderMutation.isPending}
                 onClick={() => setConfirmDeleteFolderId(null)}
-                className="inline-flex h-6 cursor-pointer items-center rounded-md px-1.5 text-[11px] font-medium text-[#9CA3B0] transition-colors hover:bg-white/[0.08] hover:text-[#F4F5F7] focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none disabled:opacity-50"
+                className="inline-flex h-6 cursor-pointer items-center rounded-md px-1.5 text-[11px] font-medium text-fg-secondary transition-colors hover:bg-tint-strong hover:text-fg focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -401,14 +401,14 @@ export function ProjectOverview({ projects, folders }: Readonly<ProjectOverviewP
             >
               <ChevronDown
                 className={cn(
-                  'h-3.5 w-3.5 shrink-0 text-[#646C7A] transition-transform xl:hidden',
+                  'h-3.5 w-3.5 shrink-0 text-fg-muted transition-transform xl:hidden',
                   !isCompactFoldersOpen && '-rotate-90',
                 )}
               />
-              <span className="text-[11px] font-semibold tracking-wider text-[#9CA3B0] uppercase">
+              <span className="text-[11px] font-semibold tracking-wider text-fg-secondary uppercase">
                 Folders
               </span>
-              <span className="truncate rounded-md bg-white/[0.05] px-1.5 py-0.5 text-[11px] font-medium text-[#D1D5DE] xl:hidden">
+              <span className="truncate rounded-md bg-tint px-1.5 py-0.5 text-[11px] font-medium text-fg-bright xl:hidden">
                 {activeFilterLabel}
               </span>
             </button>
@@ -418,7 +418,7 @@ export function ProjectOverview({ projects, folders }: Readonly<ProjectOverviewP
               aria-label="New folder"
               title="New folder"
               onClick={() => openCreateFolder(defaultFolderIdForNewProject)}
-              className="flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.03] text-[#9CA3B0] transition-colors hover:border-amber-500/35 hover:bg-amber-500/10 hover:text-amber-300 focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none"
+              className="flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-line bg-tint-subtle text-fg-secondary transition-colors hover:border-amber-500/35 hover:bg-amber-500/10 hover:text-amber-300 focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none"
             >
               <Plus className="h-3.5 w-3.5" />
             </button>
@@ -455,14 +455,14 @@ export function ProjectOverview({ projects, folders }: Readonly<ProjectOverviewP
               className={cn(
                 'flex w-full cursor-pointer items-center gap-2.5 rounded-xl border px-2.5 py-2 text-left text-xs font-medium transition-colors focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none',
                 activeFilter === 'all'
-                  ? 'border-amber-500/30 bg-amber-500/12 text-[#F4F5F7]'
-                  : 'border-transparent text-[#9CA3B0] hover:bg-white/[0.04] hover:text-[#F4F5F7]',
+                  ? 'border-amber-500/30 bg-amber-500/12 text-fg'
+                  : 'border-transparent text-fg-secondary hover:bg-tint hover:text-fg',
               )}
             >
               <Layers
                 className={cn(
                   'h-3.5 w-3.5 shrink-0',
-                  activeFilter === 'all' ? 'text-amber-400' : 'text-[#646C7A]',
+                  activeFilter === 'all' ? 'text-amber-400' : 'text-fg-muted',
                 )}
               />
               <span className="min-w-0 flex-1 truncate">All Projects</span>
@@ -471,7 +471,7 @@ export function ProjectOverview({ projects, folders }: Readonly<ProjectOverviewP
                   'rounded-md px-1.5 py-0.5 font-mono text-[11px] tabular-nums',
                   activeFilter === 'all'
                     ? 'bg-amber-500/20 text-amber-300'
-                    : 'bg-white/[0.05] text-[#646C7A]',
+                    : 'bg-tint text-fg-muted',
                 )}
               >
                 {projects.length}
@@ -488,14 +488,14 @@ export function ProjectOverview({ projects, folders }: Readonly<ProjectOverviewP
               className={cn(
                 'flex w-full cursor-pointer items-center gap-2.5 rounded-xl border px-2.5 py-2 text-left text-xs font-medium transition-colors focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none',
                 activeFilter === 'unassigned'
-                  ? 'border-amber-500/30 bg-amber-500/12 text-[#F4F5F7]'
-                  : 'border-transparent text-[#9CA3B0] hover:bg-white/[0.04] hover:text-[#F4F5F7]',
+                  ? 'border-amber-500/30 bg-amber-500/12 text-fg'
+                  : 'border-transparent text-fg-secondary hover:bg-tint hover:text-fg',
               )}
             >
               <CircleSlash
                 className={cn(
                   'h-3.5 w-3.5 shrink-0',
-                  activeFilter === 'unassigned' ? 'text-amber-400' : 'text-[#646C7A]',
+                  activeFilter === 'unassigned' ? 'text-amber-400' : 'text-fg-muted',
                 )}
               />
               <span className="min-w-0 flex-1 truncate">Unassigned</span>
@@ -504,7 +504,7 @@ export function ProjectOverview({ projects, folders }: Readonly<ProjectOverviewP
                   'rounded-md px-1.5 py-0.5 font-mono text-[11px] tabular-nums',
                   activeFilter === 'unassigned'
                     ? 'bg-amber-500/20 text-amber-300'
-                    : 'bg-white/[0.05] text-[#646C7A]',
+                    : 'bg-tint text-fg-muted',
                 )}
               >
                 {unassignedCount}
@@ -512,12 +512,12 @@ export function ProjectOverview({ projects, folders }: Readonly<ProjectOverviewP
             </button>
 
             {folderTree.length > 0 ? (
-              <div className="mt-1.5 flex max-h-56 flex-col gap-0.5 overflow-y-auto border-t border-white/[0.06] pt-2 xl:max-h-[calc(100vh-220px)]">
+              <div className="mt-1.5 flex max-h-56 flex-col gap-0.5 overflow-y-auto border-t border-line-subtle pt-2 xl:max-h-[calc(100vh-220px)]">
                 {folderTree.map((rootNode) => renderFolderNode(rootNode))}
               </div>
             ) : (
-              <div className="mt-1.5 border-t border-white/[0.06] px-2 pt-3 pb-1 text-center">
-                <p className="text-[11px] text-[#646C7A]">No folders yet</p>
+              <div className="mt-1.5 border-t border-line-subtle px-2 pt-3 pb-1 text-center">
+                <p className="text-[11px] text-fg-muted">No folders yet</p>
                 <button
                   type="button"
                   onClick={() => openCreateFolder(null)}
@@ -536,7 +536,7 @@ export function ProjectOverview({ projects, folders }: Readonly<ProjectOverviewP
           <div className="flex flex-wrap items-center gap-2">
             {/* Search Input */}
             <div className="relative min-w-[200px] flex-1">
-              <Search className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-[#646C7A]" />
+              <Search className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-fg-muted" />
               <TextInput
                 type="text"
                 scale="md"
@@ -555,7 +555,7 @@ export function ProjectOverview({ projects, folders }: Readonly<ProjectOverviewP
                   type="button"
                   aria-label="Clear search"
                   onClick={() => setSearchQuery('')}
-                  className="absolute top-1/2 right-2.5 flex h-6 w-6 -translate-y-1/2 cursor-pointer items-center justify-center rounded-md text-[#646C7A] transition-colors hover:bg-white/[0.07] hover:text-[#F4F5F7]"
+                  className="absolute top-1/2 right-2.5 flex h-6 w-6 -translate-y-1/2 cursor-pointer items-center justify-center rounded-md text-fg-muted transition-colors hover:bg-tint-strong hover:text-fg"
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>
@@ -567,7 +567,7 @@ export function ProjectOverview({ projects, folders }: Readonly<ProjectOverviewP
               <div
                 role="group"
                 aria-label="Sort projects"
-                className="inline-flex h-9.5 items-center rounded-xl border border-white/[0.08] bg-[#101217] p-1"
+                className="inline-flex h-9.5 items-center rounded-xl border border-line bg-well p-1"
               >
                 <button
                   type="button"
@@ -576,8 +576,8 @@ export function ProjectOverview({ projects, folders }: Readonly<ProjectOverviewP
                   className={cn(
                     'inline-flex h-full cursor-pointer items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium transition-all focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none',
                     sortBy === 'name'
-                      ? 'bg-[#1D222D] text-[#F4F5F7] shadow-[0_1px_0_rgba(255,255,255,0.06)_inset]'
-                      : 'text-[#646C7A] hover:text-[#D1D5DE]',
+                      ? 'bg-elevated text-fg shadow-[0_1px_0_rgba(255,255,255,0.06)_inset]'
+                      : 'text-fg-muted hover:text-fg-bright',
                   )}
                 >
                   <ArrowDownAZ
@@ -595,8 +595,8 @@ export function ProjectOverview({ projects, folders }: Readonly<ProjectOverviewP
                   className={cn(
                     'inline-flex h-full cursor-pointer items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium transition-all focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none',
                     sortBy === 'folder'
-                      ? 'bg-[#1D222D] text-[#F4F5F7] shadow-[0_1px_0_rgba(255,255,255,0.06)_inset]'
-                      : 'text-[#646C7A] hover:text-[#D1D5DE]',
+                      ? 'bg-elevated text-fg shadow-[0_1px_0_rgba(255,255,255,0.06)_inset]'
+                      : 'text-fg-muted hover:text-fg-bright',
                   )}
                 >
                   <FolderIcon
@@ -612,7 +612,7 @@ export function ProjectOverview({ projects, folders }: Readonly<ProjectOverviewP
               <div
                 role="group"
                 aria-label="Project layout view"
-                className="inline-flex h-9.5 items-center rounded-xl border border-white/[0.08] bg-[#101217] p-1"
+                className="inline-flex h-9.5 items-center rounded-xl border border-line bg-well p-1"
               >
                 <button
                   type="button"
@@ -623,8 +623,8 @@ export function ProjectOverview({ projects, folders }: Readonly<ProjectOverviewP
                   className={cn(
                     'flex h-7.5 w-7.5 cursor-pointer items-center justify-center rounded-lg transition-all focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none',
                     viewMode === 'list'
-                      ? 'bg-[#1D222D] text-amber-400 shadow-[0_1px_0_rgba(255,255,255,0.06)_inset]'
-                      : 'text-[#646C7A] hover:text-[#D1D5DE]',
+                      ? 'bg-elevated text-amber-400 shadow-[0_1px_0_rgba(255,255,255,0.06)_inset]'
+                      : 'text-fg-muted hover:text-fg-bright',
                   )}
                 >
                   <LayoutList className="h-4 w-4" />
@@ -638,8 +638,8 @@ export function ProjectOverview({ projects, folders }: Readonly<ProjectOverviewP
                   className={cn(
                     'flex h-7.5 w-7.5 cursor-pointer items-center justify-center rounded-lg transition-all focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none',
                     viewMode === 'grid'
-                      ? 'bg-[#1D222D] text-amber-400 shadow-[0_1px_0_rgba(255,255,255,0.06)_inset]'
-                      : 'text-[#646C7A] hover:text-[#D1D5DE]',
+                      ? 'bg-elevated text-amber-400 shadow-[0_1px_0_rgba(255,255,255,0.06)_inset]'
+                      : 'text-fg-muted hover:text-fg-bright',
                   )}
                 >
                   <LayoutGrid className="h-4 w-4" />
@@ -653,7 +653,7 @@ export function ProjectOverview({ projects, folders }: Readonly<ProjectOverviewP
                 variant="secondary"
                 onClick={() => openCreateFolder(defaultFolderIdForNewProject)}
               >
-                <FolderPlus className="h-4 w-4 text-[#9CA3B0]" />
+                <FolderPlus className="h-4 w-4 text-fg-secondary" />
                 <span>New Folder</span>
               </Button>
               <Button variant="primary" onClick={() => setIsProjectModalOpen(true)}>
@@ -665,16 +665,16 @@ export function ProjectOverview({ projects, folders }: Readonly<ProjectOverviewP
 
           {activeFilter !== 'all' && (
             <div className="flex items-center justify-between gap-2 px-1">
-              <div className="flex min-w-0 items-center gap-2 text-xs text-[#9CA3B0]">
+              <div className="flex min-w-0 items-center gap-2 text-xs text-fg-secondary">
                 <span>Viewing</span>
-                <span className="inline-flex max-w-[260px] items-center gap-1.5 rounded-lg border border-white/[0.08] bg-white/[0.03] px-2 py-0.5 font-medium text-[#F4F5F7]">
+                <span className="inline-flex max-w-[260px] items-center gap-1.5 rounded-lg border border-line bg-tint-subtle px-2 py-0.5 font-medium text-fg">
                   {activeFolder ? (
                     <FolderIcon
                       className="h-3.5 w-3.5 shrink-0"
                       style={{ color: activeFolder.color }}
                     />
                   ) : (
-                    <CircleSlash className="h-3.5 w-3.5 shrink-0 text-[#9CA3B0]" />
+                    <CircleSlash className="h-3.5 w-3.5 shrink-0 text-fg-secondary" />
                   )}
                   <span className="truncate">{activeFilterLabel}</span>
                 </span>
@@ -682,7 +682,7 @@ export function ProjectOverview({ projects, folders }: Readonly<ProjectOverviewP
               <button
                 type="button"
                 onClick={() => setSelectedFilter('all')}
-                className="cursor-pointer text-xs font-medium text-[#9CA3B0] transition-colors hover:text-amber-400"
+                className="cursor-pointer text-xs font-medium text-fg-secondary transition-colors hover:text-amber-400"
               >
                 Show all
               </button>

@@ -48,10 +48,10 @@ function SelectionCheckbox({
       className={cn(
         'flex h-4 w-4 shrink-0 items-center justify-center rounded-[5px] border transition-colors',
         state === 'checked'
-          ? 'border-amber-400 bg-amber-500 text-[#0A0B0E]'
+          ? 'border-amber-400 bg-amber-500 text-on-accent'
           : state === 'indeterminate'
             ? 'border-amber-400/60 bg-amber-500/20 text-amber-300'
-            : 'border-white/[0.16] bg-[#0E1015] text-transparent',
+            : 'border-line-strong bg-well text-transparent',
       )}
     >
       {state === 'checked' && <Check className="h-3 w-3 stroke-[2.75]" />}
@@ -276,8 +276,8 @@ export default function AnalyticScopeSelector() {
     if (count === 0) {
       return (
         <>
-          <Layers className="h-4 w-4 shrink-0 text-[#646C7A]" />
-          <span className="truncate text-[#9CA3B0]">Select projects</span>
+          <Layers className="h-4 w-4 shrink-0 text-fg-muted" />
+          <span className="truncate text-fg-secondary">Select projects</span>
         </>
       );
     }
@@ -289,7 +289,7 @@ export default function AnalyticScopeSelector() {
             className="h-2.5 w-2.5 shrink-0 rounded-full"
             style={{ backgroundColor: current.color }}
           />
-          <span className="truncate text-[#F4F5F7]">{current.name}</span>
+          <span className="truncate text-fg">{current.name}</span>
         </>
       );
     }
@@ -297,8 +297,8 @@ export default function AnalyticScopeSelector() {
       return (
         <>
           <Layers className="h-4 w-4 shrink-0 text-amber-400" />
-          <span className="truncate text-[#F4F5F7]">All projects</span>
-          <span className="rounded-md bg-white/[0.06] px-1.5 py-0.5 font-mono text-[11px] tabular-nums text-[#9CA3B0]">
+          <span className="truncate text-fg">All projects</span>
+          <span className="rounded-md bg-tint px-1.5 py-0.5 font-mono text-[11px] tabular-nums text-fg-secondary">
             {count}
           </span>
         </>
@@ -307,7 +307,7 @@ export default function AnalyticScopeSelector() {
     return (
       <>
         <Layers className="h-4 w-4 shrink-0 text-amber-400" />
-        <span className="truncate text-[#F4F5F7]">
+        <span className="truncate text-fg">
           <span className="font-mono tabular-nums">{count}</span> selected
         </span>
       </>
@@ -327,9 +327,9 @@ export default function AnalyticScopeSelector() {
         onClick={() => toggleProject(project)}
         style={indentPx ? { paddingLeft: `${indentPx}px` } : undefined}
         className={cn(
-          'flex w-full items-center gap-2.5 rounded-lg py-1.5 pr-2.5 text-left transition-colors hover:cursor-pointer hover:bg-white/[0.05]',
+          'flex w-full items-center gap-2.5 rounded-lg py-1.5 pr-2.5 text-left transition-colors hover:cursor-pointer hover:bg-tint',
           !indentPx && 'pl-2.5',
-          checked ? 'text-[#F4F5F7]' : 'text-[#9CA3B0]',
+          checked ? 'text-fg' : 'text-fg-secondary',
         )}
       >
         <SelectionCheckbox state={checked ? 'checked' : 'unchecked'} />
@@ -339,7 +339,7 @@ export default function AnalyticScopeSelector() {
         />
         <span className="min-w-0 flex-1 truncate text-sm font-medium">{project.name}</span>
         {isSearching && folderPath && (
-          <span className="max-w-24 shrink-0 truncate rounded-md border border-white/[0.07] bg-white/[0.03] px-1.5 py-0.5 text-[10px] text-[#646C7A]">
+          <span className="max-w-24 shrink-0 truncate rounded-md border border-line-subtle bg-tint-subtle px-1.5 py-0.5 text-[10px] text-fg-muted">
             {folderPath}
           </span>
         )}
@@ -364,13 +364,13 @@ export default function AnalyticScopeSelector() {
       <div key={group.id} className="space-y-0.5">
         <div
           style={{ paddingLeft: `${headerPadLeft}px` }}
-          className="flex items-center gap-1 rounded-lg py-1 pr-2 transition-colors hover:bg-white/[0.04]"
+          className="flex items-center gap-1 rounded-lg py-1 pr-2 transition-colors hover:bg-tint"
         >
           <button
             type="button"
             aria-label={isCollapsed ? `Expand ${group.name}` : `Collapse ${group.name}`}
             onClick={() => toggleCollapse(group.id)}
-            className="flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-md text-[#646C7A] transition-colors hover:bg-white/[0.06] hover:text-[#F4F5F7]"
+            className="flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-md text-fg-muted transition-colors hover:bg-tint hover:text-fg"
           >
             <ChevronRight
               className={cn(
@@ -387,8 +387,8 @@ export default function AnalyticScopeSelector() {
           >
             <SelectionCheckbox state={checkState} />
             <FolderIcon className="h-3.5 w-3.5 shrink-0" style={{ color: group.color }} />
-            <span className="truncate text-xs font-medium text-[#D0D5DE]">{group.name}</span>
-            <span className="ml-auto shrink-0 font-mono text-[11px] tabular-nums text-[#646C7A]">
+            <span className="truncate text-xs font-medium text-fg-bright">{group.name}</span>
+            <span className="ml-auto shrink-0 font-mono text-[11px] tabular-nums text-fg-muted">
               {selectedCount}/{group.allSubtreeProjects.length}
             </span>
           </button>
@@ -417,10 +417,10 @@ export default function AnalyticScopeSelector() {
         aria-haspopup="listbox"
         onClick={() => (isOpen ? closeMenu() : setIsOpen(true))}
         className={cn(
-          'flex h-9.5 w-60 cursor-pointer items-center justify-between gap-2.5 rounded-xl border px-3.5 text-sm font-medium transition-all duration-150 focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0B0E] focus-visible:outline-none',
+          'flex h-9.5 w-60 cursor-pointer items-center justify-between gap-2.5 rounded-xl border px-3.5 text-sm font-medium transition-all duration-150 focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas focus-visible:outline-none',
           isOpen
-            ? 'border-amber-500/60 bg-[#1B1F28] text-[#F4F5F7] ring-2 ring-amber-500/15'
-            : 'border-white/[0.09] bg-[#191D26] text-[#F4F5F7] shadow-[0_1px_0_rgba(255,255,255,0.05)_inset] hover:border-white/[0.15] hover:bg-[#222733]',
+            ? 'border-amber-500/60 bg-elevated text-fg ring-2 ring-amber-500/15'
+            : 'border-line bg-elevated text-fg shadow-[0_1px_0_rgba(255,255,255,0.05)_inset] hover:border-line-strong hover:bg-elevated',
         )}
       >
         <span className="flex min-w-0 flex-1 items-center gap-2.5 overflow-hidden">
@@ -428,8 +428,8 @@ export default function AnalyticScopeSelector() {
         </span>
         <ChevronDown
           className={cn(
-            'h-4 w-4 shrink-0 text-[#646C7A] transition-transform duration-150',
-            isOpen && 'rotate-180 text-[#9CA3B0]',
+            'h-4 w-4 shrink-0 text-fg-muted transition-transform duration-150',
+            isOpen && 'rotate-180 text-fg-secondary',
           )}
         />
       </button>
@@ -452,22 +452,22 @@ export default function AnalyticScopeSelector() {
               className="surface-elevated animate-popover fixed z-[1201] overflow-hidden rounded-xl"
             >
               {/* Search input */}
-              <div className="flex items-center gap-2 border-b border-white/[0.07] bg-[#101319]/80 px-3 py-2.5">
-                <Search className="h-3.5 w-3.5 shrink-0 text-[#646C7A]" />
+              <div className="flex items-center gap-2 border-b border-line-subtle bg-well/80 px-3 py-2.5">
+                <Search className="h-3.5 w-3.5 shrink-0 text-fg-muted" />
                 <input
                   type="text"
                   autoFocus
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Filter projects..."
-                  className="w-full bg-transparent text-xs text-[#F4F5F7] placeholder-[#646C7A] focus:outline-none"
+                  className="w-full bg-transparent text-xs text-fg placeholder-fg-muted focus:outline-none"
                 />
                 {isSearching && (
                   <button
                     type="button"
                     onClick={() => setSearchQuery('')}
                     aria-label="Clear filter"
-                    className="rounded p-0.5 text-[#646C7A] transition-colors hover:cursor-pointer hover:text-[#F4F5F7]"
+                    className="rounded p-0.5 text-fg-muted transition-colors hover:cursor-pointer hover:text-fg"
                   >
                     <X className="h-3.5 w-3.5" />
                   </button>
@@ -476,8 +476,8 @@ export default function AnalyticScopeSelector() {
 
               {/* Quick actions */}
               {projects.length > 0 && (
-                <div className="flex items-center justify-between border-b border-white/[0.06] px-3 py-2 text-[11px]">
-                  <span className="font-mono tabular-nums text-[#646C7A]">
+                <div className="flex items-center justify-between border-b border-line-subtle px-3 py-2 text-[11px]">
+                  <span className="font-mono tabular-nums text-fg-muted">
                     {selectedProjects.length} of {projects.length} selected
                   </span>
                   <div className="flex items-center gap-2">
@@ -489,12 +489,12 @@ export default function AnalyticScopeSelector() {
                     >
                       Select all
                     </button>
-                    <span className="text-white/15">·</span>
+                    <span className="text-line-strong">·</span>
                     <button
                       type="button"
                       disabled={noneSelected}
                       onClick={() => applySelection([])}
-                      className="cursor-pointer font-medium text-[#9CA3B0] transition-colors hover:text-[#F4F5F7] disabled:cursor-default disabled:opacity-40"
+                      className="cursor-pointer font-medium text-fg-secondary transition-colors hover:text-fg disabled:cursor-default disabled:opacity-40"
                     >
                       Clear
                     </button>
@@ -505,7 +505,7 @@ export default function AnalyticScopeSelector() {
               {/* Project / Folder list */}
               <div className="max-h-72 overflow-y-auto p-1.5">
                 {projects.length === 0 && !isLoading ? (
-                  <div className="px-3 py-4 text-center text-xs text-[#646C7A]">
+                  <div className="px-3 py-4 text-center text-xs text-fg-muted">
                     No projects found
                   </div>
                 ) : isSearching ? (
@@ -514,7 +514,7 @@ export default function AnalyticScopeSelector() {
                       {filteredProjects.map((project) => renderProjectRow(project))}
                     </div>
                   ) : (
-                    <div className="px-3 py-4 text-center text-xs text-[#646C7A]">
+                    <div className="px-3 py-4 text-center text-xs text-fg-muted">
                       No matching projects
                     </div>
                   )

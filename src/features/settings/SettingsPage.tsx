@@ -10,6 +10,7 @@ import {
   LogIn,
   LogOut,
   LucideIcon,
+  Palette,
   PanelLeft,
   Radio,
   RefreshCw,
@@ -18,6 +19,7 @@ import {
 } from 'lucide-react';
 import LoginModal from '@features/login/components/LoginModal';
 import { useAuth } from '@features/login/hooks/useAuth';
+import AppearanceSettings from '@features/settings/components/AppearanceSettings.tsx';
 import DiscordSettings from '@features/settings/components/DiscordSettings.tsx';
 import PhaseDurationSliders from '@features/settings/components/PhaseDurationSliders.tsx';
 import PowerSettings from '@features/settings/components/PowerSettings.tsx';
@@ -29,7 +31,13 @@ import { useLayout } from '@shared/context/LayoutContext';
 import { useToast } from '@shared/context/ToastContext';
 import { cn, getErrorMessage } from '@shared/lib/utils.ts';
 
-type SettingsSectionId = 'rhythm' | 'power' | 'integrations' | 'workspace' | 'account';
+type SettingsSectionId =
+  | 'rhythm'
+  | 'appearance'
+  | 'power'
+  | 'integrations'
+  | 'workspace'
+  | 'account';
 
 interface SettingsNavItem {
   id: SettingsSectionId;
@@ -44,6 +52,12 @@ const SETTINGS_SECTIONS: SettingsNavItem[] = [
     label: 'Focus Rhythm',
     description: 'Choose a Pomodoro preset or fine-tune each interval with millisecond-clean control.',
     Icon: Timer,
+  },
+  {
+    id: 'appearance',
+    label: 'Appearance',
+    description: 'Personalize Solato with curated dark and daylight studio color themes.',
+    Icon: Palette,
   },
   {
     id: 'power',
@@ -149,21 +163,21 @@ function WorkspaceAndKeysSection() {
                 'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border transition-colors',
                 isSidebarCollapsed
                   ? 'border-amber-500/30 bg-amber-500/12 text-amber-400'
-                  : 'border-white/[0.08] bg-white/[0.03] text-[#9CA3B0]',
+                  : 'border-line bg-tint-subtle text-fg-secondary',
               )}
             >
               <PanelLeft className="h-4.5 w-4.5" />
             </div>
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <h3 className="text-sm font-semibold tracking-tight text-[#F4F5F7]">
+                <h3 className="text-sm font-semibold tracking-tight text-fg">
                   Compact icon rail by default
                 </h3>
-                <span className="rounded-md border border-white/[0.08] bg-white/[0.04] px-1.5 py-0.5 font-mono text-[10px] text-[#9CA3B0]">
+                <span className="rounded-md border border-line bg-tint px-1.5 py-0.5 font-mono text-[10px] text-fg-secondary">
                   {isSidebarCollapsed ? 'Collapsed' : 'Expanded'}
                 </span>
               </div>
-              <p className="mt-1 text-xs leading-relaxed text-[#9CA3B0]">
+              <p className="mt-1 text-xs leading-relaxed text-fg-secondary">
                 Keep the left navigation sidebar folded to an icon rail so your timer and analytics
                 get maximum canvas breathing room.
               </p>
@@ -182,10 +196,10 @@ function WorkspaceAndKeysSection() {
       <div className="surface-card rounded-2xl p-5 sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h3 className="text-sm font-semibold tracking-tight text-[#F4F5F7]">
+            <h3 className="text-sm font-semibold tracking-tight text-fg">
               Keyboard Shortcuts
             </h3>
-            <p className="mt-0.5 text-xs text-[#646C7A]">
+            <p className="mt-0.5 text-xs text-fg-muted">
               Fast desktop controls designed to keep your hands on the keyboard.
             </p>
           </div>
@@ -207,8 +221,8 @@ function WorkspaceAndKeysSection() {
               className="surface-well flex items-center justify-between gap-3 rounded-xl px-3.5 py-2.5"
             >
               <div className="min-w-0">
-                <p className="truncate text-xs font-medium text-[#F4F5F7]">{item.label}</p>
-                <p className="mt-0.5 text-[10px] font-medium tracking-wider text-[#646C7A] uppercase">
+                <p className="truncate text-xs font-medium text-fg">{item.label}</p>
+                <p className="mt-0.5 text-[10px] font-medium tracking-wider text-fg-muted uppercase">
                   {item.context}
                 </p>
               </div>
@@ -216,8 +230,8 @@ function WorkspaceAndKeysSection() {
               <div className="flex shrink-0 items-center gap-1">
                 {item.keys.map((keyCombo, idx) => (
                   <span key={keyCombo} className="inline-flex items-center gap-1">
-                    {idx > 0 && <span className="text-[10px] text-[#646C7A]">/</span>}
-                    <kbd className="inline-flex min-w-6 items-center justify-center rounded-md border border-white/[0.11] bg-[#181C24] px-1.5 py-0.5 font-mono text-[11px] font-medium text-[#D0D5DE] shadow-[inset_0_-1px_0_rgba(0,0,0,0.45)]">
+                    {idx > 0 && <span className="text-[10px] text-fg-muted">/</span>}
+                    <kbd className="inline-flex min-w-6 items-center justify-center rounded-md border border-line bg-surface px-1.5 py-0.5 font-mono text-[11px] font-medium text-fg-bright shadow-[inset_0_-1px_0_rgba(0,0,0,0.45)]">
                       {keyCombo}
                     </kbd>
                   </span>
@@ -270,7 +284,7 @@ function AccountAndSyncSection() {
 
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <h3 className="text-sm font-semibold tracking-tight text-[#F4F5F7]">
+                <h3 className="text-sm font-semibold tracking-tight text-fg">
                   Solato Cloud Sync
                 </h3>
                 {isLoading ? (
@@ -288,7 +302,7 @@ function AccountAndSyncSection() {
                 )}
               </div>
 
-              <p className="mt-1 max-w-lg text-xs leading-relaxed text-[#9CA3B0]">
+              <p className="mt-1 max-w-lg text-xs leading-relaxed text-fg-secondary">
                 {isLoggedIn
                   ? 'Your projects, folders, and recorded focus sessions are backed up automatically to Solato Cloud every 60 seconds.'
                   : 'Everything is safely persisted in your local SQLite database. Sign in anytime to enable encrypted cloud backup across devices.'}
@@ -311,7 +325,7 @@ function AccountAndSyncSection() {
                   </>
                 ) : (
                   <>
-                    <LogOut className="h-4 w-4 text-[#9CA3B0]" />
+                    <LogOut className="h-4 w-4 text-fg-secondary" />
                     Sign Out
                   </>
                 )}
@@ -351,14 +365,14 @@ function AccountAndSyncSection() {
         )}
 
         {/* Offline-first SQLite + Auto-Sync details */}
-        <div className="mt-5 grid grid-cols-1 gap-3 border-t border-white/[0.06] pt-5 sm:grid-cols-2">
+        <div className="mt-5 grid grid-cols-1 gap-3 border-t border-line-subtle pt-5 sm:grid-cols-2">
           <div className="surface-well flex items-start gap-3 rounded-xl p-4">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.03] text-amber-400">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-line bg-tint-subtle text-amber-400">
               <Database className="h-4 w-4" />
             </div>
             <div className="min-w-0">
-              <p className="text-xs font-semibold text-[#F4F5F7]">Offline-First SQLite Engine</p>
-              <p className="mt-1 text-[11px] leading-relaxed text-[#9CA3B0]">
+              <p className="text-xs font-semibold text-fg">Offline-First SQLite Engine</p>
+              <p className="mt-1 text-[11px] leading-relaxed text-fg-secondary">
                 Every timer session and project edit writes locally first. Solato remains instant
                 and reliable with or without an internet connection.
               </p>
@@ -366,12 +380,12 @@ function AccountAndSyncSection() {
           </div>
 
           <div className="surface-well flex items-start gap-3 rounded-xl p-4">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.03] text-teal-300">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-line bg-tint-subtle text-teal-300">
               <RefreshCw className="h-4 w-4" />
             </div>
             <div className="min-w-0">
-              <p className="text-xs font-semibold text-[#F4F5F7]">60s Background Cloud Sync</p>
-              <p className="mt-1 text-[11px] leading-relaxed text-[#9CA3B0]">
+              <p className="text-xs font-semibold text-fg">60s Background Cloud Sync</p>
+              <p className="mt-1 text-[11px] leading-relaxed text-fg-secondary">
                 Signed-in workspaces merge changes automatically using UUIDs and latest-timestamp
                 conflict resolution, with tokens stored in your OS keyring.
               </p>
@@ -434,6 +448,8 @@ export default function SettingsPage() {
     switch (activeSection) {
       case 'rhythm':
         return <PhaseDurationSliders />;
+      case 'appearance':
+        return <AppearanceSettings />;
       case 'power':
         return <PowerSettings />;
       case 'integrations':
@@ -448,10 +464,10 @@ export default function SettingsPage() {
   return (
     <div className="mx-auto w-full max-w-5xl px-6 py-7 sm:px-8">
       <header className="mb-7">
-        <h1 className="text-2xl font-semibold tracking-tight text-[#F4F5F7] sm:text-3xl">
+        <h1 className="text-2xl font-semibold tracking-tight text-fg sm:text-3xl">
           Settings
         </h1>
-        <p className="mt-1.5 text-sm text-[#9CA3B0]">
+        <p className="mt-1.5 text-sm text-fg-secondary">
           Tune your focus cadence, desktop behavior, and integrations.
         </p>
       </header>
@@ -484,8 +500,8 @@ export default function SettingsPage() {
                 className={cn(
                   'group relative flex shrink-0 cursor-pointer items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-xs font-medium whitespace-nowrap transition-all duration-150 focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none md:w-full md:text-[13px]',
                   isActive
-                    ? 'bg-amber-500/[0.11] text-[#F4F5F7] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]'
-                    : 'text-[#9CA3B0] hover:bg-white/[0.045] hover:text-[#F4F5F7]',
+                    ? 'bg-amber-500/[0.11] text-fg shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]'
+                    : 'text-fg-secondary hover:bg-tint hover:text-fg',
                 )}
               >
                 {isActive && (
@@ -497,7 +513,7 @@ export default function SettingsPage() {
                 <Icon
                   className={cn(
                     'h-4 w-4 shrink-0 transition-colors',
-                    isActive ? 'text-amber-400' : 'text-[#646C7A] group-hover:text-[#F4F5F7]',
+                    isActive ? 'text-amber-400' : 'text-fg-muted group-hover:text-fg',
                   )}
                 />
                 <span className="truncate">{label}</span>
@@ -517,11 +533,11 @@ export default function SettingsPage() {
           <div className="px-0.5">
             <h2
               id="settings-section-heading"
-              className="text-base font-semibold tracking-tight text-[#F4F5F7]"
+              className="text-base font-semibold tracking-tight text-fg"
             >
               {currentMeta.label}
             </h2>
-            <p className="mt-0.5 text-xs text-[#9CA3B0]">{currentMeta.description}</p>
+            <p className="mt-0.5 text-xs text-fg-secondary">{currentMeta.description}</p>
           </div>
 
           {renderSectionContent()}

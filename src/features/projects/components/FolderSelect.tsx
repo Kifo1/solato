@@ -236,14 +236,14 @@ export function FolderSelect({
       ? cn(
           'inline-flex h-8 w-full max-w-[168px] items-center justify-between gap-2 rounded-lg border px-2.5 text-xs font-medium transition-all duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/50 disabled:cursor-not-allowed disabled:opacity-50',
           isOpen
-            ? 'border-amber-500/55 bg-[#191D26] text-[#F4F5F7] ring-2 ring-amber-500/15'
-            : 'border-white/[0.08] bg-[#101217] text-[#F4F5F7] hover:border-white/[0.16] hover:bg-[#171B23]',
+            ? 'border-amber-500/55 bg-elevated text-fg ring-2 ring-amber-500/15'
+            : 'border-line bg-well text-fg hover:border-line-strong hover:bg-surface',
         )
       : cn(
           'flex h-10 w-full items-center justify-between gap-2 rounded-xl border px-3.5 text-left text-sm transition-all duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/50 disabled:cursor-not-allowed disabled:opacity-50',
           isOpen
-            ? 'border-amber-500/60 bg-[#0E1015] text-[#F4F5F7] ring-2 ring-amber-500/20'
-            : 'border-white/[0.09] bg-[#0E1015] text-[#F4F5F7] hover:border-white/[0.16]',
+            ? 'border-amber-500/60 bg-well text-fg ring-2 ring-amber-500/20'
+            : 'border-line bg-well text-fg hover:border-line-strong',
         );
 
   const activeDescendantId =
@@ -284,7 +284,7 @@ export function FolderSelect({
                 className={cn(variant === 'inline' ? 'h-3.5 w-3.5' : 'h-4 w-4', 'shrink-0')}
                 style={{ color: selectedNode.folder.color }}
               />
-              <span className="truncate text-[#F4F5F7]">
+              <span className="truncate text-fg">
                 {variant === 'inline' ? selectedNode.folder.name : selectedNode.pathLabel}
               </span>
             </>
@@ -293,17 +293,17 @@ export function FolderSelect({
               <CircleSlash
                 className={cn(
                   variant === 'inline' ? 'h-3.5 w-3.5' : 'h-4 w-4',
-                  'shrink-0 text-[#646C7A]',
+                  'shrink-0 text-fg-muted',
                 )}
               />
-              <span className="truncate text-[#9CA3B0]">{emptyLabel}</span>
+              <span className="truncate text-fg-secondary">{emptyLabel}</span>
             </>
           )}
         </span>
         <ChevronDown
           className={cn(
             variant === 'inline' ? 'h-3.5 w-3.5' : 'h-4 w-4',
-            'shrink-0 text-[#646C7A] transition-transform duration-150',
+            'shrink-0 text-fg-muted transition-transform duration-150',
             isOpen && 'rotate-180 text-amber-400',
           )}
         />
@@ -332,8 +332,8 @@ export function FolderSelect({
               className="surface-elevated animate-popover fixed z-[1201] overflow-hidden rounded-xl backdrop-blur-md"
             >
               {showSearch && (
-                <div className="flex items-center gap-2 border-b border-white/[0.07] bg-[#101217]/80 px-3 py-2">
-                  <Search className="h-3.5 w-3.5 shrink-0 text-[#646C7A]" />
+                <div className="flex items-center gap-2 border-b border-line-subtle bg-well/80 px-3 py-2">
+                  <Search className="h-3.5 w-3.5 shrink-0 text-fg-muted" />
                   <input
                     ref={searchInputRef}
                     type="text"
@@ -342,13 +342,13 @@ export function FolderSelect({
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search folders..."
                     aria-label="Search folders"
-                    className="w-full bg-transparent text-xs text-[#F4F5F7] placeholder-[#646C7A] focus:outline-none"
+                    className="w-full bg-transparent text-xs text-fg placeholder-fg-muted focus:outline-none"
                   />
                   {isSearching && (
                     <button
                       type="button"
                       onClick={() => setSearchQuery('')}
-                      className="cursor-pointer rounded p-0.5 text-[#646C7A] transition-colors hover:text-[#F4F5F7]"
+                      className="cursor-pointer rounded p-0.5 text-fg-muted transition-colors hover:text-fg"
                       aria-label="Clear folder search"
                     >
                       <X className="h-3.5 w-3.5" />
@@ -378,16 +378,16 @@ export function FolderSelect({
                     className={cn(
                       'flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-xs transition-colors',
                       value === null
-                        ? 'bg-amber-500/12 font-medium text-[#F4F5F7]'
+                        ? 'bg-amber-500/12 font-medium text-fg'
                         : highlightedIndex === 0
-                          ? 'bg-white/[0.06] text-[#F4F5F7]'
-                          : 'text-[#9CA3B0] hover:bg-white/[0.05] hover:text-[#F4F5F7]',
+                          ? 'bg-tint text-fg'
+                          : 'text-fg-secondary hover:bg-tint hover:text-fg',
                     )}
                   >
                     <CircleSlash
                       className={cn(
                         'h-3.5 w-3.5 shrink-0',
-                        value === null ? 'text-amber-400' : 'text-[#646C7A]',
+                        value === null ? 'text-amber-400' : 'text-fg-muted',
                       )}
                     />
                     <span className="truncate">{emptyLabel}</span>
@@ -398,11 +398,11 @@ export function FolderSelect({
                 )}
 
                 {!isSearching && options.length > 0 && (
-                  <div className="my-1 border-t border-white/[0.06]" />
+                  <div className="my-1 border-t border-line-subtle" />
                 )}
 
                 {filteredOptions.length === 0 ? (
-                  <div className="px-3 py-3 text-center text-xs text-[#646C7A]">
+                  <div className="px-3 py-3 text-center text-xs text-fg-muted">
                     {isSearching ? 'No matching folders' : 'No folders created yet'}
                   </div>
                 ) : (
@@ -429,10 +429,10 @@ export function FolderSelect({
                         className={cn(
                           'flex w-full cursor-pointer items-center gap-2.5 rounded-lg py-1.5 pr-2.5 text-left text-xs transition-colors',
                           isSelected
-                            ? 'bg-amber-500/12 font-medium text-[#F4F5F7]'
+                            ? 'bg-amber-500/12 font-medium text-fg'
                             : isHighlighted
-                              ? 'bg-white/[0.06] text-[#F4F5F7]'
-                              : 'text-[#D1D5DE] hover:bg-white/[0.05] hover:text-[#F4F5F7]',
+                              ? 'bg-tint text-fg'
+                              : 'text-fg-bright hover:bg-tint hover:text-fg',
                         )}
                       >
                         <FolderIcon

@@ -11,6 +11,7 @@ import SettingsPage from '@features/settings/SettingsPage.tsx';
 import SleepRecoveryModal from '@features/timer/components/SleepRecoveryModal.tsx';
 import { LayoutProvider, useLayout } from '@shared/context/LayoutContext';
 import { ToastProvider } from '@shared/context/ToastContext';
+import { ThemeProvider } from '@shared/context/ThemeContext';
 import { CommandPalette } from '@shared/components/CommandPalette';
 
 const queryClient = new QueryClient({
@@ -36,7 +37,7 @@ function AppShell() {
   }, [location.pathname, setZenMode]);
 
   return (
-    <div className="studio-canvas flex h-screen w-screen overflow-hidden text-[#F4F5F7]">
+    <div className="studio-canvas text-fg flex h-screen w-screen overflow-hidden transition-colors duration-200">
       <Sidebar />
       <main ref={mainRef} className="relative flex-1 overflow-x-hidden overflow-y-auto">
         <Routes>
@@ -56,13 +57,15 @@ function AppShell() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <ToastProvider>
-        <LayoutProvider>
-          <BrowserRouter>
-            <AppShell />
-          </BrowserRouter>
-        </LayoutProvider>
-      </ToastProvider>
+      <ThemeProvider>
+        <ToastProvider>
+          <LayoutProvider>
+            <BrowserRouter>
+              <AppShell />
+            </BrowserRouter>
+          </LayoutProvider>
+        </ToastProvider>
+      </ThemeProvider>
       {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
     </QueryClientProvider>
   );

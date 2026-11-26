@@ -42,6 +42,8 @@ const DIAL_TICKS: ReadonlyArray<DialTick> = Array.from({ length: 60 }, (_, index
   };
 });
 
+import { useTheme, type ThemeDefinition } from '@shared/context/ThemeContext';
+
 interface PhasePalette {
   gradStart: string;
   gradMid: string;
@@ -50,7 +52,11 @@ interface PhasePalette {
   dotClass: string;
 }
 
-function getPhasePalette(mode: 'stopwatch' | 'pomodoro', pomodoroPhase: number): PhasePalette {
+function getPhasePalette(
+  mode: 'stopwatch' | 'pomodoro',
+  pomodoroPhase: number,
+  svg: ThemeDefinition['svg'],
+): PhasePalette {
   if (mode === 'pomodoro' && pomodoroPhase === 1) {
     return {
       gradStart: '#99F6E4',
@@ -72,16 +78,17 @@ function getPhasePalette(mode: 'stopwatch' | 'pomodoro', pomodoroPhase: number):
   }
 
   return {
-    gradStart: '#FDE68A',
-    gradMid: '#F59E0B',
-    gradEnd: '#D97706',
-    halo: '#F59E0B',
-    dotClass: 'bg-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.75)]',
+    gradStart: svg.arcStart,
+    gradMid: svg.arcMid,
+    gradEnd: svg.arcEnd,
+    halo: svg.arcGlow,
+    dotClass: 'bg-amber-400 solar-glow',
   };
 }
 
 export function TimerDisplay({ millis, mode, pomodoroPhase, isRunning }: Readonly<Props>) {
   const { settings } = useSettings();
+  const { theme } = useTheme();
   const [transitionsEnabled, setTransitionsEnabled] = useState(false);
 
   const uid = useId();
@@ -122,7 +129,7 @@ export function TimerDisplay({ millis, mode, pomodoroPhase, isRunning }: Readonl
   const strokeDashoffset = mode === 'stopwatch' ? (isRunning ? '0' : '70') : `${-(gapArc / 2)}`;
   const showActiveArc = mode === 'stopwatch' || ratio > 0;
 
-  const palette = getPhasePalette(mode, pomodoroPhase);
+  const palette = getPhasePalette(mode, pomodoroPhase, theme.svg);
   const { main, tenths } = formatMillisParts(millis);
   const isOverAnHour = millis >= 60 * 60 * 1000;
 
@@ -163,8 +170,8 @@ export function TimerDisplay({ millis, mode, pomodoroPhase, isRunning }: Readonl
       >
         <defs>
           <radialGradient id={faceGradId} cx="50%" cy="28%" r="74%">
-            <stop offset="0%" stopColor="#171B24" stopOpacity="0.55" />
-            <stop offset="100%" stopColor="#0A0B0E" stopOpacity="0.82" />
+            <stop offset="0%" stopColor={theme.svg.dialFaceTop} />
+            <stop offset="100%" stopColor={theme.svg.dialFaceBottom} />
           </radialGradient>
 
           <linearGradient id={arcGradId} x1="12%" y1="8%" x2="88%" y2="92%">
@@ -178,13 +185,13 @@ export function TimerDisplay({ millis, mode, pomodoroPhase, isRunning }: Readonl
           </filter>
         </defs>
 
-        {/* Subtle recessed obsidian dial plate */}
+        {/* Subtle recessed studio dial plate */}
         <circle
           cx="50"
           cy="50"
           r="42.4"
           fill={`url(#${faceGradId})`}
-          stroke="rgba(255,255,255,0.045)"
+          stroke={theme.svg.dialBorder}
           strokeWidth="0.35"
         />
 
@@ -199,10 +206,10 @@ export function TimerDisplay({ millis, mode, pomodoroPhase, isRunning }: Readonl
               y2={tick.y2}
               stroke={
                 tick.isQuarter
-                  ? 'rgba(255,255,255,0.28)'
+                  ? theme.svg.tickQuarter
                   : tick.isFiveMin
-                    ? 'rgba(255,255,255,0.17)'
-                    : 'rgba(255,255,255,0.075)'
+                    ? theme.svg.tickFive
+                    : theme.svg.tickMinute
               }
               strokeWidth={tick.isQuarter ? '0.52' : tick.isFiveMin ? '0.42' : '0.3'}
               strokeLinecap="round"
@@ -216,7 +223,7 @@ export function TimerDisplay({ millis, mode, pomodoroPhase, isRunning }: Readonl
           cy="50"
           r={DIAL_RADIUS}
           fill="none"
-          stroke="rgba(255,255,255,0.09)"
+          stroke={theme.svg.dialTrack}
           strokeWidth="2.0"
         />
 
@@ -233,7 +240,7 @@ export function TimerDisplay({ millis, mode, pomodoroPhase, isRunning }: Readonl
           strokeDasharray={strokeDasharray}
           strokeDashoffset={strokeDashoffset}
           filter={`url(#${glowFilterId})`}
-          opacity={showActiveArc ? (isRunning ? 0.48 : 0.12) : 0}
+          opacity={showActiveArc ? (isRunning ? (theme.mode === 'light' ? 0.28 : 0.48) : 0.1) : 0}
           className={arcTransitionClass}
         />
 
@@ -259,10 +266,10 @@ export function TimerDisplay({ millis, mode, pomodoroPhase, isRunning }: Readonl
         <span
           className={cn(
             'h-1.5 w-1.5 rounded-full transition-all duration-300',
-            isRunning ? palette.dotClass : 'bg-[#646C7A]/60',
+            isRunning ? palette.dotClass : 'bg-fg-muted/60',
           )}
         />
-        <span className="text-[10px] font-semibold tracking-[0.22em] text-[#646C7A] uppercase">
+        <span className="text-[10px] font-semibold tracking-[0.22em] text-fg-muted uppercase">
           {statusText}
         </span>
       </div>
@@ -272,7 +279,7 @@ export function TimerDisplay({ millis, mode, pomodoroPhase, isRunning }: Readonl
         <div role="timer" aria-live="off" className="flex items-baseline justify-center">
           <span
             className={cn(
-              'font-mono leading-none font-semibold tracking-[-0.03em] text-[#F4F5F7] tabular-nums transition-[font-size] duration-200',
+              'font-mono leading-none font-semibold tracking-[-0.03em] text-fg tabular-nums transition-[font-size] duration-200',
               isOverAnHour
                 ? 'text-[clamp(1.85rem,4.6vh,2.6rem)]'
                 : 'text-[clamp(2.55rem,6.3vh,3.55rem)]',
@@ -282,7 +289,7 @@ export function TimerDisplay({ millis, mode, pomodoroPhase, isRunning }: Readonl
           </span>
           <span
             className={cn(
-              'ml-0.5 font-mono leading-none font-medium text-[#646C7A] tabular-nums',
+              'ml-0.5 font-mono leading-none font-medium text-fg-muted tabular-nums',
               isOverAnHour
                 ? 'text-[clamp(0.95rem,2.2vh,1.3rem)]'
                 : 'text-[clamp(1.25rem,2.8vh,1.65rem)]',
@@ -293,8 +300,8 @@ export function TimerDisplay({ millis, mode, pomodoroPhase, isRunning }: Readonl
         </div>
 
         {endsAtLabel && (
-          <p className="mt-2 font-mono text-[11px] font-medium tracking-wide text-[#858E9E] tabular-nums">
-            Ends at <span className="text-[#C7CDD8]">{endsAtLabel}</span>
+          <p className="mt-2 font-mono text-[11px] font-medium tracking-wide text-fg-secondary tabular-nums">
+            Ends at <span className="text-fg-bright">{endsAtLabel}</span>
           </p>
         )}
       </div>
@@ -304,7 +311,7 @@ export function TimerDisplay({ millis, mode, pomodoroPhase, isRunning }: Readonl
         {mode === 'pomodoro' ? (
           <PomodoroPhases currentPhase={pomodoroPhase} isRunning={isRunning} />
         ) : (
-          <span className="text-[11px] font-medium tracking-wide text-[#646C7A]">
+          <span className="text-[11px] font-medium tracking-wide text-fg-muted">
             {stopwatchSubLabel}
           </span>
         )}

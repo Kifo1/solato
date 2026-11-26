@@ -440,7 +440,7 @@ export function SessionHistoryModal({
         );
       case 'local_only':
         return (
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.10] bg-white/[0.04] px-2.5 py-1 text-xs font-medium text-[#9CA3B0]">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-line bg-tint px-2.5 py-1 text-xs font-medium text-fg-secondary">
             <Check className="h-3 w-3" />
             Local only
           </span>
@@ -481,7 +481,7 @@ export function SessionHistoryModal({
       {/* Header */}
       <div
         className={cn(
-          'flex items-center justify-between gap-4 border-b border-white/[0.07]',
+          'flex items-center justify-between gap-4 border-b border-line-subtle',
           isInline ? 'px-6 py-5' : 'px-5 py-4',
         )}
       >
@@ -493,7 +493,7 @@ export function SessionHistoryModal({
                 setEditingSession(null);
                 setEditError(null);
               }}
-              className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-white/[0.09] bg-[#14171F] text-[#9CA3B0] transition-colors hover:border-white/[0.16] hover:text-[#F4F5F7] focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none"
+              className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-line bg-surface text-fg-secondary transition-colors hover:border-line-strong hover:text-fg focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none"
               aria-label="Back to session history"
             >
               <ArrowLeft className="h-4 w-4" />
@@ -504,10 +504,10 @@ export function SessionHistoryModal({
             </div>
           )}
           <div className="min-w-0">
-            <h2 className="truncate text-base font-semibold tracking-tight text-[#F4F5F7]">
+            <h2 className="truncate text-base font-semibold tracking-tight text-fg">
               {headerTitle}
             </h2>
-            <p className="mt-0.5 truncate text-xs text-[#9CA3B0]">{headerSubtitle}</p>
+            <p className="mt-0.5 truncate text-xs text-fg-secondary">{headerSubtitle}</p>
           </div>
         </div>
 
@@ -518,7 +518,7 @@ export function SessionHistoryModal({
               type="button"
               onClick={onClose}
               aria-label="Close session history"
-              className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-[#9CA3B0] transition-colors hover:bg-white/[0.08] hover:text-[#F4F5F7] focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none"
+              className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-fg-secondary transition-colors hover:bg-tint-strong hover:text-fg focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none"
             >
               <X className="h-4 w-4" />
             </button>
@@ -548,7 +548,7 @@ export function SessionHistoryModal({
           <div className="surface-well grid grid-cols-1 gap-5 rounded-2xl p-5 md:grid-cols-2">
             {/* Project */}
             <div className="flex flex-col gap-1.5">
-              <span className="text-[11px] font-semibold tracking-wider text-[#646C7A] uppercase">
+              <span className="text-[11px] font-semibold tracking-wider text-fg-muted uppercase">
                 Project
               </span>
               <ProjectFolderSelect
@@ -565,11 +565,11 @@ export function SessionHistoryModal({
 
             {/* Quick Duration */}
             <div className="flex flex-col gap-1.5">
-              <span className="text-[11px] font-semibold tracking-wider text-[#646C7A] uppercase">
+              <span className="text-[11px] font-semibold tracking-wider text-fg-muted uppercase">
                 Duration (adjusts end time)
               </span>
               <div className="flex items-center gap-2.5">
-                <div className="flex h-10 flex-1 items-center gap-2 rounded-xl border border-white/[0.09] bg-[#0E1015] px-3 transition-colors focus-within:border-amber-500/60 focus-within:ring-2 focus-within:ring-amber-500/20">
+                <div className="flex h-10 flex-1 items-center gap-2 rounded-xl border border-line bg-well px-3 transition-colors focus-within:border-amber-500/60 focus-within:ring-2 focus-within:ring-amber-500/20">
                   <input
                     type="number"
                     min={0}
@@ -577,11 +577,11 @@ export function SessionHistoryModal({
                     aria-label="Duration hours"
                     value={editDurationHours}
                     onChange={(e) => handleDurationChange(e.target.value, editDurationMinutes)}
-                    className="w-full bg-transparent font-mono text-sm tabular-nums text-[#F4F5F7] focus:outline-none"
+                    className="w-full bg-transparent font-mono text-sm tabular-nums text-fg focus:outline-none"
                   />
-                  <span className="font-mono text-xs text-[#646C7A]">h</span>
+                  <span className="font-mono text-xs text-fg-muted">h</span>
                 </div>
-                <div className="flex h-10 flex-1 items-center gap-2 rounded-xl border border-white/[0.09] bg-[#0E1015] px-3 transition-colors focus-within:border-amber-500/60 focus-within:ring-2 focus-within:ring-amber-500/20">
+                <div className="flex h-10 flex-1 items-center gap-2 rounded-xl border border-line bg-well px-3 transition-colors focus-within:border-amber-500/60 focus-within:ring-2 focus-within:ring-amber-500/20">
                   <input
                     type="number"
                     min={0}
@@ -589,9 +589,9 @@ export function SessionHistoryModal({
                     aria-label="Duration minutes"
                     value={editDurationMinutes}
                     onChange={(e) => handleDurationChange(editDurationHours, e.target.value)}
-                    className="w-full bg-transparent font-mono text-sm tabular-nums text-[#F4F5F7] focus:outline-none"
+                    className="w-full bg-transparent font-mono text-sm tabular-nums text-fg focus:outline-none"
                   />
-                  <span className="font-mono text-xs text-[#646C7A]">m</span>
+                  <span className="font-mono text-xs text-fg-muted">m</span>
                 </div>
               </div>
             </div>
@@ -600,7 +600,7 @@ export function SessionHistoryModal({
             <div className="flex flex-col gap-1.5">
               <label
                 htmlFor="session-start"
-                className="text-[11px] font-semibold tracking-wider text-[#646C7A] uppercase"
+                className="text-[11px] font-semibold tracking-wider text-fg-muted uppercase"
               >
                 Start time
               </label>
@@ -611,7 +611,7 @@ export function SessionHistoryModal({
                 required
                 value={editStartLocal}
                 onChange={(e) => handleStartChange(e.target.value)}
-                className="h-10 rounded-xl border border-white/[0.09] bg-[#0E1015] px-3 font-mono text-sm tabular-nums text-[#F4F5F7] scheme-dark transition-colors hover:border-white/[0.15] focus:border-amber-500/60 focus:ring-2 focus:ring-amber-500/20 focus:outline-none"
+                className="h-10 rounded-xl border border-line bg-well px-3 font-mono text-sm tabular-nums text-fg scheme-dark transition-colors hover:border-line-strong focus:border-amber-500/60 focus:ring-2 focus:ring-amber-500/20 focus:outline-none"
               />
             </div>
 
@@ -619,7 +619,7 @@ export function SessionHistoryModal({
             <div className="flex flex-col gap-1.5">
               <label
                 htmlFor="session-end"
-                className="text-[11px] font-semibold tracking-wider text-[#646C7A] uppercase"
+                className="text-[11px] font-semibold tracking-wider text-fg-muted uppercase"
               >
                 End time
               </label>
@@ -630,13 +630,13 @@ export function SessionHistoryModal({
                 required
                 value={editEndLocal}
                 onChange={(e) => handleEndChange(e.target.value)}
-                className="h-10 rounded-xl border border-white/[0.09] bg-[#0E1015] px-3 font-mono text-sm tabular-nums text-[#F4F5F7] scheme-dark transition-colors hover:border-white/[0.15] focus:border-amber-500/60 focus:ring-2 focus:ring-amber-500/20 focus:outline-none"
+                className="h-10 rounded-xl border border-line bg-well px-3 font-mono text-sm tabular-nums text-fg scheme-dark transition-colors hover:border-line-strong focus:border-amber-500/60 focus:ring-2 focus:ring-amber-500/20 focus:outline-none"
               />
             </div>
 
             {/* Session type */}
             <div className="flex flex-col gap-1.5">
-              <span className="text-[11px] font-semibold tracking-wider text-[#646C7A] uppercase">
+              <span className="text-[11px] font-semibold tracking-wider text-fg-muted uppercase">
                 Session type
               </span>
               <CustomSelect
@@ -650,7 +650,7 @@ export function SessionHistoryModal({
 
             {/* Timer mode */}
             <div className="flex flex-col gap-1.5">
-              <span className="text-[11px] font-semibold tracking-wider text-[#646C7A] uppercase">
+              <span className="text-[11px] font-semibold tracking-wider text-fg-muted uppercase">
                 Timer mode
               </span>
               <CustomSelect
@@ -663,7 +663,7 @@ export function SessionHistoryModal({
             </div>
           </div>
 
-          <div className="mt-auto flex items-center justify-end gap-2.5 border-t border-white/[0.07] pt-4">
+          <div className="mt-auto flex items-center justify-end gap-2.5 border-t border-line-subtle pt-4">
             <Button
               type="button"
               variant="secondary"
@@ -684,7 +684,7 @@ export function SessionHistoryModal({
           {/* Filter toolbar */}
           <div
             className={cn(
-              'flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.07] bg-[#101217]/80 py-3',
+              'flex flex-wrap items-center justify-between gap-3 border-b border-line-subtle bg-well/80 py-3',
               isInline ? 'px-6' : 'px-5',
             )}
           >
@@ -708,14 +708,14 @@ export function SessionHistoryModal({
                 ariaLabel="Filter by session type"
               />
 
-              <div className="flex h-8.5 items-center gap-2 rounded-xl border border-white/[0.09] bg-[#0E1015] px-3 transition-colors focus-within:border-amber-500/60 focus-within:ring-2 focus-within:ring-amber-500/15 hover:border-white/[0.16]">
+              <div className="flex h-8.5 items-center gap-2 rounded-xl border border-line bg-well px-3 transition-colors focus-within:border-amber-500/60 focus-within:ring-2 focus-within:ring-amber-500/15 hover:border-line-strong">
                 <Calendar className="h-3.5 w-3.5 shrink-0 text-amber-400" />
                 <input
                   type="date"
                   aria-label="Filter by date"
                   value={dateFilter}
                   onChange={(e) => setDateFilter(e.target.value)}
-                  className="bg-transparent font-mono text-xs font-medium tabular-nums text-[#F4F5F7] scheme-dark focus:outline-none"
+                  className="bg-transparent font-mono text-xs font-medium tabular-nums text-fg scheme-dark focus:outline-none"
                 />
               </div>
 
@@ -735,8 +735,8 @@ export function SessionHistoryModal({
               )}
             </div>
 
-            <div className="flex items-center gap-2 font-mono text-xs tabular-nums text-[#9CA3B0]">
-              <span className="font-semibold text-[#F4F5F7]">{filteredSessions.length}</span>
+            <div className="flex items-center gap-2 font-mono text-xs tabular-nums text-fg-secondary">
+              <span className="font-semibold text-fg">{filteredSessions.length}</span>
               <span>{filteredSessions.length === 1 ? 'session' : 'sessions'}</span>
               <span className="text-white/20">·</span>
               <span className="font-semibold text-amber-400">
@@ -746,7 +746,7 @@ export function SessionHistoryModal({
                     : totalFocusSeconds || totalFilteredSeconds,
                 )}
               </span>
-              <span className="text-[#646C7A]">{typeFilter === 'all' ? 'total' : 'filtered'}</span>
+              <span className="text-fg-muted">{typeFilter === 'all' ? 'total' : 'filtered'}</span>
             </div>
           </div>
 
@@ -766,7 +766,7 @@ export function SessionHistoryModal({
           {/* Session list */}
           <div className={cn('overflow-x-auto', !isInline && 'flex-1 overflow-y-auto')}>
             {isLoading ? (
-              <div className={cn('divide-y divide-white/[0.05] py-2', isInline ? 'px-6' : 'px-5')}>
+              <div className={cn('divide-y divide-line-subtle py-2', isInline ? 'px-6' : 'px-5')}>
                 {[0, 1, 2, 3, 4, 5].map((i) => (
                   <div key={i} className="flex items-center justify-between gap-4 py-3.5">
                     <div className="flex items-center gap-3">
@@ -790,13 +790,13 @@ export function SessionHistoryModal({
               </div>
             ) : visibleSessions.length === 0 ? (
               <div className="flex flex-col items-center justify-center gap-1.5 px-6 py-16 text-center">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/[0.07] bg-white/[0.03] text-[#646C7A]">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-line-subtle bg-tint-subtle text-fg-muted">
                   <History className="h-5 w-5" />
                 </div>
-                <p className="mt-2 text-sm font-medium text-[#D0D5DE]">
+                <p className="mt-2 text-sm font-medium text-fg-bright">
                   {hasActiveFilters ? 'No sessions match your filters' : 'No sessions recorded yet'}
                 </p>
-                <p className="max-w-xs text-xs text-[#646C7A]">
+                <p className="max-w-xs text-xs text-fg-muted">
                   {hasActiveFilters
                     ? 'Try adjusting the project, session type, or date filter above.'
                     : 'Complete a focus or break timer to see your session log here.'}
@@ -804,28 +804,28 @@ export function SessionHistoryModal({
               </div>
             ) : (
               <table className="w-full border-collapse">
-                <thead className="sticky top-0 z-10 bg-[#171B23]/95 backdrop-blur-sm">
-                  <tr className="border-b border-white/[0.07]">
+                <thead className="sticky top-0 z-10 bg-surface/95 backdrop-blur-sm">
+                  <tr className="border-b border-line-subtle">
                     <th
                       className={cn(
-                        'py-2.5 text-left text-[11px] font-semibold tracking-wider text-[#646C7A] uppercase',
+                        'py-2.5 text-left text-[11px] font-semibold tracking-wider text-fg-muted uppercase',
                         isInline ? 'px-6' : 'px-5',
                       )}
                     >
                       Project
                     </th>
-                    <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wider text-[#646C7A] uppercase">
+                    <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wider text-fg-muted uppercase">
                       Date &amp; Time
                     </th>
-                    <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wider text-[#646C7A] uppercase">
+                    <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wider text-fg-muted uppercase">
                       Duration
                     </th>
-                    <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wider text-[#646C7A] uppercase">
+                    <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wider text-fg-muted uppercase">
                       Type
                     </th>
                     <th
                       className={cn(
-                        'py-2.5 text-right text-[11px] font-semibold tracking-wider text-[#646C7A] uppercase',
+                        'py-2.5 text-right text-[11px] font-semibold tracking-wider text-fg-muted uppercase',
                         isInline ? 'px-6' : 'px-5',
                       )}
                     >
@@ -833,7 +833,7 @@ export function SessionHistoryModal({
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/[0.05]">
+                <tbody className="divide-y divide-line-subtle">
                   {visibleSessions.map((session) => {
                     const start = new Date(session.start_time);
                     const end = new Date(session.end_time);
@@ -843,7 +843,7 @@ export function SessionHistoryModal({
                     return (
                       <tr
                         key={session.id}
-                        className="group transition-colors hover:bg-white/[0.03]"
+                        className="group transition-colors hover:bg-tint-subtle"
                       >
                         <td className={cn('py-3.5 whitespace-nowrap', isInline ? 'px-6' : 'px-5')}>
                           <div className="flex items-center gap-2.5">
@@ -853,7 +853,7 @@ export function SessionHistoryModal({
                             />
                             <span
                               className={cn(
-                                'truncate text-sm font-medium text-[#F4F5F7]',
+                                'truncate text-sm font-medium text-fg',
                                 isInline ? 'max-w-52' : 'max-w-36',
                               )}
                             >
@@ -862,17 +862,17 @@ export function SessionHistoryModal({
                           </div>
                         </td>
                         <td className="px-3 py-3.5 whitespace-nowrap">
-                          <div className="text-sm font-medium text-[#F4F5F7]">
+                          <div className="text-sm font-medium text-fg">
                             {spansDays
                               ? `${format(start, 'MMM d')} – ${format(end, 'MMM d')}`
                               : format(start, isInline ? 'EEE, MMM d, yyyy' : 'EEE, MMM d')}
                           </div>
-                          <div className="mt-0.5 font-mono text-xs tabular-nums text-[#646C7A]">
+                          <div className="mt-0.5 font-mono text-xs tabular-nums text-fg-muted">
                             {format(start, 'HH:mm')} – {format(end, 'HH:mm')}
                           </div>
                         </td>
                         <td className="px-3 py-3.5 whitespace-nowrap">
-                          <div className="inline-flex items-center gap-1.5 rounded-lg border border-white/[0.06] bg-[#0F1116] px-2.5 py-1 font-mono text-xs font-semibold tabular-nums text-[#F4F5F7]">
+                          <div className="inline-flex items-center gap-1.5 rounded-lg border border-line-subtle bg-well px-2.5 py-1 font-mono text-xs font-semibold tabular-nums text-fg">
                             <Clock3 className="h-3.5 w-3.5 text-amber-400" />
                             {formatSessionDuration(session.duration_seconds)}
                           </div>
@@ -892,7 +892,7 @@ export function SessionHistoryModal({
                             >
                               {SESSION_TYPE_LABELS[session.session_type]}
                             </span>
-                            <span className="rounded-full border border-white/[0.08] bg-white/[0.03] px-2 py-0.5 text-[11px] text-[#9CA3B0]">
+                            <span className="rounded-full border border-line bg-tint-subtle px-2 py-0.5 text-[11px] text-fg-secondary">
                               {TIMER_MODE_LABELS[session.mode]}
                             </span>
                           </div>
@@ -932,7 +932,7 @@ export function SessionHistoryModal({
                                 title="Edit session"
                                 aria-label={`Edit ${session.project_name} session`}
                                 onClick={() => openEditor(session)}
-                                className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg text-[#9CA3B0] transition-colors hover:bg-white/[0.07] hover:text-[#F4F5F7] focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none"
+                                className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg text-fg-secondary transition-colors hover:bg-tint-strong hover:text-fg focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none"
                               >
                                 <Pencil className="h-3.5 w-3.5" />
                               </button>
@@ -944,7 +944,7 @@ export function SessionHistoryModal({
                                   setDeleteError(null);
                                   setConfirmDeleteId(session.id);
                                 }}
-                                className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg text-[#9CA3B0] transition-colors hover:bg-rose-500/15 hover:text-rose-400 focus-visible:ring-2 focus-visible:ring-rose-400/60 focus-visible:outline-none"
+                                className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg text-fg-secondary transition-colors hover:bg-rose-500/15 hover:text-rose-400 focus-visible:ring-2 focus-visible:ring-rose-400/60 focus-visible:outline-none"
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
                               </button>
@@ -963,16 +963,16 @@ export function SessionHistoryModal({
           {filteredSessions.length > 0 && (
             <div
               className={cn(
-                'flex items-center justify-between border-t border-white/[0.07] bg-[#101217]/80 py-3',
+                'flex items-center justify-between border-t border-line-subtle bg-well/80 py-3',
                 isInline ? 'px-6' : 'px-5',
               )}
             >
-              <div className="font-mono text-xs tabular-nums text-[#9CA3B0]">
+              <div className="font-mono text-xs tabular-nums text-fg-secondary">
                 Showing{' '}
-                <span className="font-semibold text-[#F4F5F7]">
+                <span className="font-semibold text-fg">
                   {startIdx + 1}–{Math.min(startIdx + sessionsPerPage, filteredSessions.length)}
                 </span>{' '}
-                of <span className="font-semibold text-[#F4F5F7]">{filteredSessions.length}</span>
+                of <span className="font-semibold text-fg">{filteredSessions.length}</span>
               </div>
               <div className="flex items-center gap-2">
                 <Button
@@ -1028,7 +1028,7 @@ export function SessionHistoryModal({
         role="dialog"
         aria-modal="true"
         aria-label={editingSession ? 'Edit Session' : 'Session History'}
-        className="surface-elevated animate-drawer-in fixed inset-y-0 right-0 flex w-full max-w-2xl flex-col border-l border-white/[0.08] text-left"
+        className="surface-elevated animate-drawer-in fixed inset-y-0 right-0 flex w-full max-w-2xl flex-col border-l border-line text-left"
       >
         {content}
       </div>

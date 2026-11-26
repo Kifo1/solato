@@ -70,10 +70,10 @@ export default function LoginModal({ isOpen, setIsOpen }: Readonly<LoginModalPro
         <div className="flex flex-col items-center pt-1 text-center">
           <SolatoLogo size={44} />
 
-          <h2 className="mt-4 text-xl font-semibold tracking-tight text-[#F4F5F7]">
+          <h2 className="mt-4 text-xl font-semibold tracking-tight text-fg">
             Sync with Solato Cloud
           </h2>
-          <p className="mt-2 max-w-[300px] text-sm leading-relaxed text-[#9CA3B0]">
+          <p className="mt-2 max-w-[300px] text-sm leading-relaxed text-fg-secondary">
             Keep your focus sessions, projects, and analytics seamlessly backed up across all your
             devices.
           </p>
@@ -98,7 +98,7 @@ export default function LoginModal({ isOpen, setIsOpen }: Readonly<LoginModalPro
             <Button
               variant="ghost"
               scale="md"
-              className="mt-0.5 w-full text-[#646C7A] hover:text-[#9CA3B0]"
+              className="mt-0.5 w-full text-fg-muted hover:text-fg-secondary"
               onClick={handleClose}
             >
               Continue as guest
@@ -168,8 +168,8 @@ function AuthModeTabs({
         onClick={onSelectLogin}
         className={`h-8 cursor-pointer rounded-lg text-xs font-medium transition-all duration-150 focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50 ${
           active === 'login'
-            ? 'bg-[#1D222D] text-[#F4F5F7] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]'
-            : 'text-[#646C7A] hover:text-[#9CA3B0]'
+            ? 'bg-elevated text-fg shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]'
+            : 'text-fg-muted hover:text-fg-secondary'
         }`}
       >
         Sign in
@@ -180,8 +180,8 @@ function AuthModeTabs({
         onClick={onSelectRegister}
         className={`h-8 cursor-pointer rounded-lg text-xs font-medium transition-all duration-150 focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50 ${
           active === 'register'
-            ? 'bg-[#1D222D] text-[#F4F5F7] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]'
-            : 'text-[#646C7A] hover:text-[#9CA3B0]'
+            ? 'bg-elevated text-fg shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]'
+            : 'text-fg-muted hover:text-fg-secondary'
         }`}
       >
         Create account
@@ -250,10 +250,10 @@ function LoginForm({ onBack, onSwitchToRegister, onSuccess }: Readonly<LoginForm
     <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
       <div className="flex flex-col items-center text-center">
         <SolatoLogo size={44} />
-        <h2 className="mt-3.5 text-lg font-semibold tracking-tight text-[#F4F5F7]">
+        <h2 className="mt-3.5 text-lg font-semibold tracking-tight text-fg">
           Welcome back
         </h2>
-        <p className="mt-1 text-xs text-[#9CA3B0]">Sign in to resume syncing your workspace.</p>
+        <p className="mt-1 text-xs text-fg-secondary">Sign in to resume syncing your workspace.</p>
       </div>
 
       <AuthModeTabs
@@ -267,7 +267,7 @@ function LoginForm({ onBack, onSwitchToRegister, onSuccess }: Readonly<LoginForm
 
       <div className="flex flex-col gap-3.5">
         <div className="flex flex-col gap-1.5">
-          <label htmlFor={emailId} className="text-xs font-medium text-[#9CA3B0]">
+          <label htmlFor={emailId} className="text-xs font-medium text-fg-secondary">
             Email
           </label>
           <TextInput
@@ -286,7 +286,7 @@ function LoginForm({ onBack, onSwitchToRegister, onSuccess }: Readonly<LoginForm
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label htmlFor={passwordId} className="text-xs font-medium text-[#9CA3B0]">
+          <label htmlFor={passwordId} className="text-xs font-medium text-fg-secondary">
             Password
           </label>
           <div className="relative">
@@ -308,7 +308,7 @@ function LoginForm({ onBack, onSwitchToRegister, onSuccess }: Readonly<LoginForm
               onClick={() => setShowPassword((prev) => !prev)}
               disabled={isLoggingIn}
               aria-label={showPassword ? 'Hide password' : 'Show password'}
-              className="absolute top-1/2 right-2.5 flex h-7 w-7 -translate-y-1/2 cursor-pointer items-center justify-center rounded-lg text-[#646C7A] transition-colors hover:bg-white/[0.06] hover:text-[#F4F5F7] focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none disabled:pointer-events-none"
+              className="absolute top-1/2 right-2.5 flex h-7 w-7 -translate-y-1/2 cursor-pointer items-center justify-center rounded-lg text-fg-muted transition-colors hover:bg-tint hover:text-fg focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none disabled:pointer-events-none"
             >
               {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
@@ -332,7 +332,7 @@ function LoginForm({ onBack, onSwitchToRegister, onSuccess }: Readonly<LoginForm
           type="button"
           variant="ghost"
           scale="sm"
-          className="w-full text-[#646C7A] hover:text-[#9CA3B0]"
+          className="w-full text-fg-muted hover:text-fg-secondary"
           onClick={onBack}
           disabled={isLoggingIn}
         >
@@ -403,10 +403,10 @@ function RegisterForm({ onBack, onSwitchToLogin, onSuccess }: Readonly<RegisterF
     <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
       <div className="flex flex-col items-center text-center">
         <SolatoLogo size={44} />
-        <h2 className="mt-3.5 text-lg font-semibold tracking-tight text-[#F4F5F7]">
+        <h2 className="mt-3.5 text-lg font-semibold tracking-tight text-fg">
           Create your account
         </h2>
-        <p className="mt-1 text-xs text-[#9CA3B0]">
+        <p className="mt-1 text-xs text-fg-secondary">
           Start syncing your sessions and projects with Solato Cloud.
         </p>
       </div>
@@ -422,7 +422,7 @@ function RegisterForm({ onBack, onSwitchToLogin, onSuccess }: Readonly<RegisterF
 
       <div className="flex flex-col gap-3.5">
         <div className="flex flex-col gap-1.5">
-          <label htmlFor={emailId} className="text-xs font-medium text-[#9CA3B0]">
+          <label htmlFor={emailId} className="text-xs font-medium text-fg-secondary">
             Email
           </label>
           <TextInput
@@ -441,7 +441,7 @@ function RegisterForm({ onBack, onSwitchToLogin, onSuccess }: Readonly<RegisterF
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label htmlFor={passwordId} className="text-xs font-medium text-[#9CA3B0]">
+          <label htmlFor={passwordId} className="text-xs font-medium text-fg-secondary">
             Password
           </label>
           <div className="relative">
@@ -463,18 +463,18 @@ function RegisterForm({ onBack, onSwitchToLogin, onSuccess }: Readonly<RegisterF
               onClick={() => setShowPassword((prev) => !prev)}
               disabled={isRegistering}
               aria-label={showPassword ? 'Hide password' : 'Show password'}
-              className="absolute top-1/2 right-2.5 flex h-7 w-7 -translate-y-1/2 cursor-pointer items-center justify-center rounded-lg text-[#646C7A] transition-colors hover:bg-white/[0.06] hover:text-[#F4F5F7] focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none disabled:pointer-events-none"
+              className="absolute top-1/2 right-2.5 flex h-7 w-7 -translate-y-1/2 cursor-pointer items-center justify-center rounded-lg text-fg-muted transition-colors hover:bg-tint hover:text-fg focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none disabled:pointer-events-none"
             >
               {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
           </div>
-          <p className="text-[11px] leading-snug text-[#646C7A]">
+          <p className="text-[11px] leading-snug text-fg-muted">
             8–64 chars with uppercase, lowercase, a number, and a symbol.
           </p>
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label htmlFor={confirmPasswordId} className="text-xs font-medium text-[#9CA3B0]">
+          <label htmlFor={confirmPasswordId} className="text-xs font-medium text-fg-secondary">
             Confirm password
           </label>
           <div className="relative">
@@ -496,7 +496,7 @@ function RegisterForm({ onBack, onSwitchToLogin, onSuccess }: Readonly<RegisterF
               onClick={() => setShowConfirmPassword((prev) => !prev)}
               disabled={isRegistering}
               aria-label={showConfirmPassword ? 'Hide password confirmation' : 'Show password confirmation'}
-              className="absolute top-1/2 right-2.5 flex h-7 w-7 -translate-y-1/2 cursor-pointer items-center justify-center rounded-lg text-[#646C7A] transition-colors hover:bg-white/[0.06] hover:text-[#F4F5F7] focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none disabled:pointer-events-none"
+              className="absolute top-1/2 right-2.5 flex h-7 w-7 -translate-y-1/2 cursor-pointer items-center justify-center rounded-lg text-fg-muted transition-colors hover:bg-tint hover:text-fg focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none disabled:pointer-events-none"
             >
               {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
@@ -526,7 +526,7 @@ function RegisterForm({ onBack, onSwitchToLogin, onSuccess }: Readonly<RegisterF
           type="button"
           variant="ghost"
           scale="sm"
-          className="w-full text-[#646C7A] hover:text-[#9CA3B0]"
+          className="w-full text-fg-muted hover:text-fg-secondary"
           onClick={onBack}
           disabled={isRegistering}
         >
@@ -570,19 +570,19 @@ function VerifyForm({ email, onBack, onSuccess }: Readonly<VerifyFormProps>) {
         <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-amber-500/25 bg-amber-500/10 text-amber-400">
           <MailCheck className="h-5 w-5" />
         </div>
-        <h2 className="mt-3.5 text-lg font-semibold tracking-tight text-[#F4F5F7]">
+        <h2 className="mt-3.5 text-lg font-semibold tracking-tight text-fg">
           Verify your email
         </h2>
-        <p className="mt-1.5 text-xs leading-relaxed text-[#9CA3B0]">
+        <p className="mt-1.5 text-xs leading-relaxed text-fg-secondary">
           Enter the 6-digit code sent to{' '}
-          <span className="font-medium break-all text-[#F4F5F7]">{email}</span>
+          <span className="font-medium break-all text-fg">{email}</span>
         </p>
       </div>
 
       {activeError && <ErrorBanner message={activeError} />}
 
       <div className="flex flex-col gap-1.5">
-        <label htmlFor={codeId} className="text-xs font-medium text-[#9CA3B0]">
+        <label htmlFor={codeId} className="text-xs font-medium text-fg-secondary">
           Verification code
         </label>
         <TextInput
@@ -601,7 +601,7 @@ function VerifyForm({ email, onBack, onSuccess }: Readonly<VerifyFormProps>) {
           }}
           disabled={isVerifying}
           autoFocus
-          className="h-13 text-center font-mono text-2xl tracking-[0.4em] tabular-nums placeholder:text-[#646C7A]/50"
+          className="h-13 text-center font-mono text-2xl tracking-[0.4em] tabular-nums placeholder:text-fg-muted/50"
         />
       </div>
 
@@ -621,7 +621,7 @@ function VerifyForm({ email, onBack, onSuccess }: Readonly<VerifyFormProps>) {
           type="button"
           variant="ghost"
           scale="sm"
-          className="w-full text-[#646C7A] hover:text-[#9CA3B0]"
+          className="w-full text-fg-muted hover:text-fg-secondary"
           onClick={onBack}
           disabled={isVerifying}
         >

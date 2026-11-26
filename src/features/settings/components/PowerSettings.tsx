@@ -71,7 +71,7 @@ export default function PowerSettings() {
               'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border transition-colors duration-200',
               isEnabled
                 ? 'border-amber-500/30 bg-amber-500/12 text-amber-400'
-                : 'border-white/[0.08] bg-white/[0.03] text-[#646C7A]',
+                : 'border-line bg-tint-subtle text-fg-muted',
             )}
           >
             <Zap className="h-4.5 w-4.5" />
@@ -79,7 +79,7 @@ export default function PowerSettings() {
 
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h3 className="text-sm font-semibold tracking-tight text-[#F4F5F7]">
+              <h3 className="text-sm font-semibold tracking-tight text-fg">
                 Keep system awake during Pomodoro
               </h3>
               <span
@@ -87,19 +87,19 @@ export default function PowerSettings() {
                   'inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-medium transition-colors',
                   isEnabled
                     ? 'border-teal-400/25 bg-teal-400/10 text-teal-300'
-                    : 'border-white/[0.08] bg-white/[0.03] text-[#646C7A]',
+                    : 'border-line bg-tint-subtle text-fg-muted',
                 )}
               >
                 <span
                   className={cn(
                     'h-1.5 w-1.5 rounded-full',
-                    isEnabled ? 'bg-teal-400' : 'bg-[#646C7A]',
+                    isEnabled ? 'bg-teal-400' : 'bg-fg-muted',
                   )}
                 />
                 {isEnabled ? 'Protected' : 'Inactive'}
               </span>
             </div>
-            <p className="mt-1 text-xs leading-relaxed text-[#9CA3B0]">
+            <p className="mt-1 text-xs leading-relaxed text-fg-secondary">
               Prevents idle OS sleep while a Pomodoro timer is running, keeping audio cues and
               interval handoffs dependable.
             </p>
@@ -115,8 +115,8 @@ export default function PowerSettings() {
       </div>
 
       {/* Inline 3-Item Reliability Grid */}
-      <div className="mt-5 border-t border-white/[0.06] pt-5">
-        <p className="mb-3 text-[11px] font-semibold tracking-[0.08em] text-[#646C7A] uppercase">
+      <div className="mt-5 border-t border-line-subtle pt-5">
+        <p className="mb-3 text-[11px] font-semibold tracking-[0.08em] text-fg-muted uppercase">
           What stays reliable while active
         </p>
 
@@ -135,19 +135,19 @@ export default function PowerSettings() {
                     'flex h-6.5 w-6.5 shrink-0 items-center justify-center rounded-lg border transition-colors',
                     isEnabled
                       ? 'border-teal-400/25 bg-teal-400/10 text-teal-300'
-                      : 'border-white/[0.07] bg-white/[0.03] text-[#646C7A]',
+                      : 'border-line-subtle bg-tint-subtle text-fg-muted',
                   )}
                 >
                   <Icon className="h-3.5 w-3.5" />
                 </span>
-                <span className="text-xs font-semibold text-[#F4F5F7]">{title}</span>
+                <span className="text-xs font-semibold text-fg">{title}</span>
               </div>
-              <p className="text-[11px] leading-relaxed text-[#9CA3B0]">{description}</p>
+              <p className="text-[11px] leading-relaxed text-fg-secondary">{description}</p>
             </div>
           ))}
         </div>
 
-        <p className="mt-3.5 text-[11px] leading-relaxed text-[#646C7A]">
+        <p className="mt-3.5 text-[11px] leading-relaxed text-fg-muted">
           Manually sleeping your computer or closing the laptop lid still pauses the OS and opens
           Solato&apos;s sleep recovery prompt when you return.
         </p>

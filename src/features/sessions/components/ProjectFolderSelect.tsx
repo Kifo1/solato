@@ -340,10 +340,10 @@ export function ProjectFolderSelect({
           'flex w-full items-center gap-2.5 rounded-lg py-1.5 pr-2.5 text-left transition-colors hover:cursor-pointer',
           !options?.indentPx && 'pl-2.5',
           isSelected
-            ? 'bg-amber-500/12 text-[#F4F5F7]'
+            ? 'bg-amber-500/12 text-fg'
             : isHighlighted
-              ? 'bg-white/[0.06] text-[#F4F5F7]'
-              : 'text-[#D0D5DE] hover:bg-white/[0.05]',
+              ? 'bg-tint text-fg'
+              : 'text-fg-bright hover:bg-tint',
         )}
       >
         <span
@@ -354,7 +354,7 @@ export function ProjectFolderSelect({
         {options?.showFolderBadge && projectFolder && (
           <span
             title={folderPath}
-            className="inline-flex max-w-28 shrink-0 items-center gap-1 truncate rounded-md border border-white/[0.08] bg-white/[0.04] px-1.5 py-0.5 text-[10px] font-medium text-[#9CA3B0]"
+            className="inline-flex max-w-28 shrink-0 items-center gap-1 truncate rounded-md border border-line bg-tint px-1.5 py-0.5 text-[10px] font-medium text-fg-secondary"
           >
             <span
               className="h-1.5 w-1.5 shrink-0 rounded-full"
@@ -379,17 +379,17 @@ export function ProjectFolderSelect({
           type="button"
           onClick={() => toggleGroup(group.id)}
           style={{ paddingLeft: `${headerPadLeft}px` }}
-          className="flex w-full items-center gap-2 rounded-lg py-1.5 pr-2.5 text-left text-xs font-medium text-[#9CA3B0] transition-colors hover:cursor-pointer hover:bg-white/[0.04] hover:text-[#F4F5F7]"
+          className="flex w-full items-center gap-2 rounded-lg py-1.5 pr-2.5 text-left text-xs font-medium text-fg-secondary transition-colors hover:cursor-pointer hover:bg-tint hover:text-fg"
         >
           <ChevronRight
             className={cn(
-              'h-3.5 w-3.5 shrink-0 text-[#646C7A] transition-transform duration-150',
+              'h-3.5 w-3.5 shrink-0 text-fg-muted transition-transform duration-150',
               expanded && 'rotate-90',
             )}
           />
           <FolderIcon className="h-3.5 w-3.5 shrink-0" style={{ color: group.color }} />
           <span className="truncate">{group.name}</span>
-          <span className="ml-auto font-mono text-[11px] tabular-nums text-[#646C7A]">
+          <span className="ml-auto font-mono text-[11px] tabular-nums text-fg-muted">
             {group.totalProjects}
           </span>
         </button>
@@ -410,14 +410,14 @@ export function ProjectFolderSelect({
       ? cn(
           'inline-flex h-8.5 min-w-44 max-w-64 items-center justify-between gap-2 rounded-xl border px-3 text-left text-xs font-medium transition-all duration-150 hover:cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/50',
           isOpen
-            ? 'border-amber-500/60 bg-[#14171F] text-[#F4F5F7] ring-2 ring-amber-500/15'
-            : 'border-white/[0.09] bg-[#0E1015] text-[#F4F5F7] hover:border-white/[0.16] hover:bg-[#14171F]',
+            ? 'border-amber-500/60 bg-surface text-fg ring-2 ring-amber-500/15'
+            : 'border-line bg-well text-fg hover:border-line-strong hover:bg-surface',
         )
       : cn(
           'flex h-10 w-full items-center justify-between gap-2 rounded-xl border px-3.5 text-left text-sm transition-all duration-150 hover:cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/50',
           isOpen
-            ? 'border-amber-500/60 bg-[#0E1015] text-[#F4F5F7] ring-2 ring-amber-500/20'
-            : 'border-white/[0.09] bg-[#0E1015] text-[#F4F5F7] hover:border-white/[0.16]',
+            ? 'border-amber-500/60 bg-well text-fg ring-2 ring-amber-500/20'
+            : 'border-line bg-well text-fg hover:border-line-strong',
         );
 
   return (
@@ -445,11 +445,11 @@ export function ProjectFolderSelect({
                 className="h-2.5 w-2.5 shrink-0 rounded-full"
                 style={{ backgroundColor: selectedProject.color }}
               />
-              <span className="truncate font-medium text-[#F4F5F7]">{selectedProject.name}</span>
+              <span className="truncate font-medium text-fg">{selectedProject.name}</span>
               {selectedFolder && (
                 <span
                   title={folderPathMap.get(selectedFolder.id)}
-                  className="inline-flex max-w-24 shrink-0 items-center gap-1 truncate rounded-md border border-white/[0.08] bg-white/[0.04] px-1.5 py-0.5 text-[10px] font-medium text-[#9CA3B0]"
+                  className="inline-flex max-w-24 shrink-0 items-center gap-1 truncate rounded-md border border-line bg-tint px-1.5 py-0.5 text-[10px] font-medium text-fg-secondary"
                 >
                   <span className="truncate">{selectedFolder.name}</span>
                 </span>
@@ -463,7 +463,7 @@ export function ProjectFolderSelect({
                   'shrink-0 text-amber-400',
                 )}
               />
-              <span className="truncate text-[#D0D5DE]">
+              <span className="truncate text-fg-bright">
                 {allowAll ? allLabel : 'Select project'}
               </span>
             </>
@@ -472,8 +472,8 @@ export function ProjectFolderSelect({
         <ChevronDown
           className={cn(
             variant === 'filter' ? 'h-3.5 w-3.5' : 'h-4 w-4',
-            'shrink-0 text-[#646C7A] transition-transform duration-150',
-            isOpen && 'rotate-180 text-[#9CA3B0]',
+            'shrink-0 text-fg-muted transition-transform duration-150',
+            isOpen && 'rotate-180 text-fg-secondary',
           )}
         />
       </button>
@@ -502,21 +502,21 @@ export function ProjectFolderSelect({
               className="surface-elevated animate-popover fixed z-[1201] overflow-hidden rounded-xl"
             >
               {/* Search bar */}
-              <div className="flex items-center gap-2 border-b border-white/[0.07] bg-[#101319]/80 px-3 py-2.5">
-                <Search className="h-3.5 w-3.5 shrink-0 text-[#646C7A]" />
+              <div className="flex items-center gap-2 border-b border-line-subtle bg-well/80 px-3 py-2.5">
+                <Search className="h-3.5 w-3.5 shrink-0 text-fg-muted" />
                 <input
                   type="text"
                   autoFocus
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search projects or folders..."
-                  className="w-full bg-transparent text-xs text-[#F4F5F7] placeholder-[#646C7A] focus:outline-none"
+                  className="w-full bg-transparent text-xs text-fg placeholder-fg-muted focus:outline-none"
                 />
                 {isSearching && (
                   <button
                     type="button"
                     onClick={() => setSearchQuery('')}
-                    className="rounded p-0.5 text-[#646C7A] transition-colors hover:cursor-pointer hover:text-[#F4F5F7]"
+                    className="rounded p-0.5 text-fg-muted transition-colors hover:cursor-pointer hover:text-fg"
                     aria-label="Clear search"
                   >
                     <X className="h-3.5 w-3.5" />
@@ -533,7 +533,7 @@ export function ProjectFolderSelect({
                       )}
                     </div>
                   ) : (
-                    <div className="px-3 py-4 text-center text-xs text-[#646C7A]">
+                    <div className="px-3 py-4 text-center text-xs text-fg-muted">
                       No matching projects
                     </div>
                   )
@@ -549,10 +549,10 @@ export function ProjectFolderSelect({
                         className={cn(
                           'flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-left transition-colors hover:cursor-pointer',
                           value === null
-                            ? 'bg-amber-500/12 font-medium text-[#F4F5F7]'
+                            ? 'bg-amber-500/12 font-medium text-fg'
                             : highlightedId === null
-                              ? 'bg-white/[0.06] text-[#F4F5F7]'
-                              : 'text-[#D0D5DE] hover:bg-white/[0.05]',
+                              ? 'bg-tint text-fg'
+                              : 'text-fg-bright hover:bg-tint',
                         )}
                       >
                         <Layers className="h-3.5 w-3.5 shrink-0 text-amber-400" />
@@ -564,17 +564,17 @@ export function ProjectFolderSelect({
                     )}
 
                     {projects.length === 0 ? (
-                      <div className="px-3 py-4 text-center text-xs text-[#646C7A]">
+                      <div className="px-3 py-4 text-center text-xs text-fg-muted">
                         No projects found
                       </div>
                     ) : hasFoldersWithProjects ? (
                       <div
                         className={cn(
                           'space-y-0.5',
-                          allowAll && 'mt-1.5 border-t border-white/[0.06] pt-1.5',
+                          allowAll && 'mt-1.5 border-t border-line-subtle pt-1.5',
                         )}
                       >
-                        <div className="px-2.5 py-1 text-[10px] font-semibold tracking-wider text-[#646C7A] uppercase">
+                        <div className="px-2.5 py-1 text-[10px] font-semibold tracking-wider text-fg-muted uppercase">
                           Folders
                         </div>
                         {folderTreeGroups.map((group) => renderFolderGroup(group))}
@@ -583,7 +583,7 @@ export function ProjectFolderSelect({
                       <div
                         className={cn(
                           'space-y-0.5',
-                          allowAll && 'mt-1.5 border-t border-white/[0.06] pt-1.5',
+                          allowAll && 'mt-1.5 border-t border-line-subtle pt-1.5',
                         )}
                       >
                         {projects.map((project) => renderProjectRow(project))}

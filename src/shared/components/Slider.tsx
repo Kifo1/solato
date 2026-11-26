@@ -26,19 +26,19 @@ const ACCENT_STYLES = {
     fill: 'bg-amber-500',
     thumbBorder: 'border-amber-400',
     ring: 'focus-visible:ring-amber-400/40',
-    tooltip: 'bg-amber-500 text-[#0A0B0E]',
+    tooltip: 'bg-amber-500 text-on-accent',
   },
   teal: {
     fill: 'bg-teal-400',
     thumbBorder: 'border-teal-400',
     ring: 'focus-visible:ring-teal-400/40',
-    tooltip: 'bg-teal-400 text-[#0A0B0E]',
+    tooltip: 'bg-teal-400 text-on-accent',
   },
   sky: {
     fill: 'bg-sky-400',
     thumbBorder: 'border-sky-400',
     ring: 'focus-visible:ring-sky-400/40',
-    tooltip: 'bg-sky-400 text-[#0A0B0E]',
+    tooltip: 'bg-sky-400 text-on-accent',
   },
 } as const;
 
@@ -143,7 +143,7 @@ export function CustomSlider({
         onMouseLeave={() => setIsHovering(false)}
       >
         {/* Background track */}
-        <div className="absolute h-1.5 w-full rounded-full bg-white/[0.08]" />
+        <div className="absolute h-1.5 w-full rounded-full bg-tint-strong" />
 
         {/* Active fill track */}
         <div
@@ -164,7 +164,7 @@ export function CustomSlider({
               <span
                 className={cn(
                   'mt-4 font-mono text-[11px] tabular-nums transition-colors',
-                  isReached ? 'text-[#9CA3B0]' : 'text-[#555D6B]',
+                  isReached ? 'text-fg-secondary' : 'text-fg-muted',
                 )}
               >
                 {mark.label}
@@ -184,7 +184,7 @@ export function CustomSlider({
           aria-disabled={disabled}
           onKeyDown={handleKeyDown}
           className={cn(
-            'absolute top-1/2 h-4.5 w-4.5 rounded-full border-2 bg-[#F4F5F7] shadow-[0_2px_8px_rgba(0,0,0,0.6)] transition-transform duration-100 ease-out focus-visible:ring-4 focus-visible:outline-none',
+            'absolute top-1/2 h-4.5 w-4.5 rounded-full border-2 bg-white shadow-[0_2px_8px_rgba(0,0,0,0.6)] transition-transform duration-100 ease-out focus-visible:ring-4 focus-visible:outline-none',
             accent.thumbBorder,
             accent.ring,
           )}
