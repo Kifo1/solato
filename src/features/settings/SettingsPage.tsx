@@ -1,5 +1,6 @@
 import DiscordSettings from '@features/settings/components/DiscordSettings.tsx';
 import PhaseDurationSliders from '@features/settings/components/PhaseDurationSliders.tsx';
+import PowerSettings from '@features/settings/components/PowerSettings.tsx';
 
 export default function SettingsPage() {
   return (
@@ -10,6 +11,7 @@ export default function SettingsPage() {
       </p>
       <div className="flex flex-col gap-5">
         <PhaseDurationSliders></PhaseDurationSliders>
+        <PowerSettings></PowerSettings>
         <DiscordSettings></DiscordSettings>
       </div>
     </div>

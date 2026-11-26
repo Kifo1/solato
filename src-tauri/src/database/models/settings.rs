@@ -7,4 +7,5 @@ pub struct AppSettings {
     pub short_break: i64,
     pub long_break: i64,
     pub discord_rich_presence: bool,
+    pub keep_awake_pomodoro: bool,
 }

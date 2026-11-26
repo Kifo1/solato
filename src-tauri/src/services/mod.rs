@@ -2,6 +2,7 @@ pub mod analytics_service;
 pub mod api;
 pub mod discord_service;
 pub mod folder_service;
+pub mod power_service;
 pub mod project_service;
 pub mod session_service;
 pub mod settings_service;

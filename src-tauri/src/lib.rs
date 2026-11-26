@@ -36,6 +36,7 @@ pub fn run() {
 
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_notification::init())
         .plugin(
             tauri_plugin_log::Builder::new()
                 .targets([
@@ -128,6 +129,8 @@ pub fn run() {
                     client: Mutex::new(None),
                 });
 
+                handle.manage(services::power_service::PowerState::new());
+
                 pool
             });
 
@@ -189,6 +192,7 @@ pub fn run() {
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { .. } = event {
                 let app_handle = window.app_handle();
+                services::power_service::set_keep_awake(app_handle, false);
 
                 if let (Some(state), Some(db), Some(api)) = (
                     app_handle.try_state::<SharedTimerState>(),
@@ -230,6 +234,8 @@ pub fn run() {
             commands::timer_commands::get_pomodoro_phase,
             commands::timer_commands::set_selected_project,
             commands::timer_commands::get_selected_project,
+            commands::timer_commands::get_pending_sleep_recovery,
+            commands::timer_commands::resolve_sleep_recovery,
             commands::project_commands::create_project,
             commands::project_commands::update_project,
             commands::project_commands::update_project_folder,

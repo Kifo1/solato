@@ -7,7 +7,11 @@ import { Project } from '@features/projects/ProjectsPage.tsx';
 import { useSettings } from '@/features/settings/hooks/useSettings';
 import { PresenceState, usePresence } from '@shared/hooks/usePresence';
 
-type Subscriber = { tick: (n: number) => void; phase: (n: number) => void };
+type Subscriber = {
+  tick: (n: number) => void;
+  phase: (n: number) => void;
+  running: (isRunning: boolean) => void;
+};
 let moduleListenersRegistered = false;
 const subscribers = new Set<Subscriber>();
 const sharedAudio = new Audio(phaseChangeSound);
@@ -23,6 +27,10 @@ async function ensureModuleListeners() {
 
   await listen<number>('pomodoro-phase', (event) => {
     subscribers.forEach((s) => s.phase(event.payload));
+  });
+
+  await listen<boolean>('timer-running-changed', (event) => {
+    subscribers.forEach((s) => s.running(event.payload));
   });
 
   await listen('pomodoro-phase-sound', () => {
@@ -91,6 +99,9 @@ export function useTimer() {
       },
       phase: (n: number) => {
         setPomodoroPhase(n);
+      },
+      running: (running: boolean) => {
+        setIsRunning(running);
       },
     };
 

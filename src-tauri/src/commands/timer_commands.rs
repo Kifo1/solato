@@ -1,7 +1,9 @@
 use crate::database::models::project::Project;
-use crate::models::timer::{ActiveMode, SharedTimerState};
+use crate::models::timer::{
+    ActiveMode, SharedTimerState, SleepRecoveryAction, SleepRecoveryInfo,
+};
 use crate::services::discord_service::PresenceState;
-use crate::services::{discord_service, timer_service};
+use crate::services::{discord_service, power_service, timer_service};
 use tauri::{AppHandle, Manager, State};
 
 #[tauri::command]
@@ -34,16 +36,21 @@ pub async fn reset_timer(app: AppHandle) -> Result<(), String> {
 
 #[tauri::command]
 pub fn switch_timer_mode(
+    app: AppHandle,
     timer_mode: String,
     state: State<'_, SharedTimerState>,
 ) -> Result<(), String> {
-    let mut state = state.lock().map_err(|_| "Mutex Error")?;
+    {
+        let mut state = state.lock().map_err(|_| "Mutex Error")?;
 
-    if timer_mode == "stopwatch" {
-        state.active_mode = ActiveMode::Stopwatch;
-    } else if timer_mode == "pomodoro" {
-        state.active_mode = ActiveMode::Pomodoro;
+        if timer_mode == "stopwatch" {
+            state.active_mode = ActiveMode::Stopwatch;
+        } else if timer_mode == "pomodoro" {
+            state.active_mode = ActiveMode::Pomodoro;
+        }
     }
+
+    power_service::sync_keep_awake(&app);
 
     Ok(())
 }
@@ -86,4 +93,20 @@ pub async fn set_selected_project(app: AppHandle, project: Option<Project>) -> R
 pub fn get_selected_project(state: State<'_, SharedTimerState>) -> Result<Option<Project>, String> {
     let timer = state.lock().map_err(|_| "Failed to lock state")?;
     Ok(timer.selected_project.clone())
+}
+
+#[tauri::command]
+pub fn get_pending_sleep_recovery(
+    state: State<'_, SharedTimerState>,
+) -> Result<Option<SleepRecoveryInfo>, String> {
+    let timer = state.lock().map_err(|_| "Failed to lock state")?;
+    Ok(timer.pending_sleep_recovery.clone())
+}
+
+#[tauri::command]
+pub async fn resolve_sleep_recovery(
+    app: AppHandle,
+    action: SleepRecoveryAction,
+) -> Result<(), String> {
+    timer_service::resolve_sleep_recovery(app, action).await
 }

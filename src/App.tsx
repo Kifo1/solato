@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import AnalyticsPage from '@features/analytics/AnalyticsPage.tsx';
 import SettingsPage from '@features/settings/SettingsPage.tsx';
+import SleepRecoveryModal from '@features/timer/components/SleepRecoveryModal.tsx';
 
 const queryClient = new QueryClient();
 
@@ -26,6 +27,7 @@ function App() {
             </Routes>
           </div>
         </div>
+        <SleepRecoveryModal />
       </BrowserRouter>
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>

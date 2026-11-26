@@ -106,12 +106,28 @@ pub async fn start_session(
 }
 
 pub async fn stop_session(session_id: String, db: &DbState) -> Result<(), String> {
-    let pool = &db.pool;
-    let now = Utc::now();
+    stop_session_at(session_id, Utc::now(), db).await
+}
+
+pub async fn stop_session_at(
+    session_id: String,
+    end_time: DateTime<Utc>,
+    db: &DbState,
+) -> Result<(), String> {
+    stop_session_at_in_pool(&db.pool, session_id, end_time).await
+}
+
+pub async fn stop_session_at_in_pool(
+    pool: &SqlitePool,
+    session_id: String,
+    end_time: DateTime<Utc>,
+) -> Result<(), String> {
+    let updated_at = Utc::now().to_rfc3339_opts(SecondsFormat::Secs, true);
 
     sqlx::query!(
-        "UPDATE sessions SET end_time = ? WHERE id = ? AND is_deleted = 0",
-        now,
+        "UPDATE sessions SET end_time = ?, updated_at = ? WHERE id = ? AND is_deleted = 0",
+        end_time,
+        updated_at,
         session_id
     )
     .execute(pool)
