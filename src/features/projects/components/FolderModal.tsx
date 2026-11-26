@@ -1,5 +1,6 @@
 import Button from '@/shared/components/Button';
 import { TextInput } from '@/shared/components/TextInput';
+import { useToast } from '@shared/context/ToastContext';
 import { Folder, getDescendantFolderIds } from '@/shared/lib/models/project';
 import { cn, getErrorMessage } from '@/shared/lib/utils';
 import Modal from '@shared/components/Modal';
@@ -38,6 +39,7 @@ export function FolderModal({
   setIsModalOpen,
 }: Readonly<FolderModalProps>) {
   const queryClient = useQueryClient();
+  const toast = useToast();
   const uid = useId();
   const nameInputId = `${uid}-folder-name`;
   const colorInputId = `${uid}-folder-color`;
@@ -76,12 +78,13 @@ export function FolderModal({
         parentId: payload.parentId,
       });
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['folders'] });
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       queryClient.invalidateQueries({ queryKey: ['timer_projects'] });
       queryClient.invalidateQueries({ queryKey: ['analytics'] });
       queryClient.invalidateQueries({ queryKey: ['localSelectedProjects'] });
+      toast.success(isEditing ? 'Folder updated' : 'Folder created', variables.name);
       setIsModalOpen(false);
     },
     onError: (err) => {

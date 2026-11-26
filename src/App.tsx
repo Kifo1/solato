@@ -9,6 +9,9 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import AnalyticsPage from '@features/analytics/AnalyticsPage.tsx';
 import SettingsPage from '@features/settings/SettingsPage.tsx';
 import SleepRecoveryModal from '@features/timer/components/SleepRecoveryModal.tsx';
+import { LayoutProvider, useLayout } from '@shared/context/LayoutContext';
+import { ToastProvider } from '@shared/context/ToastContext';
+import { CommandPalette } from '@shared/components/CommandPalette';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -22,10 +25,15 @@ const queryClient = new QueryClient({
 function AppShell() {
   const location = useLocation();
   const mainRef = useRef<HTMLElement>(null);
+  const { setZenMode } = useLayout();
 
   useEffect(() => {
     mainRef.current?.scrollTo({ top: 0 });
-  }, [location.pathname]);
+    // Automatically exit Zen Mode if user navigates away from Timer
+    if (location.pathname !== '/timer') {
+      setZenMode(false);
+    }
+  }, [location.pathname, setZenMode]);
 
   return (
     <div className="studio-canvas flex h-screen w-screen overflow-hidden text-[#F4F5F7]">
@@ -39,6 +47,8 @@ function AppShell() {
           <Route path="/settings" element={<SettingsPage />} />
         </Routes>
       </main>
+      <CommandPalette />
+      <SleepRecoveryModal />
     </div>
   );
 }
@@ -46,10 +56,13 @@ function AppShell() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <AppShell />
-        <SleepRecoveryModal />
-      </BrowserRouter>
+      <ToastProvider>
+        <LayoutProvider>
+          <BrowserRouter>
+            <AppShell />
+          </BrowserRouter>
+        </LayoutProvider>
+      </ToastProvider>
       {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
     </QueryClientProvider>
   );

@@ -1,4 +1,5 @@
 import { useEffect, useId, useState } from 'react';
+import { format } from 'date-fns';
 import { cn, formatMillisParts } from '@shared/lib/utils';
 import { PomodoroPhases } from './PomodoroPhases';
 import { useSettings } from '@/features/settings/hooks/useSettings';
@@ -148,6 +149,11 @@ export function TimerDisplay({ millis, mode, pomodoroPhase, isRunning }: Readonl
       ? 'Session paused'
       : 'Ready to focus';
 
+  const endsAtLabel =
+    mode === 'pomodoro' && isRunning && millis > 0
+      ? format(new Date(Math.round((Date.now() + millis) / 5000) * 5000), 'HH:mm')
+      : null;
+
   return (
     <div className="relative flex h-full w-full items-center justify-center select-none">
       <svg
@@ -249,7 +255,7 @@ export function TimerDisplay({ millis, mode, pomodoroPhase, isRunning }: Readonl
       </svg>
 
       {/* Upper micro-status inside dial */}
-      <div className="pointer-events-none absolute top-[18%] z-10 flex items-center gap-1.5">
+      <div className="pointer-events-none absolute top-[17.5%] z-10 flex items-center gap-1.5">
         <span
           className={cn(
             'h-1.5 w-1.5 rounded-full transition-all duration-300',
@@ -261,36 +267,40 @@ export function TimerDisplay({ millis, mode, pomodoroPhase, isRunning }: Readonl
         </span>
       </div>
 
-      {/* Primary tabular chronometer readout */}
-      <div
-        role="timer"
-        aria-live="off"
-        className="relative z-10 flex items-baseline justify-center px-6"
-      >
-        <span
-          className={cn(
-            'font-mono leading-none font-semibold tracking-[-0.03em] text-[#F4F5F7] tabular-nums transition-[font-size] duration-200',
-            isOverAnHour
-              ? 'text-[clamp(1.85rem,4.6vh,2.6rem)]'
-              : 'text-[clamp(2.55rem,6.3vh,3.55rem)]',
-          )}
-        >
-          {main}
-        </span>
-        <span
-          className={cn(
-            'ml-0.5 font-mono leading-none font-medium text-[#646C7A] tabular-nums',
-            isOverAnHour
-              ? 'text-[clamp(0.95rem,2.2vh,1.3rem)]'
-              : 'text-[clamp(1.25rem,2.8vh,1.65rem)]',
-          )}
-        >
-          .{tenths}
-        </span>
+      {/* Primary tabular chronometer readout + subtle Pomodoro finish clock time */}
+      <div className="relative z-10 flex flex-col items-center justify-center px-6">
+        <div role="timer" aria-live="off" className="flex items-baseline justify-center">
+          <span
+            className={cn(
+              'font-mono leading-none font-semibold tracking-[-0.03em] text-[#F4F5F7] tabular-nums transition-[font-size] duration-200',
+              isOverAnHour
+                ? 'text-[clamp(1.85rem,4.6vh,2.6rem)]'
+                : 'text-[clamp(2.55rem,6.3vh,3.55rem)]',
+            )}
+          >
+            {main}
+          </span>
+          <span
+            className={cn(
+              'ml-0.5 font-mono leading-none font-medium text-[#646C7A] tabular-nums',
+              isOverAnHour
+                ? 'text-[clamp(0.95rem,2.2vh,1.3rem)]'
+                : 'text-[clamp(1.25rem,2.8vh,1.65rem)]',
+            )}
+          >
+            .{tenths}
+          </span>
+        </div>
+
+        {endsAtLabel && (
+          <p className="mt-2 font-mono text-[11px] font-medium tracking-wide text-[#858E9E] tabular-nums">
+            Ends at <span className="text-[#C7CDD8]">{endsAtLabel}</span>
+          </p>
+        )}
       </div>
 
       {/* Lower phase / session indicator inside dial */}
-      <div className="absolute bottom-[15.5%] z-10 flex flex-col items-center">
+      <div className="absolute bottom-[14.5%] z-10 flex flex-col items-center">
         {mode === 'pomodoro' ? (
           <PomodoroPhases currentPhase={pomodoroPhase} isRunning={isRunning} />
         ) : (

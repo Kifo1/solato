@@ -6,6 +6,7 @@ interface Props {
   isRunning: boolean;
   mode?: 'stopwatch' | 'pomodoro';
   pomodoroPhase?: number;
+  canReset?: boolean;
   onStartStop: () => void;
   onReset: () => void;
 }
@@ -14,6 +15,7 @@ export function TimerControls({
   isRunning,
   mode = 'stopwatch',
   pomodoroPhase = 0,
+  canReset = true,
   onStartStop,
   onReset,
 }: Readonly<Props>) {
@@ -48,11 +50,17 @@ export function TimerControls({
         variant="secondary"
         scale="icon_md"
         onClick={onReset}
+        disabled={!canReset}
         aria-label="Reset timer"
-        title="Reset timer (R)"
+        title={canReset ? 'Reset timer (R)' : 'Timer is already reset'}
         className="group h-11 w-11 rounded-full p-0"
       >
-        <RotateCcw className="h-4 w-4 text-[#9CA3B0] transition-transform duration-300 group-hover:-rotate-45 group-hover:text-[#F4F5F7]" />
+        <RotateCcw
+          className={cn(
+            'h-4 w-4 text-[#9CA3B0] transition-transform duration-300',
+            canReset && 'group-hover:-rotate-45 group-hover:text-[#F4F5F7]',
+          )}
+        />
       </Button>
     </div>
   );

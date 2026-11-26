@@ -7,25 +7,40 @@ import {
   Project,
   TimerProjectsResponse,
 } from '@/shared/lib/models/project';
-import { cn } from '@shared/lib/utils';
-import { useQuery } from '@tanstack/react-query';
+import { useToast } from '@shared/context/ToastContext';
+import { cn, getErrorMessage } from '@shared/lib/utils';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { invoke } from '@tauri-apps/api/core';
 import {
+  ArrowLeft,
+  ArrowUpRight,
   Check,
   ChevronDown,
   ChevronRight,
   CircleSlash,
   Folder as FolderIcon,
+  Loader2,
+  Plus,
   Search,
   Sparkles,
   X,
 } from 'lucide-react';
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+} from 'react';
 import { createPortal } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 
 interface TimerProjectDropdownProps {
   currentProject: Project | null;
   switchCurrentProject: (project: Project | null) => void;
+  variant?: 'compact' | 'default';
 }
 
 interface PopulatedFolderNode {
@@ -50,16 +65,40 @@ interface PopoverPosition {
 const UNASSIGNED_GROUP_KEY = '__unassigned__';
 const VIEWPORT_MARGIN = 12;
 const POPOVER_GAP = 8;
-const PREFERRED_MENU_HEIGHT = 320;
+const PREFERRED_MENU_HEIGHT = 400;
+const COMPACT_MIN_POPOVER_WIDTH = 312;
+
+const QUICK_CREATE_COLORS = [
+  { name: 'Solar Amber', hex: '#F59E0B' },
+  { name: 'Coral', hex: '#F97316' },
+  { name: 'Rose', hex: '#F43F5E' },
+  { name: 'Emerald', hex: '#10B981' },
+  { name: 'Teal', hex: '#14B8A6' },
+  { name: 'Sky', hex: '#38BDF8' },
+  { name: 'Indigo', hex: '#6366F1' },
+  { name: 'Lavender', hex: '#A78BFA' },
+] as const;
 
 export function TimerProjectDropdown({
   currentProject,
   switchCurrentProject,
+  variant = 'compact',
 }: Readonly<TimerProjectDropdownProps>) {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const toast = useToast();
+
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
   const [position, setPosition] = useState<PopoverPosition | null>(null);
+
+  // Inline quick-create state
+  const [isQuickCreateOpen, setIsQuickCreateOpen] = useState(false);
+  const [quickName, setQuickName] = useState('');
+  const [quickDescription, setQuickDescription] = useState('');
+  const [quickColor, setQuickColor] = useState<string>(QUICK_CREATE_COLORS[0].hex);
+  const [quickError, setQuickError] = useState<string | null>(null);
 
   const triggerRef = useRef<HTMLButtonElement>(null);
 
@@ -166,10 +205,89 @@ export function TimerProjectDropdown({
     [projects, recommendedIds],
   );
 
+  const resetQuickCreate = useCallback(() => {
+    setIsQuickCreateOpen(false);
+    setQuickName('');
+    setQuickDescription('');
+    setQuickColor(QUICK_CREATE_COLORS[0].hex);
+    setQuickError(null);
+  }, []);
+
   const closeDropdown = useCallback(() => {
     setIsOpen(false);
     setSearchQuery('');
+    resetQuickCreate();
+  }, [resetQuickCreate]);
+
+  const openQuickCreate = useCallback((initialName = '') => {
+    setQuickName(initialName);
+    setQuickDescription('');
+    setQuickColor(QUICK_CREATE_COLORS[0].hex);
+    setQuickError(null);
+    setIsQuickCreateOpen(true);
   }, []);
+
+  const quickCreateMutation = useMutation({
+    mutationFn: async (payload: {
+      name: string;
+      description: string;
+      color: string;
+      existingIds: Set<string>;
+    }) => {
+      await invoke('create_project', {
+        name: payload.name,
+        description: payload.description,
+        color: payload.color,
+        folderId: null,
+      });
+
+      const refreshed = await queryClient.fetchQuery({
+        queryKey: ['timer_projects'],
+        queryFn: () => invoke<TimerProjectsResponse>('get_timer_projects'),
+      });
+
+      const created =
+        refreshed.projects.find((p) => !payload.existingIds.has(p.id)) ??
+        refreshed.projects.find((p) => p.name === payload.name && p.color === payload.color) ??
+        null;
+
+      return { created, name: payload.name };
+    },
+    onSuccess: ({ created, name }) => {
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      queryClient.invalidateQueries({ queryKey: ['timer_projects'] });
+      queryClient.invalidateQueries({ queryKey: ['analytics'] });
+      queryClient.invalidateQueries({ queryKey: ['localSelectedProjects'] });
+
+      if (created) {
+        switchCurrentProject(created);
+      }
+      toast.success(`Project "${name}" ready`, 'Selected for your active session.');
+      closeDropdown();
+    },
+    onError: (err) => {
+      setQuickError(getErrorMessage(err, 'Failed to create project.'));
+    },
+  });
+
+  const handleQuickCreateSubmit = (event: FormEvent) => {
+    event.preventDefault();
+    const trimmedName = quickName.trim();
+    const trimmedDescription = quickDescription.trim();
+
+    if (!trimmedName) {
+      setQuickError('Enter a project name.');
+      return;
+    }
+
+    setQuickError(null);
+    quickCreateMutation.mutate({
+      name: trimmedName,
+      description: trimmedDescription || 'Focused work',
+      color: quickColor,
+      existingIds: new Set(projects.map((p) => p.id)),
+    });
+  };
 
   const updatePopoverPosition = useCallback(() => {
     const trigger = triggerRef.current;
@@ -180,7 +298,9 @@ export function TimerProjectDropdown({
     const spaceAbove = rect.top - VIEWPORT_MARGIN;
     const openUpward = spaceBelow < 260 && spaceAbove > spaceBelow;
 
-    const clampedWidth = Math.min(rect.width, window.innerWidth - VIEWPORT_MARGIN * 2);
+    const desiredWidth =
+      variant === 'compact' ? Math.max(rect.width, COMPACT_MIN_POPOVER_WIDTH) : rect.width;
+    const clampedWidth = Math.min(desiredWidth, window.innerWidth - VIEWPORT_MARGIN * 2);
     const clampedLeft = Math.max(
       VIEWPORT_MARGIN,
       Math.min(rect.left, window.innerWidth - clampedWidth - VIEWPORT_MARGIN),
@@ -191,7 +311,7 @@ export function TimerProjectDropdown({
         left: clampedLeft,
         width: clampedWidth,
         bottom: window.innerHeight - rect.top + POPOVER_GAP,
-        maxHeight: Math.min(PREFERRED_MENU_HEIGHT, Math.max(160, spaceAbove - POPOVER_GAP)),
+        maxHeight: Math.min(PREFERRED_MENU_HEIGHT, Math.max(180, spaceAbove - POPOVER_GAP)),
         openUpward: true,
       });
     } else {
@@ -199,11 +319,11 @@ export function TimerProjectDropdown({
         left: clampedLeft,
         width: clampedWidth,
         top: rect.bottom + POPOVER_GAP,
-        maxHeight: Math.min(PREFERRED_MENU_HEIGHT, Math.max(160, spaceBelow - POPOVER_GAP)),
+        maxHeight: Math.min(PREFERRED_MENU_HEIGHT, Math.max(180, spaceBelow - POPOVER_GAP)),
         openUpward: false,
       });
     }
-  }, []);
+  }, [variant]);
 
   useLayoutEffect(() => {
     if (!isOpen) return;
@@ -224,14 +344,18 @@ export function TimerProjectDropdown({
       if (event.key === 'Escape') {
         event.preventDefault();
         event.stopPropagation();
-        closeDropdown();
-        triggerRef.current?.focus();
+        if (isQuickCreateOpen) {
+          resetQuickCreate();
+        } else {
+          closeDropdown();
+          triggerRef.current?.focus();
+        }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, closeDropdown]);
+  }, [isOpen, isQuickCreateOpen, resetQuickCreate, closeDropdown]);
 
   const isGroupExpanded = (groupId: string) => {
     if (groupId in expandedGroups) {
@@ -256,6 +380,11 @@ export function TimerProjectDropdown({
     closeDropdown();
   };
 
+  const handleNavigateManageProjects = () => {
+    closeDropdown();
+    navigate('/projects');
+  };
+
   const renderProjectRow = (
     project: Project,
     options?: { showFolderBadge?: boolean; indentPx?: number },
@@ -268,6 +397,8 @@ export function TimerProjectDropdown({
       <button
         key={project.id}
         type="button"
+        role="option"
+        aria-selected={isSelected}
         onClick={() => handleSelectProject(project)}
         style={options?.indentPx ? { paddingLeft: `${options.indentPx}px` } : undefined}
         className={cn(
@@ -349,7 +480,7 @@ export function TimerProjectDropdown({
               onMouseDown={closeDropdown}
             />
             <div
-              role="listbox"
+              role="dialog"
               aria-label="Select project"
               style={{
                 left: `${position.left}px`,
@@ -363,118 +494,329 @@ export function TimerProjectDropdown({
                 position.openUpward ? 'origin-bottom' : 'origin-top',
               )}
             >
-              {/* Search bar */}
-              <div className="flex shrink-0 items-center gap-2 border-b border-white/[0.07] px-3 py-2.5">
-                <Search className="h-3.5 w-3.5 shrink-0 text-[#646C7A]" />
-                <input
-                  type="text"
-                  autoFocus
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search projects or folders..."
-                  className="w-full bg-transparent text-xs text-[#F4F5F7] placeholder-[#646C7A] focus:outline-none"
-                />
-                {isSearching && (
-                  <button
-                    type="button"
-                    onClick={() => setSearchQuery('')}
-                    className="cursor-pointer rounded p-0.5 text-[#646C7A] transition-colors hover:bg-white/[0.06] hover:text-[#F4F5F7]"
-                    aria-label="Clear search"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                )}
-              </div>
-
-              {/* Scrollable results */}
-              <div className="min-h-0 flex-1 overflow-y-auto py-1">
-                {isLoading && !data ? (
-                  <div className="flex flex-col gap-1.5 px-3 py-2" aria-label="Loading projects">
-                    {[0, 1, 2].map((i) => (
-                      <div key={i} className="flex items-center gap-2.5 py-1">
-                        <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-white/[0.08]" />
-                        <span className="h-3.5 flex-1 animate-pulse rounded bg-white/[0.06]" />
-                      </div>
-                    ))}
-                  </div>
-                ) : isSearching ? (
-                  searchResults.length > 0 ? (
-                    searchResults.map((project) =>
-                      renderProjectRow(project, { showFolderBadge: true }),
-                    )
-                  ) : (
-                    <div className="px-3 py-5 text-center text-xs text-[#646C7A]">
-                      No matching projects
-                    </div>
-                  )
-                ) : (
-                  <>
-                    {/* No project option */}
+              {isQuickCreateOpen ? (
+                <form onSubmit={handleQuickCreateSubmit} className="flex flex-col">
+                  <div className="flex items-center justify-between border-b border-white/[0.07] px-3 py-2.5">
                     <button
                       type="button"
-                      onClick={() => handleSelectProject(null)}
-                      className={cn(
-                        'flex w-full cursor-pointer items-center gap-2.5 px-3 py-2 text-left transition-colors hover:bg-white/[0.05]',
-                        isUntracked ? 'bg-amber-500/10 text-[#F4F5F7]' : 'text-[#9CA3B0]',
-                      )}
+                      onClick={resetQuickCreate}
+                      className="inline-flex cursor-pointer items-center gap-1.5 text-xs font-medium text-[#9CA3B0] transition-colors hover:text-[#F4F5F7]"
                     >
-                      <CircleSlash
-                        className={cn(
-                          'h-3.5 w-3.5 shrink-0',
-                          isUntracked ? 'text-amber-400' : 'text-[#646C7A]',
-                        )}
-                      />
-                      <span className={cn('text-sm', isUntracked && 'font-medium')}>No project</span>
-                      {isUntracked && <Check className="ml-auto h-3.5 w-3.5 text-amber-400" />}
+                      <ArrowLeft className="h-3.5 w-3.5" />
+                      <span>Quick create project</span>
                     </button>
+                    <span
+                      className="h-2.5 w-2.5 rounded-full ring-2 ring-white/10"
+                      style={{ backgroundColor: quickColor }}
+                    />
+                  </div>
 
-                    {projects.length === 0 && !isLoading && (
-                      <div className="px-3 py-3 text-xs text-[#646C7A]">
-                        No projects yet — create one in Projects.
+                  <div className="space-y-3 p-3">
+                    <div>
+                      <label htmlFor="quick-project-name" className="sr-only">
+                        Project name
+                      </label>
+                      <input
+                        id="quick-project-name"
+                        type="text"
+                        autoFocus
+                        value={quickName}
+                        onChange={(e) => {
+                          setQuickName(e.target.value);
+                          if (quickError) setQuickError(null);
+                        }}
+                        placeholder="Project name"
+                        maxLength={64}
+                        className="w-full rounded-lg border border-white/[0.08] bg-[#0F1116] px-2.5 py-2 text-xs text-[#F4F5F7] placeholder-[#646C7A] transition-colors focus:border-amber-500/45 focus:outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="quick-project-desc" className="sr-only">
+                        Short description
+                      </label>
+                      <input
+                        id="quick-project-desc"
+                        type="text"
+                        value={quickDescription}
+                        onChange={(e) => setQuickDescription(e.target.value)}
+                        placeholder="Short description (optional)"
+                        maxLength={120}
+                        className="w-full rounded-lg border border-white/[0.08] bg-[#0F1116] px-2.5 py-2 text-xs text-[#F4F5F7] placeholder-[#646C7A] transition-colors focus:border-amber-500/45 focus:outline-none"
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between gap-2 pt-0.5">
+                      <span className="text-[11px] font-medium text-[#646C7A]">Color</span>
+                      <div className="flex items-center gap-1.5">
+                        {QUICK_CREATE_COLORS.map((swatch) => {
+                          const isActive = quickColor === swatch.hex;
+                          return (
+                            <button
+                              key={swatch.hex}
+                              type="button"
+                              title={swatch.name}
+                              aria-label={`Select ${swatch.name} color`}
+                              aria-pressed={isActive}
+                              onClick={() => setQuickColor(swatch.hex)}
+                              style={{ backgroundColor: swatch.hex }}
+                              className={cn(
+                                'h-4 w-4 cursor-pointer rounded-full transition-transform duration-150 hover:scale-110 focus-visible:ring-2 focus-visible:ring-amber-400/70 focus-visible:outline-none',
+                                isActive
+                                  ? 'scale-110 ring-2 ring-[#F4F5F7] ring-offset-2 ring-offset-[#171B23]'
+                                  : 'ring-1 ring-white/15',
+                              )}
+                            />
+                          );
+                        })}
                       </div>
+                    </div>
+
+                    {quickError && (
+                      <p role="alert" className="text-[11px] text-rose-300">
+                        {quickError}
+                      </p>
                     )}
 
-                    {/* Recommended quick-picks */}
-                    {recommended.length > 0 && (
-                      <div className="mt-1 border-t border-white/[0.07] pt-1">
-                        <div className="flex items-center gap-1.5 px-3 py-1 text-[10px] font-semibold tracking-wider text-amber-400/90 uppercase">
-                          <Sparkles className="h-3 w-3" />
-                          <span>Recommended</span>
-                        </div>
-                        {recommended.map((project) =>
-                          renderProjectRow(project, { showFolderBadge: true }),
+                    <div className="flex items-center justify-end gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={resetQuickCreate}
+                        disabled={quickCreateMutation.isPending}
+                        className="cursor-pointer rounded-lg px-2.5 py-1.5 text-xs font-medium text-[#9CA3B0] transition-colors hover:bg-white/[0.06] hover:text-[#F4F5F7] disabled:opacity-50"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={quickCreateMutation.isPending}
+                        className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-semibold text-[#0A0B0E] transition-colors hover:bg-amber-400 disabled:opacity-60"
+                      >
+                        {quickCreateMutation.isPending ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Plus className="h-3.5 w-3.5" />
                         )}
-                      </div>
+                        <span>Create &amp; Select</span>
+                      </button>
+                    </div>
+                  </div>
+                </form>
+              ) : (
+                <>
+                  {/* Search bar */}
+                  <div className="flex shrink-0 items-center gap-2 border-b border-white/[0.07] px-3 py-2.5">
+                    <Search className="h-3.5 w-3.5 shrink-0 text-[#646C7A]" />
+                    <input
+                      type="text"
+                      autoFocus
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search projects or folders..."
+                      className="w-full bg-transparent text-xs text-[#F4F5F7] placeholder-[#646C7A] focus:outline-none"
+                    />
+                    {isSearching && (
+                      <button
+                        type="button"
+                        onClick={() => setSearchQuery('')}
+                        className="cursor-pointer rounded p-0.5 text-[#646C7A] transition-colors hover:bg-white/[0.06] hover:text-[#F4F5F7]"
+                        aria-label="Clear search"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
                     )}
+                  </div>
 
-                    {/* Collapsible nested folders or compact remaining list */}
-                    {hasFoldersWithProjects ? (
-                      <div className="mt-1 border-t border-white/[0.07] pt-1">
-                        <div className="px-3 py-1 text-[10px] font-semibold tracking-wider text-[#646C7A] uppercase">
-                          Folders
-                        </div>
-                        {folderTreeGroups.map((group) => renderFolderGroup(group))}
+                  {/* Scrollable results */}
+                  <div role="listbox" className="min-h-0 flex-1 overflow-y-auto py-1">
+                    {isLoading && !data ? (
+                      <div className="flex flex-col gap-1.5 px-3 py-2" aria-label="Loading projects">
+                        {[0, 1, 2].map((i) => (
+                          <div key={i} className="flex items-center gap-2.5 py-1">
+                            <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-white/[0.08]" />
+                            <span className="h-3.5 flex-1 animate-pulse rounded bg-white/[0.06]" />
+                          </div>
+                        ))}
                       </div>
-                    ) : (
-                      remainingFlatProjects.length > 0 && (
-                        <div className="mt-1 border-t border-white/[0.07] pt-1">
-                          {recommended.length > 0 && (
-                            <div className="px-3 py-1 text-[10px] font-semibold tracking-wider text-[#646C7A] uppercase">
-                              All projects
-                            </div>
-                          )}
-                          {remainingFlatProjects.map((project) => renderProjectRow(project))}
+                    ) : isSearching ? (
+                      searchResults.length > 0 ? (
+                        searchResults.map((project) =>
+                          renderProjectRow(project, { showFolderBadge: true }),
+                        )
+                      ) : (
+                        <div className="flex flex-col items-center gap-2 px-3 py-5 text-center">
+                          <p className="text-xs text-[#646C7A]">No matching projects</p>
+                          <button
+                            type="button"
+                            onClick={() => openQuickCreate(searchQuery.trim())}
+                            className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-amber-500/25 bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-300 transition-colors hover:bg-amber-500/15"
+                          >
+                            <Plus className="h-3 w-3" />
+                            <span>Create &ldquo;{searchQuery.trim()}&rdquo;</span>
+                          </button>
                         </div>
                       )
+                    ) : (
+                      <>
+                        {/* No project option */}
+                        <button
+                          type="button"
+                          role="option"
+                          aria-selected={isUntracked}
+                          onClick={() => handleSelectProject(null)}
+                          className={cn(
+                            'flex w-full cursor-pointer items-center gap-2.5 px-3 py-2 text-left transition-colors hover:bg-white/[0.05]',
+                            isUntracked ? 'bg-amber-500/10 text-[#F4F5F7]' : 'text-[#9CA3B0]',
+                          )}
+                        >
+                          <CircleSlash
+                            className={cn(
+                              'h-3.5 w-3.5 shrink-0',
+                              isUntracked ? 'text-amber-400' : 'text-[#646C7A]',
+                            )}
+                          />
+                          <span className={cn('text-sm', isUntracked && 'font-medium')}>
+                            No project
+                          </span>
+                          {isUntracked && <Check className="ml-auto h-3.5 w-3.5 text-amber-400" />}
+                        </button>
+
+                        {projects.length === 0 && !isLoading && (
+                          <div className="px-3 py-3 text-xs text-[#646C7A]">
+                            No projects yet — create one below to track your time.
+                          </div>
+                        )}
+
+                        {/* Recommended quick-picks */}
+                        {recommended.length > 0 && (
+                          <div className="mt-1 border-t border-white/[0.07] pt-1">
+                            <div className="flex items-center gap-1.5 px-3 py-1 text-[10px] font-semibold tracking-wider text-amber-400/90 uppercase">
+                              <Sparkles className="h-3 w-3" />
+                              <span>Recommended</span>
+                            </div>
+                            {recommended.map((project) =>
+                              renderProjectRow(project, { showFolderBadge: true }),
+                            )}
+                          </div>
+                        )}
+
+                        {/* Collapsible nested folders or compact remaining list */}
+                        {hasFoldersWithProjects ? (
+                          <div className="mt-1 border-t border-white/[0.07] pt-1">
+                            <div className="px-3 py-1 text-[10px] font-semibold tracking-wider text-[#646C7A] uppercase">
+                              Folders
+                            </div>
+                            {folderTreeGroups.map((group) => renderFolderGroup(group))}
+                          </div>
+                        ) : (
+                          remainingFlatProjects.length > 0 && (
+                            <div className="mt-1 border-t border-white/[0.07] pt-1">
+                              {recommended.length > 0 && (
+                                <div className="px-3 py-1 text-[10px] font-semibold tracking-wider text-[#646C7A] uppercase">
+                                  All projects
+                                </div>
+                              )}
+                              {remainingFlatProjects.map((project) => renderProjectRow(project))}
+                            </div>
+                          )
+                        )}
+                      </>
                     )}
-                  </>
-                )}
-              </div>
+                  </div>
+
+                  {/* Quick actions footer */}
+                  <div className="flex shrink-0 items-center justify-between gap-2 border-t border-white/[0.07] bg-white/[0.015] px-2.5 py-2">
+                    <button
+                      type="button"
+                      onClick={() => openQuickCreate(isSearching ? searchQuery.trim() : '')}
+                      className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium text-amber-300 transition-colors hover:bg-amber-500/12 focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      <span>New project</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleNavigateManageProjects}
+                      className="inline-flex cursor-pointer items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-[#9CA3B0] transition-colors hover:bg-white/[0.06] hover:text-[#F4F5F7] focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none"
+                    >
+                      <span>Manage</span>
+                      <ArrowUpRight className="h-3 w-3 text-[#646C7A]" />
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </>,
           document.body,
         )
       : null;
+
+  if (variant === 'compact') {
+    return (
+      <>
+        <button
+          ref={triggerRef}
+          type="button"
+          aria-haspopup="dialog"
+          aria-expanded={isOpen}
+          title={
+            currentProject
+              ? `Active project: ${currentProject.name}${currentFolder ? ` (${folderPathMap.get(currentFolder.id) ?? currentFolder.name})` : ''}`
+              : 'No project selected — sessions will not be tracked'
+          }
+          onClick={() => (isOpen ? closeDropdown() : setIsOpen(true))}
+          className={cn(
+            'surface-well group inline-flex h-9 max-w-[240px] cursor-pointer items-center gap-2 rounded-full px-3 text-left transition-all duration-150 select-none focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0B0E] focus-visible:outline-none',
+            isOpen
+              ? 'border-amber-500/40 bg-[#151922] shadow-[0_0_0_1px_rgba(245,158,11,0.18)]'
+              : 'hover:border-white/[0.14] hover:bg-[#151922]',
+          )}
+        >
+          {currentProject ? (
+            <>
+              <span
+                aria-hidden="true"
+                className="h-2 w-2 shrink-0 rounded-full ring-2 ring-white/10"
+                style={{ backgroundColor: currentProject.color }}
+              />
+              <span className="min-w-0 truncate text-xs font-medium text-[#F4F5F7]">
+                {currentProject.name}
+              </span>
+              {currentFolder && (
+                <span
+                  title={folderPathMap.get(currentFolder.id)}
+                  className="hidden max-w-[74px] shrink-0 items-center truncate rounded-full border px-1.5 py-0.5 text-[10px] leading-none font-medium text-[#D6DAE2] md:inline-flex"
+                  style={{
+                    borderColor: `${currentFolder.color}40`,
+                    backgroundColor: `${currentFolder.color}18`,
+                  }}
+                >
+                  <span className="truncate">{currentFolder.name}</span>
+                </span>
+              )}
+            </>
+          ) : (
+            <>
+              <CircleSlash className="h-3.5 w-3.5 shrink-0 text-[#646C7A]" />
+              <span className="min-w-0 truncate text-xs font-medium text-[#9CA3B0]">
+                No project
+              </span>
+            </>
+          )}
+
+          <ChevronDown
+            className={cn(
+              'ml-0.5 h-3.5 w-3.5 shrink-0 text-[#646C7A] transition-transform duration-150 group-hover:text-[#9CA3B0]',
+              isOpen && 'rotate-180 text-amber-400 group-hover:text-amber-400',
+            )}
+          />
+        </button>
+
+        {popoverPortal}
+      </>
+    );
+  }
 
   return (
     <div className="flex flex-col items-center gap-1.5">
@@ -482,7 +824,7 @@ export function TimerProjectDropdown({
         <button
           ref={triggerRef}
           type="button"
-          aria-haspopup="listbox"
+          aria-haspopup="dialog"
           aria-expanded={isOpen}
           onClick={() => (isOpen ? closeDropdown() : setIsOpen(true))}
           className={cn(

@@ -1,7 +1,10 @@
 import { Skeleton } from '@/shared/components/Skeleton';
-import { cn, formatSecondsToString } from '@/shared/lib/utils';
-import { useQuery } from '@tanstack/react-query';
+import { useToast } from '@/shared/context/ToastContext';
+import type { Project } from '@/shared/lib/models/project';
+import { cn, formatSecondsToString, getErrorMessage } from '@/shared/lib/utils';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { invoke } from '@tauri-apps/api/core';
+import { Filter } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
 import { useAnalytics } from '../hooks/useAnalytics';
@@ -56,12 +59,41 @@ function PieTooltip({ active, payload }: Readonly<PieTooltipProps>) {
 }
 
 export default function AnalyticProjectPie() {
+  const queryClient = useQueryClient();
+  const toast = useToast();
   const { selectedProjects } = useAnalytics();
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
+
+  const { data: allProjects = [] } = useQuery({
+    queryKey: ['projects'],
+    queryFn: () => invoke<Project[]>('get_projects'),
+  });
 
   const { data: shareData, isLoading } = useQuery({
     queryKey: ['analytics', 'projectTimeShare'],
     queryFn: () => invoke<ProjectTimeShareData>('get_analytics_project_time_share'),
+  });
+
+  const updateSelectionMutation = useMutation({
+    mutationFn: (nextProjects: Project[]) =>
+      invoke('update_selected_projects', {
+        projectIds: nextProjects.map((p) => p.id),
+      }),
+    onMutate: async (nextProjects) => {
+      await queryClient.cancelQueries({ queryKey: ['localSelectedProjects'] });
+      const previous = queryClient.getQueryData<Project[]>(['localSelectedProjects']);
+      queryClient.setQueryData<Project[]>(['localSelectedProjects'], nextProjects);
+      return { previous };
+    },
+    onError: (err, _nextProjects, context) => {
+      if (context?.previous !== undefined) {
+        queryClient.setQueryData<Project[]>(['localSelectedProjects'], context.previous);
+      }
+      toast.error('Could not update project filter', getErrorMessage(err));
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['analytics'] });
+    },
   });
 
   const { slices, totalSeconds, hasData } = useMemo(() => {
@@ -87,6 +119,28 @@ export default function AnalyticProjectPie() {
       })),
     };
   }, [shareData]);
+
+  const canSoloFilter = allProjects.length > 1;
+  const soloedProjectId =
+    selectedProjects.length === 1 && canSoloFilter ? selectedProjects[0].id : null;
+
+  const handleToggleProjectSolo = (slice: PieSlice) => {
+    if (!canSoloFilter || updateSelectionMutation.isPending) return;
+
+    if (soloedProjectId === slice.key) {
+      updateSelectionMutation.mutate(allProjects);
+      toast.info('Showing all projects', 'Cleared single-project analytics filter.');
+      return;
+    }
+
+    const target =
+      allProjects.find((p) => p.id === slice.key) ??
+      selectedProjects.find((p) => p.id === slice.key);
+    if (!target) return;
+
+    updateSelectionMutation.mutate([target]);
+    toast.info(`Filtered to ${slice.name}`, 'Click again to restore all projects.');
+  };
 
   if (isLoading) {
     return (
@@ -134,12 +188,22 @@ export default function AnalyticProjectPie() {
     <div className="surface-card flex h-full flex-col rounded-2xl p-6">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h3 className="text-sm font-semibold tracking-tight text-[#F4F5F7]">
-            Project Distribution
-          </h3>
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-semibold tracking-tight text-[#F4F5F7]">
+              Project Distribution
+            </h3>
+            {soloedProjectId && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/12 px-2 py-0.5 text-[10px] font-medium text-amber-300">
+                <Filter className="h-2.5 w-2.5" />
+                Solo
+              </span>
+            )}
+          </div>
           <p className="mt-1 text-xs text-[#646C7A]">
             {hasData
-              ? `Across ${slices.length} active project${slices.length === 1 ? '' : 's'}`
+              ? canSoloFilter
+                ? `Across ${slices.length} project${slices.length === 1 ? '' : 's'} · Click a row to filter`
+                : `Across ${slices.length} active project${slices.length === 1 ? '' : 's'}`
               : emptyTitle}
           </p>
         </div>
@@ -172,6 +236,11 @@ export default function AnalyticProjectPie() {
                   }
                 }}
                 onMouseLeave={() => setHoveredKey(null)}
+                onClick={(_, index) => {
+                  if (hasData && chartData[index]) {
+                    handleToggleProjectSolo(chartData[index]);
+                  }
+                }}
               >
                 {chartData.map((slice) => {
                   const isDimmed = hasData && hoveredKey !== null && hoveredKey !== slice.key;
@@ -179,8 +248,11 @@ export default function AnalyticProjectPie() {
                     <Cell
                       key={slice.key}
                       fill={slice.color}
-                      fillOpacity={isDimmed ? 0.3 : 1}
-                      style={{ transition: 'fill-opacity 150ms ease' }}
+                      fillOpacity={isDimmed ? 0.35 : 1}
+                      style={{
+                        transition: 'fill-opacity 150ms ease',
+                        cursor: hasData && canSoloFilter ? 'pointer' : 'default',
+                      }}
                     />
                   );
                 })}
@@ -197,9 +269,14 @@ export default function AnalyticProjectPie() {
                     ? formatSecondsToString(activeSlice.seconds)
                     : formatSecondsToString(totalSeconds)}
                 </span>
-                <span className="mt-0.5 max-w-full truncate text-[11px] text-[#646C7A]">
+                <span className="mt-0.5 max-w-full truncate text-[11px] text-[#9CA3B0]">
                   {activeSlice ? activeSlice.name : 'Total focus'}
                 </span>
+                {activeSlice && (
+                  <span className="mt-0.5 font-mono text-[10px] font-medium tabular-nums text-amber-400">
+                    {activeSlice.percentage.toFixed(1)}%
+                  </span>
+                )}
               </>
             ) : (
               <>
@@ -217,14 +294,32 @@ export default function AnalyticProjectPie() {
           <div className="max-h-48 w-full flex-1 space-y-1 overflow-y-auto pr-1">
             {slices.map((slice) => {
               const isHighlighted = hoveredKey === slice.key;
+              const isSoloed = soloedProjectId === slice.key;
               return (
-                <div
+                <button
                   key={slice.key}
+                  type="button"
+                  disabled={!canSoloFilter}
+                  title={
+                    canSoloFilter
+                      ? isSoloed
+                        ? `Click to show all projects`
+                        : `Click to filter analytics to ${slice.name}`
+                      : undefined
+                  }
                   onMouseEnter={() => setHoveredKey(slice.key)}
                   onMouseLeave={() => setHoveredKey(null)}
+                  onFocus={() => setHoveredKey(slice.key)}
+                  onBlur={() => setHoveredKey(null)}
+                  onClick={() => handleToggleProjectSolo(slice)}
                   className={cn(
-                    'flex items-center gap-2.5 rounded-xl px-2.5 py-2 transition-colors',
-                    isHighlighted ? 'bg-white/[0.06]' : 'hover:bg-white/[0.04]',
+                    'flex w-full items-center gap-2.5 rounded-xl border px-2.5 py-2 text-left transition-all duration-150 focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none',
+                    canSoloFilter ? 'cursor-pointer' : 'cursor-default',
+                    isSoloed
+                      ? 'border-amber-500/30 bg-amber-500/[0.08]'
+                      : isHighlighted
+                        ? 'border-white/[0.08] bg-white/[0.06]'
+                        : 'border-transparent hover:bg-white/[0.04]',
                   )}
                 >
                   <span
@@ -234,13 +329,18 @@ export default function AnalyticProjectPie() {
                   <span className="min-w-0 flex-1 truncate text-xs font-medium text-[#F4F5F7]">
                     {slice.name}
                   </span>
+                  {isSoloed && (
+                    <span className="shrink-0 rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-medium text-amber-300">
+                      All
+                    </span>
+                  )}
                   <span className="shrink-0 font-mono text-xs tabular-nums text-[#646C7A]">
                     {slice.percentage.toFixed(0)}%
                   </span>
                   <span className="w-14 shrink-0 text-right font-mono text-xs font-medium tabular-nums text-[#D0D5DE]">
                     {formatSecondsToString(slice.seconds)}
                   </span>
-                </div>
+                </button>
               );
             })}
           </div>

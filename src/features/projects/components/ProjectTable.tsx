@@ -1,5 +1,6 @@
 import Button from '@/shared/components/Button';
 import { Skeleton } from '@/shared/components/Skeleton';
+import { useToast } from '@shared/context/ToastContext';
 import { Folder, Project } from '@/shared/lib/models/project';
 import { cn, formatSecondsToString, getErrorMessage } from '@/shared/lib/utils';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -13,18 +14,21 @@ import {
   Clock3,
   FolderOpen,
   Pencil,
+  Play,
   Plus,
   SearchX,
   Trash2,
   X,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { FolderSelect } from './FolderSelect';
 import { UpdateProjectModal } from './UpdateProjectModal';
 
 export type ProjectTableEmptyVariant = 'all' | 'folder' | 'unassigned' | 'search';
+export type ProjectViewMode = 'list' | 'grid';
 
-interface ProjectTableEntryProps {
+interface ProjectItemProps {
   project: Project;
   folders: Folder[];
   isConfirmingDelete: boolean;
@@ -35,22 +39,39 @@ interface ProjectTableEntryProps {
   onActionSuccess: () => void;
 }
 
-function ProjectTableEntry({
+function useProjectItemController({
   project,
   folders,
-  isConfirmingDelete,
-  onRequestDelete,
   onCancelDelete,
-  onEdit,
   onActionError,
   onActionSuccess,
-}: Readonly<ProjectTableEntryProps>) {
+}: Pick<
+  ProjectItemProps,
+  'project' | 'folders' | 'onCancelDelete' | 'onActionError' | 'onActionSuccess'
+>) {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const toast = useToast();
 
-  const { data: totalSeconds, isLoading } = useQuery({
+  const { data: totalSeconds, isLoading: isTimeLoading } = useQuery({
     queryKey: ['overall_project_time', project.id],
     queryFn: () => invoke<number>('get_overall_project_time', { projectId: project.id }),
     refetchInterval: 10000,
+  });
+
+  const focusMutation = useMutation({
+    mutationFn: () => invoke('set_selected_project', { project }),
+    onSuccess: () => {
+      onActionSuccess();
+      queryClient.invalidateQueries({ queryKey: ['timer_projects'] });
+      toast.success(`Ready to focus on ${project.name}`);
+      navigate('/timer');
+    },
+    onError: (err) => {
+      const msg = getErrorMessage(err, `Failed to start focus on "${project.name}".`);
+      toast.error('Could not launch focus', msg);
+      onActionError(msg);
+    },
   });
 
   const deleteMutation = useMutation({
@@ -58,6 +79,7 @@ function ProjectTableEntry({
     onSuccess: () => {
       onActionSuccess();
       onCancelDelete();
+      toast.success('Project deleted', project.name);
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       queryClient.invalidateQueries({ queryKey: ['timer_projects'] });
       queryClient.invalidateQueries({ queryKey: ['analytics'] });
@@ -67,25 +89,63 @@ function ProjectTableEntry({
       queryClient.invalidateQueries({ queryKey: ['sessions'] });
     },
     onError: (err) => {
+      const msg = getErrorMessage(err, `Failed to delete "${project.name}".`);
       onCancelDelete();
-      onActionError(getErrorMessage(err, `Failed to delete "${project.name}".`));
+      toast.error('Failed to delete project', msg);
+      onActionError(msg);
     },
   });
 
   const moveFolderMutation = useMutation({
     mutationFn: (folderId: string | null) =>
       invoke('update_project_folder', { projectId: project.id, folderId }),
-    onSuccess: () => {
+    onSuccess: (_data, folderId) => {
       onActionSuccess();
+      const targetFolder = folderId ? folders.find((f) => f.id === folderId) : null;
+      if (targetFolder) {
+        toast.success(`Moved to ${targetFolder.name}`, project.name);
+      } else {
+        toast.info('Removed from folder', project.name);
+      }
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       queryClient.invalidateQueries({ queryKey: ['timer_projects'] });
       queryClient.invalidateQueries({ queryKey: ['analytics'] });
       queryClient.invalidateQueries({ queryKey: ['localSelectedProjects'] });
     },
     onError: (err) => {
-      onActionError(getErrorMessage(err, `Failed to move "${project.name}".`));
+      const msg = getErrorMessage(err, `Failed to move "${project.name}".`);
+      toast.error('Failed to move project', msg);
+      onActionError(msg);
     },
   });
+
+  return {
+    totalSeconds,
+    isTimeLoading,
+    focusMutation,
+    deleteMutation,
+    moveFolderMutation,
+  };
+}
+
+function ProjectListRow({
+  project,
+  folders,
+  isConfirmingDelete,
+  onRequestDelete,
+  onCancelDelete,
+  onEdit,
+  onActionError,
+  onActionSuccess,
+}: Readonly<ProjectItemProps>) {
+  const { totalSeconds, isTimeLoading, focusMutation, deleteMutation, moveFolderMutation } =
+    useProjectItemController({
+      project,
+      folders,
+      onCancelDelete,
+      onActionError,
+      onActionSuccess,
+    });
 
   return (
     <tr className="group border-b border-white/[0.05] transition-colors last:border-b-0 hover:bg-white/[0.025]">
@@ -99,17 +159,14 @@ function ProjectTableEntry({
             <p className="truncate text-sm font-medium text-[#F4F5F7]" title={project.name}>
               {project.name}
             </p>
-            <p
-              className="mt-0.5 truncate text-xs text-[#9CA3B0]"
-              title={project.description}
-            >
+            <p className="mt-0.5 truncate text-xs text-[#9CA3B0]" title={project.description}>
               {project.description}
             </p>
           </div>
         </div>
       </td>
 
-      <td className="w-[172px] px-3 py-3.5">
+      <td className="w-[168px] px-3 py-3.5">
         <FolderSelect
           folders={folders}
           value={project.folder_id ?? null}
@@ -121,10 +178,10 @@ function ProjectTableEntry({
         />
       </td>
 
-      <td className="w-[108px] px-3 py-3.5 whitespace-nowrap">
+      <td className="w-[104px] px-3 py-3.5 whitespace-nowrap">
         <div className="flex items-center gap-1.5 text-[#F4F5F7]">
           <Clock3 className="h-3.5 w-3.5 shrink-0 text-[#646C7A]" />
-          {isLoading ? (
+          {isTimeLoading ? (
             <Skeleton className="h-4 w-12" />
           ) : (
             <span className="font-mono text-xs font-medium text-[#D1D5DE] tabular-nums sm:text-sm">
@@ -134,7 +191,7 @@ function ProjectTableEntry({
         </div>
       </td>
 
-      <td className="w-[144px] py-3.5 pr-5 pl-2 whitespace-nowrap">
+      <td className="w-[188px] py-3.5 pr-5 pl-2 whitespace-nowrap">
         {isConfirmingDelete ? (
           <div className="flex items-center justify-end gap-1.5">
             <button
@@ -158,25 +215,39 @@ function ProjectTableEntry({
             </button>
           </div>
         ) : (
-          <div className="flex items-center justify-end gap-1 opacity-70 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
+          <div className="flex items-center justify-end gap-1">
             <button
               type="button"
-              aria-label={`Edit project ${project.name}`}
-              title="Edit project"
-              onClick={onEdit}
-              className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-[#9CA3B0] transition-colors hover:bg-white/[0.07] hover:text-[#F4F5F7] focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none"
+              disabled={focusMutation.isPending}
+              aria-label={`Focus on ${project.name}`}
+              title={`Launch focus timer for ${project.name}`}
+              onClick={() => focusMutation.mutate()}
+              className="mr-1 inline-flex h-7.5 cursor-pointer items-center gap-1.5 rounded-lg border border-white/[0.08] bg-white/[0.03] px-2.5 text-xs font-medium text-[#D1D5DE] transition-all group-hover:border-amber-500/25 group-hover:text-[#F4F5F7] hover:!border-amber-500/45 hover:!bg-amber-500/15 hover:!text-amber-300 focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none active:scale-[0.97] disabled:opacity-50"
             >
-              <Pencil className="h-3.5 w-3.5" />
+              <Play className="h-3 w-3 fill-current" />
+              <span>Focus</span>
             </button>
-            <button
-              type="button"
-              aria-label={`Delete project ${project.name}`}
-              title="Delete project"
-              onClick={onRequestDelete}
-              className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-[#9CA3B0] transition-colors hover:bg-rose-500/15 hover:text-rose-400 focus-visible:ring-2 focus-visible:ring-rose-400/60 focus-visible:outline-none"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </button>
+
+            <div className="flex items-center gap-0.5 opacity-65 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
+              <button
+                type="button"
+                aria-label={`Edit project ${project.name}`}
+                title="Edit project"
+                onClick={onEdit}
+                className="flex h-7.5 w-7.5 cursor-pointer items-center justify-center rounded-lg text-[#9CA3B0] transition-colors hover:bg-white/[0.07] hover:text-[#F4F5F7] focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </button>
+              <button
+                type="button"
+                aria-label={`Delete project ${project.name}`}
+                title="Delete project"
+                onClick={onRequestDelete}
+                className="flex h-7.5 w-7.5 cursor-pointer items-center justify-center rounded-lg text-[#9CA3B0] transition-colors hover:bg-rose-500/15 hover:text-rose-400 focus-visible:ring-2 focus-visible:ring-rose-400/60 focus-visible:outline-none"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
           </div>
         )}
       </td>
@@ -184,9 +255,161 @@ function ProjectTableEntry({
   );
 }
 
+function ProjectGridCard({
+  project,
+  folders,
+  isConfirmingDelete,
+  onRequestDelete,
+  onCancelDelete,
+  onEdit,
+  onActionError,
+  onActionSuccess,
+}: Readonly<ProjectItemProps>) {
+  const { totalSeconds, isTimeLoading, focusMutation, deleteMutation, moveFolderMutation } =
+    useProjectItemController({
+      project,
+      folders,
+      onCancelDelete,
+      onActionError,
+      onActionSuccess,
+    });
+
+  return (
+    <article className="surface-card group flex flex-col overflow-hidden rounded-2xl transition-all duration-150 hover:border-white/[0.14] hover:bg-[#161A24]/95">
+      {/* Crisp top color accent bar */}
+      <div
+        className="h-[2.5px] w-full shrink-0"
+        style={{
+          background: `linear-gradient(90deg, ${project.color}F0 0%, ${project.color}55 68%, transparent 100%)`,
+        }}
+      />
+
+      <div className="flex flex-1 flex-col gap-3 p-4">
+        {/* Card header: color dot + name + tracked time */}
+        <div className="flex items-start justify-between gap-2.5">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <span
+              className="h-2.5 w-2.5 shrink-0 rounded-full ring-2 ring-white/10"
+              style={{ backgroundColor: project.color }}
+            />
+            <h3
+              className="truncate text-sm font-semibold tracking-tight text-[#F4F5F7]"
+              title={project.name}
+            >
+              {project.name}
+            </h3>
+          </div>
+
+          <div
+            title="Total tracked focus time"
+            className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-white/[0.06] bg-white/[0.03] px-2 py-0.5 text-[#D1D5DE]"
+          >
+            <Clock3 className="h-3 w-3 shrink-0 text-[#646C7A]" />
+            {isTimeLoading ? (
+              <Skeleton className="h-3.5 w-10 rounded" />
+            ) : (
+              <span className="font-mono text-[11px] font-medium tabular-nums">
+                {formatSecondsToString(totalSeconds || 0)}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* 2-line clamped description */}
+        <p
+          className="line-clamp-2 min-h-[2.25rem] text-xs leading-relaxed text-[#9CA3B0]"
+          title={project.description}
+        >
+          {project.description}
+        </p>
+
+        {/* Inline folder move selector */}
+        <div className="mt-auto pt-0.5">
+          <FolderSelect
+            folders={folders}
+            value={project.folder_id ?? null}
+            onChange={(folderId) => moveFolderMutation.mutate(folderId)}
+            disabled={moveFolderMutation.isPending}
+            emptyLabel="No folder"
+            variant="inline"
+            className="max-w-none"
+            ariaLabel={`Folder for ${project.name}`}
+          />
+        </div>
+      </div>
+
+      {/* Bottom action bar */}
+      <div className="flex items-center justify-between gap-2 border-t border-white/[0.06] bg-white/[0.015] px-4 py-2.5">
+        {isConfirmingDelete ? (
+          <>
+            <span className="truncate text-xs font-medium text-rose-200">Delete project?</span>
+            <div className="flex shrink-0 items-center gap-1.5">
+              <button
+                type="button"
+                disabled={deleteMutation.isPending}
+                onClick={() => deleteMutation.mutate(project.id)}
+                aria-label={`Confirm delete ${project.name}`}
+                className="inline-flex h-7.5 cursor-pointer items-center gap-1 rounded-lg border border-rose-500/35 bg-rose-500/15 px-2.5 text-xs font-medium text-rose-300 transition-colors hover:bg-rose-500/25 hover:text-rose-200 focus-visible:ring-2 focus-visible:ring-rose-400/60 focus-visible:outline-none disabled:opacity-50"
+              >
+                <Check className="h-3 w-3" />
+                {deleteMutation.isPending ? '...' : 'Delete'}
+              </button>
+              <button
+                type="button"
+                disabled={deleteMutation.isPending}
+                onClick={onCancelDelete}
+                aria-label={`Cancel delete ${project.name}`}
+                className="inline-flex h-7.5 cursor-pointer items-center rounded-lg px-2 text-xs font-medium text-[#9CA3B0] transition-colors hover:bg-white/[0.06] hover:text-[#F4F5F7] focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none disabled:opacity-50"
+              >
+                Cancel
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <button
+              type="button"
+              disabled={focusMutation.isPending}
+              aria-label={`Focus on ${project.name}`}
+              title={`Launch focus timer for ${project.name}`}
+              onClick={() => focusMutation.mutate()}
+              className="inline-flex h-7.5 cursor-pointer items-center gap-1.5 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 text-xs font-medium text-amber-300 transition-all hover:border-amber-400/50 hover:bg-amber-500/20 hover:text-amber-200 focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none active:scale-[0.98] disabled:opacity-50"
+            >
+              <Play className="h-3 w-3 fill-current" />
+              <span>Focus</span>
+            </button>
+
+            <div className="flex items-center gap-0.5">
+              <button
+                type="button"
+                aria-label={`Edit project ${project.name}`}
+                title="Edit project"
+                onClick={onEdit}
+                className="flex h-7.5 w-7.5 cursor-pointer items-center justify-center rounded-lg text-[#9CA3B0] transition-colors hover:bg-white/[0.07] hover:text-[#F4F5F7] focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </button>
+              <button
+                type="button"
+                aria-label={`Delete project ${project.name}`}
+                title="Delete project"
+                onClick={onRequestDelete}
+                className="flex h-7.5 w-7.5 cursor-pointer items-center justify-center rounded-lg text-[#9CA3B0] transition-colors hover:bg-rose-500/15 hover:text-rose-400 focus-visible:ring-2 focus-visible:ring-rose-400/60 focus-visible:outline-none"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </article>
+  );
+}
+
 interface ProjectTableProps {
   projects: Project[];
   folders: Folder[];
+  viewMode?: ProjectViewMode;
   filterKey?: string;
   emptyVariant?: ProjectTableEmptyVariant;
   searchQuery?: string;
@@ -197,6 +420,7 @@ interface ProjectTableProps {
 export function ProjectTable({
   projects,
   folders,
+  viewMode = 'list',
   filterKey = 'all',
   emptyVariant = 'folder',
   searchQuery = '',
@@ -208,7 +432,7 @@ export function ProjectTable({
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  const projectsPerPage = 8;
+  const projectsPerPage = viewMode === 'grid' ? 9 : 8;
   const maxPage = Math.max(1, Math.ceil(projects.length / projectsPerPage));
 
   useEffect(() => {
@@ -233,7 +457,8 @@ export function ProjectTable({
             <div className="space-y-1">
               <p className="text-sm font-medium text-[#F4F5F7]">No matching projects</p>
               <p className="max-w-xs text-xs text-[#9CA3B0]">
-                No projects match <span className="text-[#F4F5F7]">&ldquo;{searchQuery}&rdquo;</span> in this view.
+                No projects match{' '}
+                <span className="text-[#F4F5F7]">&ldquo;{searchQuery}&rdquo;</span> in this view.
               </p>
             </div>
             {onClearSearch && (
@@ -285,114 +510,170 @@ export function ProjectTable({
   const visibleProjects = projects.slice(startIdx, startIdx + projectsPerPage);
   const endIdx = Math.min(startIdx + projectsPerPage, projects.length);
 
+  const renderPaginationControls = () =>
+    maxPage > 1 ? (
+      <div className="flex items-center gap-2">
+        <span className="mr-1 font-mono text-xs text-[#646C7A] tabular-nums">
+          Page {page} / {maxPage}
+        </span>
+        <Button
+          variant="secondary"
+          scale="sm"
+          disabled={page === 1}
+          onClick={() => setPage((p) => Math.max(1, p - 1))}
+          className={cn(page === 1 && 'opacity-40')}
+        >
+          <ChevronLeft className="h-3.5 w-3.5" />
+          Previous
+        </Button>
+        <Button
+          variant="secondary"
+          scale="sm"
+          disabled={page >= maxPage}
+          onClick={() => setPage((p) => Math.min(maxPage, p + 1))}
+          className={cn(page >= maxPage && 'opacity-40')}
+        >
+          Next
+          <ChevronRight className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+    ) : null;
+
+  const renderCountSummary = () => (
+    <p className="text-xs text-[#9CA3B0]">
+      Showing{' '}
+      <span className="font-mono font-medium text-[#F4F5F7] tabular-nums">
+        {startIdx + 1}–{endIdx}
+      </span>{' '}
+      of{' '}
+      <span className="font-mono font-medium text-[#F4F5F7] tabular-nums">{projects.length}</span>{' '}
+      {projects.length === 1 ? 'project' : 'projects'}
+    </p>
+  );
+
   return (
     <>
-      <div className="surface-card overflow-hidden rounded-2xl">
-        {actionError && (
-          <div
-            role="alert"
-            className="flex items-center justify-between gap-3 border-b border-rose-500/25 bg-rose-500/10 px-5 py-2.5 text-xs text-rose-300"
-          >
-            <div className="flex items-center gap-2">
-              <AlertCircle className="h-4 w-4 shrink-0 text-rose-400" />
-              <span>{actionError}</span>
-            </div>
-            <button
-              type="button"
-              aria-label="Dismiss error"
-              onClick={() => setActionError(null)}
-              className="cursor-pointer rounded p-0.5 text-rose-300/80 transition-colors hover:bg-rose-500/15 hover:text-rose-200"
+      {viewMode === 'grid' ? (
+        <div className="flex flex-col gap-3.5">
+          {actionError && (
+            <div
+              role="alert"
+              className="flex items-center justify-between gap-3 rounded-xl border border-rose-500/25 bg-rose-500/10 px-4 py-2.5 text-xs text-rose-300"
             >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          </div>
-        )}
-
-        <div className="overflow-x-auto">
-          <table className="w-full table-fixed border-collapse">
-            <thead>
-              <tr className="border-b border-white/[0.06] bg-white/[0.015]">
-                <th className="py-3 pr-3 pl-5 text-left text-[11px] font-semibold tracking-wider text-[#646C7A] uppercase">
-                  Project
-                </th>
-                <th className="w-[172px] px-3 py-3 text-left text-[11px] font-semibold tracking-wider text-[#646C7A] uppercase">
-                  Folder
-                </th>
-                <th className="w-[108px] px-3 py-3 text-left text-[11px] font-semibold tracking-wider text-[#646C7A] uppercase">
-                  Total Time
-                </th>
-                <th className="w-[144px] py-3 pr-5 pl-2 text-right text-[11px] font-semibold tracking-wider text-[#646C7A] uppercase">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {visibleProjects.map((project) => (
-                <ProjectTableEntry
-                  key={project.id}
-                  project={project}
-                  folders={folders}
-                  isConfirmingDelete={confirmDeleteId === project.id}
-                  onRequestDelete={() => {
-                    setActionError(null);
-                    setConfirmDeleteId(project.id);
-                  }}
-                  onCancelDelete={() => setConfirmDeleteId(null)}
-                  onEdit={() => {
-                    setActionError(null);
-                    setConfirmDeleteId(null);
-                    setEditingProject(project);
-                  }}
-                  onActionError={(msg) => setActionError(msg)}
-                  onActionSuccess={() => setActionError(null)}
-                />
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.06] bg-white/[0.015] px-5 py-3">
-          <p className="text-xs text-[#9CA3B0]">
-            Showing{' '}
-            <span className="font-mono font-medium text-[#F4F5F7] tabular-nums">
-              {startIdx + 1}–{endIdx}
-            </span>{' '}
-            of{' '}
-            <span className="font-mono font-medium text-[#F4F5F7] tabular-nums">
-              {projects.length}
-            </span>{' '}
-            {projects.length === 1 ? 'project' : 'projects'}
-          </p>
-
-          {maxPage > 1 && (
-            <div className="flex items-center gap-2">
-              <span className="mr-1 font-mono text-xs text-[#646C7A] tabular-nums">
-                Page {page} / {maxPage}
-              </span>
-              <Button
-                variant="secondary"
-                scale="sm"
-                disabled={page === 1}
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                className={cn(page === 1 && 'opacity-40')}
+              <div className="flex items-center gap-2">
+                <AlertCircle className="h-4 w-4 shrink-0 text-rose-400" />
+                <span>{actionError}</span>
+              </div>
+              <button
+                type="button"
+                aria-label="Dismiss error"
+                onClick={() => setActionError(null)}
+                className="cursor-pointer rounded p-0.5 text-rose-300/80 transition-colors hover:bg-rose-500/15 hover:text-rose-200"
               >
-                <ChevronLeft className="h-3.5 w-3.5" />
-                Previous
-              </Button>
-              <Button
-                variant="secondary"
-                scale="sm"
-                disabled={page >= maxPage}
-                onClick={() => setPage((p) => Math.min(maxPage, p + 1))}
-                className={cn(page >= maxPage && 'opacity-40')}
-              >
-                Next
-                <ChevronRight className="h-3.5 w-3.5" />
-              </Button>
+                <X className="h-3.5 w-3.5" />
+              </button>
             </div>
           )}
+
+          <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2 2xl:grid-cols-3">
+            {visibleProjects.map((project) => (
+              <ProjectGridCard
+                key={project.id}
+                project={project}
+                folders={folders}
+                isConfirmingDelete={confirmDeleteId === project.id}
+                onRequestDelete={() => {
+                  setActionError(null);
+                  setConfirmDeleteId(project.id);
+                }}
+                onCancelDelete={() => setConfirmDeleteId(null)}
+                onEdit={() => {
+                  setActionError(null);
+                  setConfirmDeleteId(null);
+                  setEditingProject(project);
+                }}
+                onActionError={(msg) => setActionError(msg)}
+                onActionSuccess={() => setActionError(null)}
+              />
+            ))}
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-3 px-1 pt-0.5">
+            {renderCountSummary()}
+            {renderPaginationControls()}
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="surface-card overflow-hidden rounded-2xl">
+          {actionError && (
+            <div
+              role="alert"
+              className="flex items-center justify-between gap-3 border-b border-rose-500/25 bg-rose-500/10 px-5 py-2.5 text-xs text-rose-300"
+            >
+              <div className="flex items-center gap-2">
+                <AlertCircle className="h-4 w-4 shrink-0 text-rose-400" />
+                <span>{actionError}</span>
+              </div>
+              <button
+                type="button"
+                aria-label="Dismiss error"
+                onClick={() => setActionError(null)}
+                className="cursor-pointer rounded p-0.5 text-rose-300/80 transition-colors hover:bg-rose-500/15 hover:text-rose-200"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )}
+
+          <div className="overflow-x-auto">
+            <table className="w-full table-fixed border-collapse">
+              <thead>
+                <tr className="border-b border-white/[0.06] bg-white/[0.015]">
+                  <th className="py-3 pr-3 pl-5 text-left text-[11px] font-semibold tracking-wider text-[#646C7A] uppercase">
+                    Project
+                  </th>
+                  <th className="w-[168px] px-3 py-3 text-left text-[11px] font-semibold tracking-wider text-[#646C7A] uppercase">
+                    Folder
+                  </th>
+                  <th className="w-[104px] px-3 py-3 text-left text-[11px] font-semibold tracking-wider text-[#646C7A] uppercase">
+                    Total Time
+                  </th>
+                  <th className="w-[188px] py-3 pr-5 pl-2 text-right text-[11px] font-semibold tracking-wider text-[#646C7A] uppercase">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {visibleProjects.map((project) => (
+                  <ProjectListRow
+                    key={project.id}
+                    project={project}
+                    folders={folders}
+                    isConfirmingDelete={confirmDeleteId === project.id}
+                    onRequestDelete={() => {
+                      setActionError(null);
+                      setConfirmDeleteId(project.id);
+                    }}
+                    onCancelDelete={() => setConfirmDeleteId(null)}
+                    onEdit={() => {
+                      setActionError(null);
+                      setConfirmDeleteId(null);
+                      setEditingProject(project);
+                    }}
+                    onActionError={(msg) => setActionError(msg)}
+                    onActionSuccess={() => setActionError(null)}
+                  />
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.06] bg-white/[0.015] px-5 py-3">
+            {renderCountSummary()}
+            {renderPaginationControls()}
+          </div>
+        </div>
+      )}
 
       {editingProject && (
         <UpdateProjectModal
