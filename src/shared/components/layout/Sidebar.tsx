@@ -1,6 +1,7 @@
 import LoginButton from '@/features/login/components/LoginButton';
 import LoginUser from '@/features/login/components/LoginUser';
 import { AUTH_QUERY_KEY, useAuth } from '@/features/login/hooks/useAuth';
+import { TIMER_SYNC_EVENT } from '@features/timer/hooks/useTimer';
 import { SolatoLogo } from '@shared/components/SolatoLogo';
 import { useLayout } from '@shared/context/LayoutContext';
 import { cn, formatMillis } from '@shared/lib/utils';
@@ -132,6 +133,14 @@ export default function Sidebar() {
 
   useEffect(() => {
     syncTimerSnapshot();
+  }, [syncTimerSnapshot]);
+
+  useEffect(() => {
+    const handleSync = () => {
+      void syncTimerSnapshot();
+    };
+    window.addEventListener(TIMER_SYNC_EVENT, handleSync);
+    return () => window.removeEventListener(TIMER_SYNC_EVENT, handleSync);
   }, [syncTimerSnapshot]);
 
   // Keep mode & selected project fresh when navigating away from /timer while active

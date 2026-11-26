@@ -11,6 +11,15 @@
           var t = localStorage.getItem('solato.theme') || 'solar-obsidian';
           var light = t === 'nordic-daylight' || t === 'paper-minimal';
           var el = document.documentElement;
+          if (t === 'custom') {
+            var raw = localStorage.getItem('solato.customTheme');
+            var cfg = raw ? JSON.parse(raw) : null;
+            light = !!(cfg && cfg.mode === 'light');
+            if (cfg && typeof cfg.canvas === 'string' && /^#[0-9a-fA-F]{6}$/.test(cfg.canvas)) {
+              el.style.setProperty('--bg-canvas', cfg.canvas);
+              el.style.backgroundColor = cfg.canvas;
+            }
+          }
           el.dataset.theme = t;
           el.dataset.mode = light ? 'light' : 'dark';
           el.classList.toggle('dark', !light);

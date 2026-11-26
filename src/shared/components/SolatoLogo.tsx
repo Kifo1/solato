@@ -73,12 +73,12 @@ export function SolatoLogo({
       {/* Base full timer track */}
       <circle cx="32" cy="32" r="19" stroke={svg.logoTrack} strokeWidth="3.2" />
 
-      {/* Signature opposing quarter-arcs (mirroring TimerDisplay ring) */}
+      {/* Signature opposing quarter-arcs (synced with TimerDisplay: Top-Left/Bottom-Right idle -> rotates 90deg clockwise when running) */}
       <g
         style={{
           transformOrigin: '32px 32px',
-          transform: isActive ? 'rotate(90deg)' : 'rotate(0deg)',
-          transition: 'transform 650ms cubic-bezier(0.22, 1, 0.36, 1)',
+          transform: isActive ? 'rotate(0deg)' : 'rotate(-90deg)',
+          transition: 'transform 700ms cubic-bezier(0.22, 1, 0.36, 1)',
         }}
       >
         <path

@@ -21,6 +21,7 @@ import {
 import { useLayout } from '@shared/context/LayoutContext';
 import { useTheme } from '@shared/context/ThemeContext';
 import { useToast } from '@shared/context/ToastContext';
+import { emitTimerStateChanged } from '@features/timer/hooks/useTimer';
 import { getFolderPathMap, type Folder, type Project } from '@shared/lib/models/project';
 import { cn, getErrorMessage } from '@shared/lib/utils';
 
@@ -152,6 +153,7 @@ export function CommandPalette() {
               await invoke('start_timer');
               toast.success('Focus session started');
             }
+            emitTimerStateChanged();
             queryClient.invalidateQueries({ queryKey: ['timer_projects'] });
             queryClient.invalidateQueries({ queryKey: ['todays_overall_time'] });
           } catch (err) {
@@ -170,6 +172,7 @@ export function CommandPalette() {
           try {
             await invoke('stop_timer');
             await invoke('switch_timer_mode', { timerMode: 'pomodoro' });
+            emitTimerStateChanged();
             navigate('/timer');
             toast.info('Switched to Pomodoro');
           } catch (err) {
@@ -188,6 +191,7 @@ export function CommandPalette() {
           try {
             await invoke('stop_timer');
             await invoke('switch_timer_mode', { timerMode: 'stopwatch' });
+            emitTimerStateChanged();
             navigate('/timer');
             toast.info('Switched to Stopwatch');
           } catch (err) {
@@ -206,6 +210,7 @@ export function CommandPalette() {
         onSelect: async () => {
           try {
             await invoke('reset_timer');
+            emitTimerStateChanged();
             toast.info('Timer reset');
           } catch (err) {
             toast.error('Reset failed', getErrorMessage(err));
@@ -257,6 +262,7 @@ export function CommandPalette() {
         onSelect: async () => {
           try {
             await invoke('set_selected_project', { project });
+            emitTimerStateChanged({ project });
             queryClient.invalidateQueries({ queryKey: ['timer_projects'] });
             navigate('/timer');
             toast.success(`Focus set to ${project.name}`);

@@ -14,7 +14,8 @@ export type ThemeId =
   | 'midnight-slate'
   | 'forest-matcha'
   | 'rosewood-dusk'
-  | 'paper-minimal';
+  | 'paper-minimal'
+  | 'custom';
 
 export interface ThemeDefinition {
   id: ThemeId;
@@ -321,13 +322,389 @@ export const THEMES: readonly ThemeDefinition[] = [
   },
 ];
 
+export interface CustomThemeConfig {
+  mode: 'dark' | 'light';
+  accent: string; // hex e.g. '#F97316'
+  canvas: string; // hex e.g. '#0B0B0F'
+  surface: string | null; // null = auto-harmonized from canvas, or explicit hex
+}
+
 export const THEME_STORAGE_KEY = 'solato.theme';
+export const CUSTOM_THEME_STORAGE_KEY = 'solato.customTheme';
 export const DEFAULT_THEME_ID: ThemeId = 'solar-obsidian';
 
-const THEME_MAP = new Map<ThemeId, ThemeDefinition>(THEMES.map((t) => [t.id, t]));
+export const DEFAULT_CUSTOM_THEME: CustomThemeConfig = {
+  mode: 'dark',
+  accent: '#F97316',
+  canvas: '#0B0B0F',
+  surface: null,
+};
+
+const HEX_6_RE = /^#[0-9a-fA-F]{6}$/;
+const HEX_3_RE = /^#[0-9a-fA-F]{3}$/;
+
+export interface RgbColor {
+  r: number;
+  g: number;
+  b: number;
+}
+
+export function normalizeHex(input: string, fallback: string): string {
+  const trimmed = input.trim();
+  if (HEX_6_RE.test(trimmed)) return trimmed.toUpperCase();
+  if (HEX_3_RE.test(trimmed)) {
+    const r = trimmed[1];
+    const g = trimmed[2];
+    const b = trimmed[3];
+    return `#${r}${r}${g}${g}${b}${b}`.toUpperCase();
+  }
+  return fallback;
+}
+
+export function hexToRgb(hex: string): RgbColor {
+  const clean = normalizeHex(hex, '#000000').slice(1);
+  return {
+    r: parseInt(clean.slice(0, 2), 16),
+    g: parseInt(clean.slice(2, 4), 16),
+    b: parseInt(clean.slice(4, 6), 16),
+  };
+}
+
+export function rgbToHex({ r, g, b }: RgbColor): string {
+  const clamp = (n: number) => Math.max(0, Math.min(255, Math.round(n)));
+  const toHex = (n: number) => clamp(n).toString(16).padStart(2, '0');
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`.toUpperCase();
+}
+
+export function mixHex(hexA: string, hexB: string, weightB: number): string {
+  const t = Math.max(0, Math.min(1, weightB));
+  const a = hexToRgb(hexA);
+  const b = hexToRgb(hexB);
+  return rgbToHex({
+    r: a.r + (b.r - a.r) * t,
+    g: a.g + (b.g - a.g) * t,
+    b: a.b + (b.b - a.b) * t,
+  });
+}
+
+function rgbaFromHex(hex: string, alpha: number): string {
+  const { r, g, b } = hexToRgb(hex);
+  const clamped = Math.max(0, Math.min(1, alpha));
+  return `rgba(${r}, ${g}, ${b}, ${Number(clamped.toFixed(3))})`;
+}
+
+/** WCAG 2.1 relative luminance in [0, 1]. */
+export function getRelativeLuminance(hex: string): number {
+  const { r, g, b } = hexToRgb(hex);
+  const linearize = (channel: number) => {
+    const s = channel / 255;
+    return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+  };
+  return 0.2126 * linearize(r) + 0.7152 * linearize(g) + 0.0722 * linearize(b);
+}
+
+function getContrastRatio(hexA: string, hexB: string): number {
+  const l1 = getRelativeLuminance(hexA);
+  const l2 = getRelativeLuminance(hexB);
+  const lighter = Math.max(l1, l2);
+  const darker = Math.min(l1, l2);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+/** Automatically selects '#0A0B0E' or '#FFFFFF' for maximum WCAG contrast against bgHex. */
+export function getReadableOnColor(bgHex: string): '#0A0B0E' | '#FFFFFF' {
+  const darkInk = '#0A0B0E';
+  const lightInk = '#FFFFFF';
+  return getContrastRatio(bgHex, darkInk) >= getContrastRatio(bgHex, lightInk)
+    ? darkInk
+    : lightInk;
+}
+
+function sanitizeCustomConfig(raw: unknown): CustomThemeConfig {
+  if (!raw || typeof raw !== 'object') return DEFAULT_CUSTOM_THEME;
+  const obj = raw as Record<string, unknown>;
+  const mode: 'dark' | 'light' = obj.mode === 'light' ? 'light' : 'dark';
+  const defaultCanvas = mode === 'dark' ? DEFAULT_CUSTOM_THEME.canvas : '#F4F5F7';
+  const accent =
+    typeof obj.accent === 'string'
+      ? normalizeHex(obj.accent, DEFAULT_CUSTOM_THEME.accent)
+      : DEFAULT_CUSTOM_THEME.accent;
+  const canvas =
+    typeof obj.canvas === 'string'
+      ? normalizeHex(obj.canvas, defaultCanvas)
+      : defaultCanvas;
+  const surface =
+    typeof obj.surface === 'string' && (HEX_6_RE.test(obj.surface.trim()) || HEX_3_RE.test(obj.surface.trim()))
+      ? normalizeHex(obj.surface, canvas)
+      : null;
+
+  return { mode, accent, canvas, surface };
+}
+
+function deriveCustomPalette(cfg: CustomThemeConfig) {
+  const isDark = cfg.mode === 'dark';
+  const canvas = normalizeHex(cfg.canvas, isDark ? DEFAULT_CUSTOM_THEME.canvas : '#F4F5F7');
+  const accent = normalizeHex(cfg.accent, DEFAULT_CUSTOM_THEME.accent);
+  const accentRgb = hexToRgb(accent);
+
+  const autoSurface = isDark ? mixHex(canvas, '#FFFFFF', 0.062) : '#FFFFFF';
+  const surface = cfg.surface ? normalizeHex(cfg.surface, autoSurface) : autoSurface;
+  const sidebar = isDark ? mixHex(canvas, '#FFFFFF', 0.028) : mixHex(canvas, '#0F172A', 0.042);
+  const elevated = isDark
+    ? mixHex(surface, '#FFFFFF', 0.055)
+    : cfg.surface
+      ? mixHex(surface, '#FFFFFF', 0.35)
+      : '#FFFFFF';
+  const well = isDark
+    ? getRelativeLuminance(canvas) > 0.025
+      ? mixHex(canvas, '#000000', 0.22)
+      : mixHex(canvas, '#FFFFFF', 0.03)
+    : mixHex(canvas, '#0F172A', 0.045);
+
+  const textPrimary = isDark ? mixHex('#F5F6F8', canvas, 0.03) : mixHex('#111318', canvas, 0.03);
+  const textBright = isDark ? mixHex('#D4D8E0', canvas, 0.06) : mixHex('#232730', canvas, 0.04);
+  const textSecondary = isDark ? mixHex('#9FA6B4', canvas, 0.1) : mixHex('#525866', canvas, 0.06);
+  const textMuted = isDark ? mixHex('#68707F', canvas, 0.12) : mixHex('#7A818F', canvas, 0.08);
+  const textOnAccent = getReadableOnColor(accent);
+
+  const borderSubtle = isDark ? 'rgba(255, 255, 255, 0.065)' : 'rgba(15, 23, 42, 0.075)';
+  const borderDefault = isDark ? 'rgba(255, 255, 255, 0.105)' : 'rgba(15, 23, 42, 0.12)';
+  const borderStrong = isDark ? 'rgba(255, 255, 255, 0.18)' : 'rgba(15, 23, 42, 0.2)';
+
+  const overlaySubtle = isDark ? 'rgba(255, 255, 255, 0.035)' : 'rgba(15, 23, 42, 0.03)';
+  const overlayDefault = isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(15, 23, 42, 0.055)';
+  const overlayStrong = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(15, 23, 42, 0.095)';
+
+  return {
+    isDark,
+    canvas,
+    sidebar,
+    surface,
+    elevated,
+    well,
+    accent,
+    accentRgb,
+    textPrimary,
+    textBright,
+    textSecondary,
+    textMuted,
+    textOnAccent,
+    borderSubtle,
+    borderDefault,
+    borderStrong,
+    overlaySubtle,
+    overlayDefault,
+    overlayStrong,
+  };
+}
+
+export function buildCustomThemeDefinition(cfg: CustomThemeConfig): ThemeDefinition {
+  const p = deriveCustomPalette(cfg);
+  const { isDark, canvas, sidebar, surface, accent, accentRgb, textPrimary, textMuted, borderDefault } = p;
+
+  const arcStart = mixHex(accent, '#FFFFFF', isDark ? 0.52 : 0.32);
+  const arcMid = accent;
+  const arcEnd = mixHex(accent, '#000000', 0.22);
+
+  const heatmap: readonly [string, string, string, string, string] = isDark
+    ? [
+        mixHex(surface, '#FFFFFF', 0.03),
+        mixHex(surface, accent, 0.28),
+        mixHex(surface, accent, 0.52),
+        mixHex(surface, accent, 0.76),
+        accent,
+      ]
+    : [
+        mixHex(canvas, '#0F172A', 0.07),
+        mixHex(surface, accent, 0.26),
+        mixHex(surface, accent, 0.56),
+        accent,
+        mixHex(accent, '#000000', 0.28),
+      ];
+
+  return {
+    id: 'custom',
+    name: 'Custom Studio',
+    tagline: isDark
+      ? 'Your personalized dark studio palette'
+      : 'Your personalized light studio palette',
+    mode: cfg.mode,
+    preview: {
+      canvas,
+      sidebar,
+      surface,
+      border: borderDefault,
+      text: textPrimary,
+      muted: textMuted,
+      accent,
+      accentSoft: rgbaFromHex(accent, isDark ? 0.16 : 0.13),
+    },
+    svg: {
+      logoBgTop: isDark ? mixHex(surface, '#FFFFFF', 0.09) : surface,
+      logoBgBottom: isDark ? mixHex(canvas, '#000000', 0.1) : mixHex(canvas, '#0F172A', 0.04),
+      logoBorder: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(15,23,42,0.12)',
+      logoTrack: isDark ? 'rgba(255,255,255,0.16)' : 'rgba(15,23,42,0.12)',
+      arcStart,
+      arcMid,
+      arcEnd,
+      arcGlow: accent,
+      dialFaceTop: isDark
+        ? rgbaFromHex(mixHex(surface, '#FFFFFF', 0.04), 0.62)
+        : rgbaFromHex(surface, 0.97),
+      dialFaceBottom: isDark ? rgbaFromHex(canvas, 0.86) : rgbaFromHex(canvas, 0.95),
+      dialBorder: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(15,23,42,0.08)',
+      dialTrack: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(15,23,42,0.10)',
+      tickQuarter: isDark ? 'rgba(255,255,255,0.28)' : 'rgba(15,23,42,0.34)',
+      tickFive: isDark ? 'rgba(255,255,255,0.17)' : 'rgba(15,23,42,0.20)',
+      tickMinute: isDark ? 'rgba(255,255,255,0.075)' : 'rgba(15,23,42,0.085)',
+      ambientRgb: `${accentRgb.r}, ${accentRgb.g}, ${accentRgb.b}`,
+    },
+    charts: {
+      peak: accent,
+      bar: isDark ? mixHex(surface, '#FFFFFF', 0.16) : mixHex(canvas, '#0F172A', 0.16),
+      zero: isDark ? mixHex(surface, '#FFFFFF', 0.04) : mixHex(canvas, '#0F172A', 0.07),
+      grid: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.065)',
+      axis: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(15,23,42,0.105)',
+      tick: textMuted,
+      heatmap,
+    },
+  };
+}
+
+const CUSTOM_CSS_VAR_KEYS: readonly string[] = [
+  '--bg-canvas',
+  '--bg-sidebar',
+  '--bg-surface',
+  '--bg-elevated',
+  '--bg-well',
+  '--text-primary',
+  '--text-bright',
+  '--text-secondary',
+  '--text-muted',
+  '--text-on-accent',
+  '--border-subtle',
+  '--border-default',
+  '--border-strong',
+  '--overlay-subtle',
+  '--overlay-default',
+  '--overlay-strong',
+  '--canvas-glow',
+  '--card-bg',
+  '--card-border',
+  '--card-shadow',
+  '--elevated-bg',
+  '--elevated-border',
+  '--elevated-shadow',
+  '--well-shadow',
+  '--accent-glow',
+  '--scrollbar-thumb',
+  '--scrollbar-thumb-hover',
+  '--color-amber-200',
+  '--color-amber-300',
+  '--color-amber-400',
+  '--color-amber-500',
+  '--color-amber-600',
+  '--color-teal-300',
+  '--color-teal-400',
+  '--color-sky-300',
+  '--color-sky-400',
+  '--color-rose-200',
+  '--color-rose-300',
+  '--color-rose-400',
+];
+
+export function buildCustomThemeCssVars(cfg: CustomThemeConfig): Record<string, string> {
+  const p = deriveCustomPalette(cfg);
+  const { isDark, canvas, sidebar, surface, elevated, well, accent } = p;
+
+  const cardBg = isDark
+    ? `linear-gradient(180deg, ${rgbaFromHex(mixHex(surface, '#FFFFFF', 0.035), 0.9)} 0%, ${rgbaFromHex(mixHex(surface, '#000000', 0.06), 0.97)} 100%)`
+    : `linear-gradient(180deg, ${surface} 0%, ${mixHex(surface, canvas, 0.25)} 100%)`;
+
+  const elevatedBg = isDark
+    ? `linear-gradient(180deg, ${mixHex(elevated, '#FFFFFF', 0.025)} 0%, ${mixHex(elevated, '#000000', 0.12)} 100%)`
+    : elevated;
+
+  const accentLum = getRelativeLuminance(accent);
+  const lightTextDeepen = accentLum > 0.42 ? 0.34 : 0.2;
+
+  const amber200 = isDark
+    ? mixHex(accent, '#FFFFFF', 0.62)
+    : mixHex(accent, '#000000', lightTextDeepen + 0.06);
+  const amber300 = isDark
+    ? mixHex(accent, '#FFFFFF', 0.4)
+    : mixHex(accent, '#000000', lightTextDeepen);
+  const amber400 = isDark
+    ? mixHex(accent, '#FFFFFF', 0.16)
+    : mixHex(accent, '#000000', accentLum > 0.42 ? 0.22 : 0.08);
+  const amber500 = accent;
+  const amber600 = mixHex(accent, '#000000', 0.2);
+
+  const vars: Record<string, string> = {
+    '--bg-canvas': canvas,
+    '--bg-sidebar': sidebar,
+    '--bg-surface': surface,
+    '--bg-elevated': elevated,
+    '--bg-well': well,
+
+    '--text-primary': p.textPrimary,
+    '--text-bright': p.textBright,
+    '--text-secondary': p.textSecondary,
+    '--text-muted': p.textMuted,
+    '--text-on-accent': p.textOnAccent,
+
+    '--border-subtle': p.borderSubtle,
+    '--border-default': p.borderDefault,
+    '--border-strong': p.borderStrong,
+
+    '--overlay-subtle': p.overlaySubtle,
+    '--overlay-default': p.overlayDefault,
+    '--overlay-strong': p.overlayStrong,
+
+    '--canvas-glow': rgbaFromHex(accent, isDark ? 0.06 : 0.06),
+    '--card-bg': cardBg,
+    '--card-border': isDark ? 'rgba(255, 255, 255, 0.075)' : 'rgba(15, 23, 42, 0.085)',
+    '--card-shadow': isDark
+      ? 'inset 0 1px 0 rgba(255, 255, 255, 0.045), 0 12px 32px -16px rgba(0, 0, 0, 0.7)'
+      : 'inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 8px 24px -14px rgba(15, 23, 42, 0.13)',
+
+    '--elevated-bg': elevatedBg,
+    '--elevated-border': isDark ? 'rgba(255, 255, 255, 0.11)' : 'rgba(15, 23, 42, 0.12)',
+    '--elevated-shadow': isDark
+      ? 'inset 0 1px 0 rgba(255, 255, 255, 0.065), 0 24px 60px -16px rgba(0, 0, 0, 0.8)'
+      : '0 22px 50px -16px rgba(15, 23, 42, 0.2), 0 4px 12px -4px rgba(15, 23, 42, 0.07)',
+
+    '--well-shadow': isDark
+      ? 'inset 0 1px 2px rgba(0, 0, 0, 0.38)'
+      : 'inset 0 1px 2px rgba(15, 23, 42, 0.055)',
+    '--accent-glow': rgbaFromHex(accent, isDark ? 0.55 : 0.38),
+    '--scrollbar-thumb': isDark ? 'rgba(255, 255, 255, 0.14)' : 'rgba(15, 23, 42, 0.16)',
+    '--scrollbar-thumb-hover': isDark ? 'rgba(255, 255, 255, 0.25)' : 'rgba(15, 23, 42, 0.28)',
+
+    '--color-amber-200': amber200,
+    '--color-amber-300': amber300,
+    '--color-amber-400': amber400,
+    '--color-amber-500': amber500,
+    '--color-amber-600': amber600,
+  };
+
+  if (!isDark) {
+    vars['--color-teal-300'] = '#0f766e';
+    vars['--color-teal-400'] = '#0d9488';
+    vars['--color-sky-300'] = '#0369a1';
+    vars['--color-sky-400'] = '#0284c7';
+    vars['--color-rose-200'] = '#9f1239';
+    vars['--color-rose-300'] = '#be123c';
+    vars['--color-rose-400'] = '#e11d48';
+  }
+
+  return vars;
+}
+
+const BUILTIN_THEME_MAP = new Map<ThemeId, ThemeDefinition>(THEMES.map((t) => [t.id, t]));
 
 export function isValidThemeId(value: string | null): value is ThemeId {
-  return value !== null && THEME_MAP.has(value as ThemeId);
+  return value === 'custom' || (value !== null && BUILTIN_THEME_MAP.has(value as ThemeId));
 }
 
 function readInitialTheme(): ThemeId {
@@ -340,12 +717,41 @@ function readInitialTheme(): ThemeId {
   return DEFAULT_THEME_ID;
 }
 
-function applyThemeToDocument(def: ThemeDefinition) {
+function readInitialCustomConfig(): CustomThemeConfig {
+  try {
+    const raw = localStorage.getItem(CUSTOM_THEME_STORAGE_KEY);
+    if (!raw) return DEFAULT_CUSTOM_THEME;
+    return sanitizeCustomConfig(JSON.parse(raw));
+  } catch {
+    return DEFAULT_CUSTOM_THEME;
+  }
+}
+
+function applyThemeToDocument(def: ThemeDefinition, customConfig?: CustomThemeConfig) {
   const root = document.documentElement;
   root.dataset.theme = def.id;
   root.dataset.mode = def.mode;
   root.classList.toggle('dark', def.mode === 'dark');
   root.classList.toggle('light', def.mode === 'light');
+
+  // Clear any pre-boot inline background-color so CSS variable --bg-canvas drives the canvas cleanly
+  root.style.removeProperty('background-color');
+
+  if (def.id === 'custom' && customConfig) {
+    const vars = buildCustomThemeCssVars(customConfig);
+    for (const key of CUSTOM_CSS_VAR_KEYS) {
+      const val = vars[key];
+      if (val !== undefined) {
+        root.style.setProperty(key, val);
+      } else {
+        root.style.removeProperty(key);
+      }
+    }
+  } else {
+    for (const key of CUSTOM_CSS_VAR_KEYS) {
+      root.style.removeProperty(key);
+    }
+  }
 }
 
 interface ThemeContextValue {
@@ -353,24 +759,90 @@ interface ThemeContextValue {
   theme: ThemeDefinition;
   themes: readonly ThemeDefinition[];
   setTheme: (id: ThemeId) => void;
+  customConfig: CustomThemeConfig;
+  updateCustomConfig: (partial: Partial<CustomThemeConfig>) => void;
+  resetCustomConfig: () => void;
 }
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 export function ThemeProvider({ children }: Readonly<{ children: ReactNode }>) {
   const [themeId, setThemeId] = useState<ThemeId>(readInitialTheme);
+  const [customConfig, setCustomConfig] = useState<CustomThemeConfig>(readInitialCustomConfig);
 
-  const theme = THEME_MAP.get(themeId) ?? THEMES[0];
+  const customThemeDef = useMemo(() => buildCustomThemeDefinition(customConfig), [customConfig]);
+  const themes = useMemo<readonly ThemeDefinition[]>(
+    () => [...THEMES, customThemeDef],
+    [customThemeDef],
+  );
+
+  const theme =
+    themeId === 'custom' ? customThemeDef : (BUILTIN_THEME_MAP.get(themeId) ?? THEMES[0]);
 
   useEffect(() => {
-    applyThemeToDocument(theme);
-  }, [theme]);
+    applyThemeToDocument(theme, theme.id === 'custom' ? customConfig : undefined);
+  }, [theme, customConfig]);
 
   const setTheme = useCallback((nextId: ThemeId) => {
-    if (!THEME_MAP.has(nextId)) return;
+    if (!isValidThemeId(nextId)) return;
     setThemeId(nextId);
     try {
       localStorage.setItem(THEME_STORAGE_KEY, nextId);
+    } catch {
+      // Ignore storage access errors
+    }
+  }, []);
+
+  const updateCustomConfig = useCallback((partial: Partial<CustomThemeConfig>) => {
+    setCustomConfig((prev) => {
+      const nextMode =
+        partial.mode === 'light' || partial.mode === 'dark' ? partial.mode : prev.mode;
+      const nextAccent =
+        typeof partial.accent === 'string'
+          ? normalizeHex(partial.accent, prev.accent)
+          : prev.accent;
+      const nextCanvas =
+        typeof partial.canvas === 'string'
+          ? normalizeHex(partial.canvas, prev.canvas)
+          : prev.canvas;
+      let nextSurface = prev.surface;
+      if (partial.surface === null) {
+        nextSurface = null;
+      } else if (typeof partial.surface === 'string') {
+        nextSurface = normalizeHex(partial.surface, prev.surface ?? nextCanvas);
+      }
+
+      const next: CustomThemeConfig = {
+        mode: nextMode,
+        accent: nextAccent,
+        canvas: nextCanvas,
+        surface: nextSurface,
+      };
+
+      try {
+        localStorage.setItem(CUSTOM_THEME_STORAGE_KEY, JSON.stringify(next));
+      } catch {
+        // Ignore storage access errors
+      }
+      return next;
+    });
+
+    setThemeId((prevId) => {
+      if (prevId !== 'custom') {
+        try {
+          localStorage.setItem(THEME_STORAGE_KEY, 'custom');
+        } catch {
+          // Ignore storage access errors
+        }
+      }
+      return 'custom';
+    });
+  }, []);
+
+  const resetCustomConfig = useCallback(() => {
+    setCustomConfig(DEFAULT_CUSTOM_THEME);
+    try {
+      localStorage.setItem(CUSTOM_THEME_STORAGE_KEY, JSON.stringify(DEFAULT_CUSTOM_THEME));
     } catch {
       // Ignore storage access errors
     }
@@ -380,10 +852,13 @@ export function ThemeProvider({ children }: Readonly<{ children: ReactNode }>) {
     () => ({
       themeId,
       theme,
-      themes: THEMES,
+      themes,
       setTheme,
+      customConfig,
+      updateCustomConfig,
+      resetCustomConfig,
     }),
-    [themeId, theme, setTheme],
+    [themeId, theme, themes, setTheme, customConfig, updateCustomConfig, resetCustomConfig],
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

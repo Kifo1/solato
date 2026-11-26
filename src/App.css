@@ -330,6 +330,17 @@
   --color-rose-400: #e11d48;
 }
 
+/* =====================================================================
+   Theme 7: Custom Studio (User-configured CSS variables via ThemeContext)
+   ===================================================================== */
+[data-theme='custom'][data-mode='dark'] {
+  color-scheme: dark;
+}
+
+[data-theme='custom'][data-mode='light'] {
+  color-scheme: light;
+}
+
 @layer base {
   html,
   body {

@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { emitTimerStateChanged } from '@features/timer/hooks/useTimer';
 import { FolderSelect } from './FolderSelect';
 import { UpdateProjectModal } from './UpdateProjectModal';
 
@@ -31,6 +32,7 @@ export type ProjectViewMode = 'list' | 'grid';
 interface ProjectItemProps {
   project: Project;
   folders: Folder[];
+  compact?: boolean;
   isConfirmingDelete: boolean;
   onRequestDelete: () => void;
   onCancelDelete: () => void;
@@ -65,6 +67,7 @@ function useProjectItemController({
       onActionSuccess();
       queryClient.invalidateQueries({ queryKey: ['timer_projects'] });
       toast.success(`Ready to focus on ${project.name}`);
+      emitTimerStateChanged({ project });
       navigate('/timer');
     },
     onError: (err) => {
@@ -131,6 +134,7 @@ function useProjectItemController({
 function ProjectListRow({
   project,
   folders,
+  compact = false,
   isConfirmingDelete,
   onRequestDelete,
   onCancelDelete,
@@ -147,9 +151,11 @@ function ProjectListRow({
       onActionSuccess,
     });
 
+  const cellPadY = compact ? 'py-2.5' : 'py-3.5';
+
   return (
     <tr className="group border-b border-line-subtle transition-colors last:border-b-0 hover:bg-tint-subtle">
-      <td className="py-3.5 pr-3 pl-5">
+      <td className={cn(cellPadY, 'pr-3 pl-5')}>
         <div className="flex min-w-0 items-center gap-3">
           <span
             className="h-2.5 w-2.5 shrink-0 rounded-full ring-2 ring-line"
@@ -166,7 +172,7 @@ function ProjectListRow({
         </div>
       </td>
 
-      <td className="w-[168px] px-3 py-3.5">
+      <td className={cn('w-[168px] px-3', cellPadY)}>
         <FolderSelect
           folders={folders}
           value={project.folder_id ?? null}
@@ -178,7 +184,7 @@ function ProjectListRow({
         />
       </td>
 
-      <td className="w-[104px] px-3 py-3.5 whitespace-nowrap">
+      <td className={cn('w-[104px] px-3 whitespace-nowrap', cellPadY)}>
         <div className="flex items-center gap-1.5 text-fg">
           <Clock3 className="h-3.5 w-3.5 shrink-0 text-fg-muted" />
           {isTimeLoading ? (
@@ -191,7 +197,7 @@ function ProjectListRow({
         </div>
       </td>
 
-      <td className="w-[188px] py-3.5 pr-5 pl-2 whitespace-nowrap">
+      <td className={cn('w-[188px] pr-5 pl-2 whitespace-nowrap', cellPadY)}>
         {isConfirmingDelete ? (
           <div className="flex items-center justify-end gap-1.5">
             <button
@@ -415,6 +421,7 @@ interface ProjectTableProps {
   searchQuery?: string;
   onClearSearch?: () => void;
   onAddProject?: () => void;
+  embedded?: boolean;
 }
 
 export function ProjectTable({
@@ -426,14 +433,16 @@ export function ProjectTable({
   searchQuery = '',
   onClearSearch,
   onAddProject,
+  embedded = false,
 }: Readonly<ProjectTableProps>) {
   const [page, setPage] = useState(1);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  const projectsPerPage = viewMode === 'grid' ? 9 : 8;
+  const projectsPerPage = embedded ? 12 : viewMode === 'grid' ? 9 : 8;
   const maxPage = Math.max(1, Math.ceil(projects.length / projectsPerPage));
+  const showFooter = !embedded || projects.length > projectsPerPage;
 
   useEffect(() => {
     setPage(1);
@@ -509,6 +518,7 @@ export function ProjectTable({
   const startIdx = (page - 1) * projectsPerPage;
   const visibleProjects = projects.slice(startIdx, startIdx + projectsPerPage);
   const endIdx = Math.min(startIdx + projectsPerPage, projects.length);
+  const headPadY = embedded ? 'py-2' : 'py-3';
 
   const renderPaginationControls = () =>
     maxPage > 1 ? (
@@ -554,7 +564,7 @@ export function ProjectTable({
   return (
     <>
       {viewMode === 'grid' ? (
-        <div className="flex flex-col gap-3.5">
+        <div className={cn('flex flex-col', embedded ? 'gap-2.5' : 'gap-3.5')}>
           {actionError && (
             <div
               role="alert"
@@ -575,7 +585,12 @@ export function ProjectTable({
             </div>
           )}
 
-          <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2 2xl:grid-cols-3">
+          <div
+            className={cn(
+              'grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3',
+              embedded ? 'gap-3' : 'gap-3.5',
+            )}
+          >
             {visibleProjects.map((project) => (
               <ProjectGridCard
                 key={project.id}
@@ -598,10 +613,12 @@ export function ProjectTable({
             ))}
           </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-3 px-1 pt-0.5">
-            {renderCountSummary()}
-            {renderPaginationControls()}
-          </div>
+          {showFooter && (
+            <div className="flex flex-wrap items-center justify-between gap-3 px-1 pt-0.5">
+              {renderCountSummary()}
+              {renderPaginationControls()}
+            </div>
+          )}
         </div>
       ) : (
         <div className="surface-card overflow-hidden rounded-2xl">
@@ -629,16 +646,36 @@ export function ProjectTable({
             <table className="w-full table-fixed border-collapse">
               <thead>
                 <tr className="border-b border-line-subtle bg-tint-subtle">
-                  <th className="py-3 pr-3 pl-5 text-left text-[11px] font-semibold tracking-wider text-fg-muted uppercase">
+                  <th
+                    className={cn(
+                      headPadY,
+                      'pr-3 pl-5 text-left text-[11px] font-semibold tracking-wider text-fg-muted uppercase',
+                    )}
+                  >
                     Project
                   </th>
-                  <th className="w-[168px] px-3 py-3 text-left text-[11px] font-semibold tracking-wider text-fg-muted uppercase">
+                  <th
+                    className={cn(
+                      'w-[168px] px-3 text-left text-[11px] font-semibold tracking-wider text-fg-muted uppercase',
+                      headPadY,
+                    )}
+                  >
                     Folder
                   </th>
-                  <th className="w-[104px] px-3 py-3 text-left text-[11px] font-semibold tracking-wider text-fg-muted uppercase">
+                  <th
+                    className={cn(
+                      'w-[104px] px-3 text-left text-[11px] font-semibold tracking-wider text-fg-muted uppercase',
+                      headPadY,
+                    )}
+                  >
                     Total Time
                   </th>
-                  <th className="w-[188px] py-3 pr-5 pl-2 text-right text-[11px] font-semibold tracking-wider text-fg-muted uppercase">
+                  <th
+                    className={cn(
+                      'w-[188px] pr-5 pl-2 text-right text-[11px] font-semibold tracking-wider text-fg-muted uppercase',
+                      headPadY,
+                    )}
+                  >
                     Actions
                   </th>
                 </tr>
@@ -649,6 +686,7 @@ export function ProjectTable({
                     key={project.id}
                     project={project}
                     folders={folders}
+                    compact={embedded}
                     isConfirmingDelete={confirmDeleteId === project.id}
                     onRequestDelete={() => {
                       setActionError(null);
@@ -668,10 +706,12 @@ export function ProjectTable({
             </table>
           </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line-subtle bg-tint-subtle px-5 py-3">
-            {renderCountSummary()}
-            {renderPaginationControls()}
-          </div>
+          {showFooter && (
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line-subtle bg-tint-subtle px-5 py-3">
+              {renderCountSummary()}
+              {renderPaginationControls()}
+            </div>
+          )}
         </div>
       )}
 

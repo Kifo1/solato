@@ -3,10 +3,10 @@ import { TextInput } from '@/shared/components/TextInput';
 import { useToast } from '@shared/context/ToastContext';
 import {
   buildFolderTree,
+  flattenFolderTree,
   Folder,
   FolderTreeNode,
   getDescendantFolderIds,
-  getFolderPathMap,
   Project,
 } from '@/shared/lib/models/project';
 import { cn, getErrorMessage } from '@/shared/lib/utils';
@@ -40,7 +40,16 @@ import {
 } from './ProjectTable';
 
 type FolderFilter = 'all' | 'unassigned' | string;
-type ProjectSortBy = 'name' | 'folder';
+type ProjectGroupMode = 'grouped' | 'flat';
+
+interface FolderSection {
+  key: string;
+  folder: Folder | null;
+  parentPrefix: string;
+  leafName: string;
+  ariaName: string;
+  projects: Project[];
+}
 
 const VIEW_STORAGE_KEY = 'solato.projectsView';
 
@@ -62,14 +71,16 @@ export function ProjectOverview({ projects, folders }: Readonly<ProjectOverviewP
   const queryClient = useQueryClient();
   const toast = useToast();
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
+  const [projectModalFolderId, setProjectModalFolderId] = useState<string | null>(null);
   const [isFolderModalOpen, setIsFolderModalOpen] = useState(false);
   const [editingFolder, setEditingFolder] = useState<Folder | null>(null);
   const [newFolderParentId, setNewFolderParentId] = useState<string | null>(null);
   const [selectedFilter, setSelectedFilter] = useState<FolderFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState<ProjectSortBy>('name');
+  const [groupMode, setGroupMode] = useState<ProjectGroupMode>('grouped');
   const [viewMode, setViewMode] = useState<ProjectViewMode>(readSavedViewMode);
   const [collapsedFolders, setCollapsedFolders] = useState<Record<string, boolean>>({});
+  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
   const [confirmDeleteFolderId, setConfirmDeleteFolderId] = useState<string | null>(null);
   const [folderError, setFolderError] = useState<string | null>(null);
   const [isCompactFoldersOpen, setIsCompactFoldersOpen] = useState(true);
@@ -107,7 +118,6 @@ export function ProjectOverview({ projects, folders }: Readonly<ProjectOverviewP
   });
 
   const validFolderIds = useMemo(() => new Set(folders.map((f) => f.id)), [folders]);
-  const folderPathMap = useMemo(() => getFolderPathMap(folders), [folders]);
 
   const activeFilter: FolderFilter =
     selectedFilter !== 'all' && selectedFilter !== 'unassigned' && !validFolderIds.has(selectedFilter)
@@ -123,6 +133,11 @@ export function ProjectOverview({ projects, folders }: Readonly<ProjectOverviewP
   );
 
   const folderTree = useMemo(() => buildFolderTree(folders), [folders]);
+  const orderedFolderNodes = useMemo(() => flattenFolderTree(folderTree), [folderTree]);
+  const folderNodeById = useMemo(
+    () => new Map(orderedFolderNodes.map((node) => [node.folder.id, node])),
+    [orderedFolderNodes],
+  );
 
   const { directCounts, subtreeCounts, unassignedCount } = useMemo(() => {
     const direct = new Map<string, number>();
@@ -172,23 +187,80 @@ export function ProjectOverview({ projects, folders }: Readonly<ProjectOverviewP
             p.description.toLowerCase().includes(trimmedSearch),
         );
 
-    const sorted = [...filtered];
-    if (sortBy === 'folder') {
-      sorted.sort((a, b) => {
-        const folderA = a.folder_id ? (folderPathMap.get(a.folder_id) ?? '') : '';
-        const folderB = b.folder_id ? (folderPathMap.get(b.folder_id) ?? '') : '';
-        if (folderA && !folderB) return -1;
-        if (!folderA && folderB) return 1;
-        const folderCmp = folderA.localeCompare(folderB, undefined, { sensitivity: 'base' });
-        if (folderCmp !== 0) return folderCmp;
-        return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
-      });
-    } else {
-      sorted.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+    return [...filtered].sort((a, b) =>
+      a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }),
+    );
+  }, [folderFilteredProjects, trimmedSearch]);
+
+  const isGroupedView = groupMode === 'grouped' && activeFilter !== 'unassigned';
+
+  const groupedSections = useMemo<FolderSection[]>(() => {
+    if (!isGroupedView) return [];
+
+    const projectsByFolder = new Map<string, Project[]>();
+    const unassignedProjects: Project[] = [];
+
+    for (const project of visibleProjects) {
+      if (project.folder_id && validFolderIds.has(project.folder_id)) {
+        const bucket = projectsByFolder.get(project.folder_id) ?? [];
+        bucket.push(project);
+        projectsByFolder.set(project.folder_id, bucket);
+      } else {
+        unassignedProjects.push(project);
+      }
     }
 
-    return sorted;
-  }, [folderFilteredProjects, trimmedSearch, sortBy, folderPathMap]);
+    const targetNodes =
+      activeFilter === 'all'
+        ? orderedFolderNodes
+        : (() => {
+            const matchingIds = getDescendantFolderIds(activeFilter, folders);
+            return orderedFolderNodes.filter((node) => matchingIds.has(node.folder.id));
+          })();
+
+    const sections: FolderSection[] = [];
+    const isSearching = trimmedSearch.length > 0;
+
+    for (const node of targetNodes) {
+      const sectionProjects = projectsByFolder.get(node.folder.id) ?? [];
+      if (isSearching && sectionProjects.length === 0) continue;
+
+      const parentPrefix =
+        node.depth > 0
+          ? node.pathLabel.slice(0, node.pathLabel.length - node.folder.name.length)
+          : '';
+
+      sections.push({
+        key: node.folder.id,
+        folder: node.folder,
+        parentPrefix,
+        leafName: node.folder.name,
+        ariaName: node.pathLabel,
+        projects: sectionProjects,
+      });
+    }
+
+    if (activeFilter === 'all' && unassignedProjects.length > 0) {
+      sections.push({
+        key: '__unassigned__',
+        folder: null,
+        parentPrefix: '',
+        leafName: 'Unassigned',
+        ariaName: 'Unassigned',
+        projects: unassignedProjects,
+      });
+    }
+
+    return sections;
+  }, [
+    isGroupedView,
+    visibleProjects,
+    validFolderIds,
+    activeFilter,
+    orderedFolderNodes,
+    folders,
+    trimmedSearch,
+  ]);
 
   const emptyVariant: ProjectTableEmptyVariant = trimmedSearch
     ? 'search'
@@ -200,6 +272,11 @@ export function ProjectOverview({ projects, folders }: Readonly<ProjectOverviewP
 
   const defaultFolderIdForNewProject =
     activeFilter !== 'all' && activeFilter !== 'unassigned' ? activeFilter : null;
+
+  const openCreateProject = (folderId: string | null) => {
+    setProjectModalFolderId(folderId);
+    setIsProjectModalOpen(true);
+  };
 
   const openCreateFolder = (parentId: string | null) => {
     setFolderError(null);
@@ -224,12 +301,23 @@ export function ProjectOverview({ projects, folders }: Readonly<ProjectOverviewP
     }));
   };
 
+  const toggleSectionCollapse = (sectionKey: string) => {
+    setCollapsedSections((prev) => ({
+      ...prev,
+      [sectionKey]: !prev[sectionKey],
+    }));
+  };
+
   const activeFilterLabel =
     activeFilter === 'all'
       ? 'All Projects'
       : activeFilter === 'unassigned'
         ? 'Unassigned'
         : (activeFolder?.name ?? 'All Projects');
+
+  const activeFilterBreadcrumb = activeFolder
+    ? (folderNodeById.get(activeFolder.id)?.pathLabel ?? activeFolder.name)
+    : activeFilterLabel;
 
   const renderFolderNode = (node: FolderTreeNode) => {
     const { folder, children } = node;
@@ -562,50 +650,50 @@ export function ProjectOverview({ projects, folders }: Readonly<ProjectOverviewP
               )}
             </div>
 
-            {/* Sort Selector + View Switcher */}
+            {/* Grouping Toggle + View Switcher */}
             <div className="flex shrink-0 items-center gap-2">
               <div
                 role="group"
-                aria-label="Sort projects"
+                aria-label="Group projects"
                 className="inline-flex h-9.5 items-center rounded-xl border border-line bg-well p-1"
               >
                 <button
                   type="button"
-                  aria-pressed={sortBy === 'name'}
-                  onClick={() => setSortBy('name')}
+                  aria-pressed={groupMode === 'grouped'}
+                  onClick={() => setGroupMode('grouped')}
                   className={cn(
                     'inline-flex h-full cursor-pointer items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium transition-all focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none',
-                    sortBy === 'name'
-                      ? 'bg-elevated text-fg shadow-[0_1px_0_rgba(255,255,255,0.06)_inset]'
-                      : 'text-fg-muted hover:text-fg-bright',
-                  )}
-                >
-                  <ArrowDownAZ
-                    className={cn(
-                      'h-3.5 w-3.5 shrink-0',
-                      sortBy === 'name' ? 'text-amber-400' : 'text-current',
-                    )}
-                  />
-                  <span>Name A–Z</span>
-                </button>
-                <button
-                  type="button"
-                  aria-pressed={sortBy === 'folder'}
-                  onClick={() => setSortBy('folder')}
-                  className={cn(
-                    'inline-flex h-full cursor-pointer items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium transition-all focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none',
-                    sortBy === 'folder'
-                      ? 'bg-elevated text-fg shadow-[0_1px_0_rgba(255,255,255,0.06)_inset]'
+                    groupMode === 'grouped'
+                      ? 'bg-elevated text-fg shadow-xs'
                       : 'text-fg-muted hover:text-fg-bright',
                   )}
                 >
                   <FolderIcon
                     className={cn(
                       'h-3.5 w-3.5 shrink-0',
-                      sortBy === 'folder' ? 'text-amber-400' : 'text-current',
+                      groupMode === 'grouped' ? 'text-amber-400' : 'text-current',
                     )}
                   />
-                  <span>Folder</span>
+                  <span>By Folder</span>
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={groupMode === 'flat'}
+                  onClick={() => setGroupMode('flat')}
+                  className={cn(
+                    'inline-flex h-full cursor-pointer items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium transition-all focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none',
+                    groupMode === 'flat'
+                      ? 'bg-elevated text-fg shadow-xs'
+                      : 'text-fg-muted hover:text-fg-bright',
+                  )}
+                >
+                  <ArrowDownAZ
+                    className={cn(
+                      'h-3.5 w-3.5 shrink-0',
+                      groupMode === 'flat' ? 'text-amber-400' : 'text-current',
+                    )}
+                  />
+                  <span>Flat A–Z</span>
                 </button>
               </div>
 
@@ -623,7 +711,7 @@ export function ProjectOverview({ projects, folders }: Readonly<ProjectOverviewP
                   className={cn(
                     'flex h-7.5 w-7.5 cursor-pointer items-center justify-center rounded-lg transition-all focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none',
                     viewMode === 'list'
-                      ? 'bg-elevated text-amber-400 shadow-[0_1px_0_rgba(255,255,255,0.06)_inset]'
+                      ? 'bg-elevated text-amber-400 shadow-xs'
                       : 'text-fg-muted hover:text-fg-bright',
                   )}
                 >
@@ -638,7 +726,7 @@ export function ProjectOverview({ projects, folders }: Readonly<ProjectOverviewP
                   className={cn(
                     'flex h-7.5 w-7.5 cursor-pointer items-center justify-center rounded-lg transition-all focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none',
                     viewMode === 'grid'
-                      ? 'bg-elevated text-amber-400 shadow-[0_1px_0_rgba(255,255,255,0.06)_inset]'
+                      ? 'bg-elevated text-amber-400 shadow-xs'
                       : 'text-fg-muted hover:text-fg-bright',
                   )}
                 >
@@ -656,7 +744,10 @@ export function ProjectOverview({ projects, folders }: Readonly<ProjectOverviewP
                 <FolderPlus className="h-4 w-4 text-fg-secondary" />
                 <span>New Folder</span>
               </Button>
-              <Button variant="primary" onClick={() => setIsProjectModalOpen(true)}>
+              <Button
+                variant="primary"
+                onClick={() => openCreateProject(defaultFolderIdForNewProject)}
+              >
                 <Plus className="h-4 w-4" />
                 <span>New Project</span>
               </Button>
@@ -667,7 +758,7 @@ export function ProjectOverview({ projects, folders }: Readonly<ProjectOverviewP
             <div className="flex items-center justify-between gap-2 px-1">
               <div className="flex min-w-0 items-center gap-2 text-xs text-fg-secondary">
                 <span>Viewing</span>
-                <span className="inline-flex max-w-[260px] items-center gap-1.5 rounded-lg border border-line bg-tint-subtle px-2 py-0.5 font-medium text-fg">
+                <span className="inline-flex max-w-[320px] items-center gap-1.5 rounded-lg border border-line bg-tint-subtle px-2 py-0.5 font-medium text-fg">
                   {activeFolder ? (
                     <FolderIcon
                       className="h-3.5 w-3.5 shrink-0"
@@ -676,7 +767,9 @@ export function ProjectOverview({ projects, folders }: Readonly<ProjectOverviewP
                   ) : (
                     <CircleSlash className="h-3.5 w-3.5 shrink-0 text-fg-secondary" />
                   )}
-                  <span className="truncate">{activeFilterLabel}</span>
+                  <span className="truncate" title={activeFilterBreadcrumb}>
+                    {activeFilterBreadcrumb}
+                  </span>
                 </span>
               </div>
               <button
@@ -689,24 +782,134 @@ export function ProjectOverview({ projects, folders }: Readonly<ProjectOverviewP
             </div>
           )}
 
-          <ProjectTable
-            projects={visibleProjects}
-            folders={folders}
-            viewMode={viewMode}
-            filterKey={`${activeFilter}::${trimmedSearch}::${sortBy}`}
-            emptyVariant={emptyVariant}
-            searchQuery={searchQuery.trim()}
-            onClearSearch={() => setSearchQuery('')}
-            onAddProject={() => setIsProjectModalOpen(true)}
-          />
+          {isGroupedView && groupedSections.length > 0 ? (
+            <div className="flex flex-col gap-5">
+              {groupedSections.map((section) => {
+                const isSectionCollapsed =
+                  !trimmedSearch && Boolean(collapsedSections[section.key]);
+                const sectionFolderId = section.folder ? section.folder.id : null;
+
+                return (
+                  <div key={section.key} className="flex flex-col gap-2">
+                    {/* Folder Section Header Bar */}
+                    <div className="group/section flex items-center gap-2 px-1 py-0.5">
+                      <button
+                        type="button"
+                        onClick={() => toggleSectionCollapse(section.key)}
+                        aria-expanded={!isSectionCollapsed}
+                        aria-label={`${isSectionCollapsed ? 'Expand' : 'Collapse'} ${section.ariaName}`}
+                        className="flex min-w-0 cursor-pointer items-center gap-2 rounded-lg py-1 pr-2 pl-1 text-left transition-colors hover:bg-tint focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none"
+                      >
+                        <ChevronRight
+                          className={cn(
+                            'h-3.5 w-3.5 shrink-0 text-fg-muted transition-transform duration-150',
+                            !isSectionCollapsed && 'rotate-90',
+                          )}
+                        />
+                        {section.folder ? (
+                          <>
+                            <span
+                              className="h-2.5 w-2.5 shrink-0 rounded-full ring-1 ring-line"
+                              style={{ backgroundColor: section.folder.color }}
+                            />
+                            <FolderIcon
+                              className="h-3.5 w-3.5 shrink-0 opacity-85"
+                              style={{ color: section.folder.color }}
+                            />
+                          </>
+                        ) : (
+                          <CircleSlash className="h-3.5 w-3.5 shrink-0 text-fg-muted" />
+                        )}
+                        <span
+                          className="flex min-w-0 items-baseline truncate text-xs sm:text-[13px]"
+                          title={section.ariaName}
+                        >
+                          {section.parentPrefix && (
+                            <span className="truncate font-normal text-fg-muted">
+                              {section.parentPrefix}
+                            </span>
+                          )}
+                          <span className="truncate font-semibold tracking-tight text-fg">
+                            {section.leafName}
+                          </span>
+                        </span>
+                        <span className="shrink-0 rounded-md border border-line-subtle bg-tint px-1.5 py-0.5 font-mono text-[11px] font-medium text-fg-secondary tabular-nums">
+                          {section.projects.length}
+                        </span>
+                      </button>
+
+                      <div className="h-px flex-1 bg-line-subtle" aria-hidden="true" />
+
+                      <button
+                        type="button"
+                        onClick={() => openCreateProject(sectionFolderId)}
+                        aria-label={
+                          section.folder
+                            ? `Add project to ${section.leafName}`
+                            : 'Add unassigned project'
+                        }
+                        className="inline-flex h-7 shrink-0 cursor-pointer items-center gap-1 rounded-lg border border-transparent px-2 text-xs font-medium text-fg-secondary transition-colors hover:border-line hover:bg-tint hover:text-fg focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none"
+                      >
+                        <Plus className="h-3.5 w-3.5 text-amber-400" />
+                        <span>Add</span>
+                      </button>
+                    </div>
+
+                    {/* Section Body */}
+                    {!isSectionCollapsed &&
+                      (section.projects.length > 0 ? (
+                        <ProjectTable
+                          projects={section.projects}
+                          folders={folders}
+                          viewMode={viewMode}
+                          embedded
+                          filterKey={`${activeFilter}::${trimmedSearch}::${groupMode}::${section.key}`}
+                        />
+                      ) : (
+                        <div className="flex items-center justify-between gap-3 rounded-xl border border-dashed border-line bg-tint-subtle px-4 py-2.5">
+                          <div className="flex min-w-0 items-center gap-2 text-xs text-fg-muted">
+                            <span>No projects in this folder</span>
+                            <span aria-hidden="true">·</span>
+                            <button
+                              type="button"
+                              onClick={() => openCreateProject(sectionFolderId)}
+                              className="inline-flex cursor-pointer items-center gap-1 font-medium text-amber-400 transition-colors hover:text-amber-300 focus-visible:underline focus-visible:outline-none"
+                            >
+                              <Plus className="h-3 w-3" />
+                              <span>Add</span>
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <ProjectTable
+              projects={visibleProjects}
+              folders={folders}
+              viewMode={viewMode}
+              filterKey={`${activeFilter}::${trimmedSearch}::${groupMode}`}
+              emptyVariant={emptyVariant}
+              searchQuery={searchQuery.trim()}
+              onClearSearch={() => setSearchQuery('')}
+              onAddProject={() => openCreateProject(defaultFolderIdForNewProject)}
+            />
+          )}
         </section>
       </div>
 
       {isProjectModalOpen && (
         <CreateProjectModal
           isModalOpen={isProjectModalOpen}
-          setIsModalOpen={setIsProjectModalOpen}
-          defaultFolderId={defaultFolderIdForNewProject}
+          setIsModalOpen={(open) => {
+            setIsProjectModalOpen(open);
+            if (!open) {
+              setProjectModalFolderId(null);
+            }
+          }}
+          defaultFolderId={projectModalFolderId}
         />
       )}
 

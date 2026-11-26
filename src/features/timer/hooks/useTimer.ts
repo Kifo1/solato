@@ -10,6 +10,16 @@ import { PresenceState, usePresence } from '@shared/hooks/usePresence';
 
 export type TimerMode = 'stopwatch' | 'pomodoro';
 
+export const TIMER_SYNC_EVENT = 'solato:timer-state-changed';
+
+export interface TimerSyncDetail {
+  project?: Project | null;
+}
+
+export function emitTimerStateChanged(detail?: TimerSyncDetail) {
+  window.dispatchEvent(new CustomEvent<TimerSyncDetail | undefined>(TIMER_SYNC_EVENT, { detail }));
+}
+
 type PhaseDurations = {
   focus: number;
   short: number;
@@ -114,35 +124,49 @@ export function useTimer() {
     }
   }, [queryClient]);
 
-  useEffect(() => {
-    const syncWithBackend = async () => {
-      try {
-        const [bIsRunning, bMode, sMillis, pMillis, phase, project] = await Promise.all([
-          invoke<boolean>('is_timer_running'),
-          invoke<TimerMode>('get_timer_mode'),
-          invoke<number>('get_stopwatch_millis'),
-          invoke<number>('get_pomodoro_millis'),
-          invoke<number>('get_pomodoro_phase'),
-          invoke<Project | null>('get_selected_project'),
-        ]);
+  const syncWithBackend = useCallback(async () => {
+    try {
+      const [bIsRunning, bMode, sMillis, pMillis, phase, project] = await Promise.all([
+        invoke<boolean>('is_timer_running'),
+        invoke<TimerMode>('get_timer_mode'),
+        invoke<number>('get_stopwatch_millis'),
+        invoke<number>('get_pomodoro_millis'),
+        invoke<number>('get_pomodoro_phase'),
+        invoke<Project | null>('get_selected_project'),
+      ]);
 
-        isRunningRef.current = bIsRunning;
-        modeRef.current = bMode;
-        pomodoroPhaseRef.current = phase;
+      isRunningRef.current = bIsRunning;
+      modeRef.current = bMode;
+      pomodoroPhaseRef.current = phase;
 
-        setIsRunning(bIsRunning);
-        setMode(bMode);
-        setStopwatchMillis(sMillis);
-        setPomodoroMillis(pMillis);
-        setPomodoroPhase(phase);
-        setSelectedProject(project);
-      } catch (err) {
-        console.error('Backend Sync Error:', err);
-        setError(getErrorMessage(err, 'Failed to sync timer state.'));
-      }
-    };
-    syncWithBackend();
+      setIsRunning(bIsRunning);
+      setMode(bMode);
+      setStopwatchMillis(sMillis);
+      setPomodoroMillis(pMillis);
+      setPomodoroPhase(phase);
+      setSelectedProject(project);
+    } catch (err) {
+      console.error('Backend Sync Error:', err);
+      setError(getErrorMessage(err, 'Failed to sync timer state.'));
+    }
   }, []);
+
+  useEffect(() => {
+    void syncWithBackend();
+  }, [syncWithBackend]);
+
+  useEffect(() => {
+    const handleExternalSync = (event: Event) => {
+      const custom = event as CustomEvent<TimerSyncDetail | undefined>;
+      if (custom.detail && 'project' in custom.detail) {
+        setSelectedProject(custom.detail.project ?? null);
+      }
+      void syncWithBackend();
+    };
+
+    window.addEventListener(TIMER_SYNC_EVENT, handleExternalSync);
+    return () => window.removeEventListener(TIMER_SYNC_EVENT, handleExternalSync);
+  }, [syncWithBackend]);
 
   useEffect(() => {
     const localSubscriber: Subscriber = {
