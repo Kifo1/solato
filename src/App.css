@@ -1,5 +1,152 @@
 @import 'tailwindcss';
 
-.glow {
-  box-shadow: 0 0 8px rgba(99, 102, 241, 0.9);
+@theme {
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  --color-canvas: #0a0b0e;
+  --color-sidebar: #0e1014;
+  --color-surface: #14171d;
+  --color-surface-elevated: #1a1e26;
+  --color-surface-subtle: #101217;
+
+  --color-accent: #f59e0b;
+  --color-accent-bright: #fbbf24;
+  --color-accent-deep: #d97706;
+
+  --color-break-short: #2dd4bf;
+  --color-break-long: #38bdf8;
+  --color-danger: #f43f5e;
+}
+
+@layer base {
+  html,
+  body {
+    font-family: var(--font-sans);
+    background-color: #0a0b0e;
+    color: #f4f5f7;
+    color-scheme: dark;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Custom refined scrollbars */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+  }
+
+  *::-webkit-scrollbar {
+    width: 7px;
+    height: 7px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 9999px;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.22);
+  }
+}
+
+/* Layered obsidian surface system */
+.studio-canvas {
+  background-color: #0a0b0e;
+  background-image: radial-gradient(
+    ellipse 70% 42% at 50% -12%,
+    rgba(245, 158, 11, 0.055),
+    transparent 70%
+  );
+}
+
+.surface-card {
+  background: linear-gradient(180deg, rgba(24, 28, 36, 0.88) 0%, rgba(19, 22, 28, 0.96) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.065);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.045),
+    0 12px 32px -16px rgba(0, 0, 0, 0.65);
+}
+
+.surface-elevated {
+  background: linear-gradient(180deg, #1b1f28 0%, #151820 100%);
+  border: 1px solid rgba(255, 255, 255, 0.095);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.065),
+    0 24px 60px -16px rgba(0, 0, 0, 0.78);
+}
+
+.surface-well {
+  background-color: #0f1116;
+  border: 1px solid rgba(255, 255, 255, 0.065);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+/* Subtle micro-animations */
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modalScaleIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.975);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes popoverIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes solarBreath {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.03);
+  }
+}
+
+.animate-modal-backdrop {
+  animation: modalFadeIn 160ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-modal-panel {
+  animation: modalScaleIn 200ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-popover {
+  animation: popoverIn 140ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-solar-breath {
+  animation: solarBreath 3.6s ease-in-out infinite;
+}
+
+.solar-glow {
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.55);
 }

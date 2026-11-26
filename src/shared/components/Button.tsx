@@ -1,35 +1,42 @@
 import { cva, type VariantProps } from 'class-variance-authority';
-import { cn } from '@shared/lib/utils.js';
+import { cn } from '@shared/lib/utils';
 import type { ButtonHTMLAttributes } from 'react';
 
-const buttonVariants = cva('hover:cursor-pointer rounded', {
-  variants: {
-    variant: {
-      icon: '',
-      primary:
-        'text-white bg-blue-500 hover:bg-blue-600 rounded-full font-bold text-xl tracking-wide transition-all transform hover:scale-101 active:scale-100 flex items-center justify-center gap-3',
-      secondary:
-        'text-white bg-slate-900 rounded-full font-semibold hover:scale-101 hover:border-white disabled:border-none tracking-wide transition-all flex justify-center gap-3 disabled:hover:cursor-default disabled:text-gray-400 disabled:font-semibold',
-      danger: '',
-      success: '',
-      ghost: 'text-gray-400 font-semibold rounded-full flex justify-center gap-3',
+const buttonVariants = cva(
+  'inline-flex items-center justify-center gap-2 font-medium transition-all duration-150 select-none cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0B0E] disabled:pointer-events-none disabled:opacity-45 active:scale-[0.985]',
+  {
+    variants: {
+      variant: {
+        primary:
+          'bg-amber-500 text-[#0A0B0E] font-semibold shadow-[0_1px_0_rgba(255,255,255,0.28)_inset,0_6px_18px_-6px_rgba(245,158,11,0.55)] hover:bg-amber-400',
+        secondary:
+          'bg-[#191D26] text-[#F4F5F7] border border-white/[0.09] shadow-[0_1px_0_rgba(255,255,255,0.05)_inset] hover:bg-[#222733] hover:border-white/[0.15]',
+        danger:
+          'bg-rose-500/15 text-rose-300 border border-rose-500/25 hover:bg-rose-500/25 hover:text-rose-200 hover:border-rose-400/40',
+        success:
+          'bg-teal-500/15 text-teal-300 border border-teal-500/25 hover:bg-teal-500/25 hover:text-teal-200',
+        ghost:
+          'bg-transparent text-[#9CA3B0] hover:bg-white/[0.06] hover:text-[#F4F5F7]',
+        icon: 'bg-transparent text-[#9CA3B0] hover:bg-white/[0.07] hover:text-[#F4F5F7]',
+      },
+      scale: {
+        sm: 'h-8 px-3 rounded-lg text-xs',
+        md: 'h-9.5 px-4 rounded-xl text-sm',
+        lg: 'h-11 px-6 rounded-xl text-sm font-semibold',
+        icon_sm: 'h-7 w-7 p-1 rounded-lg',
+        icon_md: 'h-9 w-9 p-2 rounded-xl',
+      },
     },
-    scale: {
-      sm: 'pt-1.5 pb-1.5 pl-4 pr-4',
-      md: 'pt-2 pb-2 pl-4 pr-4',
-      lg: '',
-      icon_sm: 'p-1 rounded-md',
-      icon_md: 'p-2 rounded-md',
+    defaultVariants: {
+      variant: 'primary',
+      scale: 'md',
     },
   },
-  defaultVariants: {
-    variant: 'primary',
-    scale: 'md',
-  },
-});
+);
 
-interface ButtonComponentProps
-  extends VariantProps<typeof buttonVariants>, ButtonHTMLAttributes<HTMLButtonElement> {
+export interface ButtonComponentProps
+  extends VariantProps<typeof buttonVariants>,
+    ButtonHTMLAttributes<HTMLButtonElement> {
   className?: string;
 }
 
@@ -38,10 +45,11 @@ export default function Button({
   variant,
   scale,
   className,
+  type = 'button',
   ...props
 }: Readonly<ButtonComponentProps>) {
   return (
-    <button className={cn(buttonVariants({ variant, scale, className }))} {...props}>
+    <button type={type} className={cn(buttonVariants({ variant, scale }), className)} {...props}>
       {children}
     </button>
   );

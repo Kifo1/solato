@@ -1,76 +1,64 @@
-import { cva, type VariantProps } from 'class-variance-authority';
-import { cn } from '../lib/utils';
+import { cn } from '@shared/lib/utils';
 
-interface ToggleSwitchProps extends VariantProps<typeof switchVariants> {
+interface ToggleSwitchProps {
   isOn: boolean;
   setIsOn: (val: boolean) => void;
+  scale?: 'sm' | 'md' | 'lg';
+  disabled?: boolean;
+  ariaLabel?: string;
   className?: string;
 }
 
-const switchVariants = cva('relative rounded-4xl select-none', {
-  variants: {
-    scale: {
-      sm: 'w-10 h-5',
-      md: 'w-14 h-8',
-      lg: 'w-20 h-10',
-    },
-    variant: {
-      default: ``,
-    },
-  },
-  defaultVariants: {
-    scale: 'md',
-    variant: 'default',
-  },
-});
+const TRACK_SIZES = {
+  sm: 'h-5 w-9',
+  md: 'h-6 w-11',
+  lg: 'h-7 w-13',
+} as const;
 
-const sliderVariants = cva(
-  'absolute inset-0 rounded-full cursor-pointer transition-colors duration-300',
-  {
-    variants: {
-      variant: {
-        default: '',
-      },
-    },
-    defaultVariants: {
-      variant: 'default',
-    },
-  },
-);
+const KNOB_SIZES = {
+  sm: 'h-3.5 w-3.5',
+  md: 'h-4.5 w-4.5',
+  lg: 'h-5.5 w-5.5',
+} as const;
+
+const KNOB_TRANSLATE = {
+  sm: 'translate-x-4',
+  md: 'translate-x-5',
+  lg: 'translate-x-6',
+} as const;
 
 export default function Switch({
   isOn,
   setIsOn,
-  scale,
-  variant,
+  scale = 'md',
+  disabled = false,
+  ariaLabel,
   className,
 }: Readonly<ToggleSwitchProps>) {
-  const bgColor = isOn ? 'bg-blue-500/75' : 'bg-gray-400';
-
-  const knobTranslate = isOn ? 'translate-x-full' : 'translate-x-0';
-  const knobVariants = {
-    sm: 'w-4 h-4',
-    md: 'w-6 h-6',
-    lg: 'w-8 h-8',
-  };
-
   return (
-    <label className={cn(switchVariants({ variant, scale, className }))}>
-      <input
-        type="checkbox"
-        checked={isOn}
-        onChange={(e) => setIsOn(e.target.checked)}
-        className="sr-only"
+    <button
+      type="button"
+      role="switch"
+      aria-checked={isOn}
+      aria-label={ariaLabel}
+      disabled={disabled}
+      onClick={() => setIsOn(!isOn)}
+      className={cn(
+        'relative inline-flex shrink-0 cursor-pointer items-center rounded-full border p-[2px] transition-all duration-200 focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#14171D] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-45',
+        TRACK_SIZES[scale],
+        isOn
+          ? 'border-amber-400/50 bg-amber-500 shadow-[0_0_16px_-4px_rgba(245,158,11,0.65)]'
+          : 'border-white/[0.10] bg-[#1F242E] hover:border-white/[0.16]',
+        className,
+      )}
+    >
+      <span
+        className={cn(
+          'pointer-events-none block rounded-full shadow-sm transition-transform duration-200 ease-out',
+          KNOB_SIZES[scale],
+          isOn ? cn(KNOB_TRANSLATE[scale], 'bg-[#0A0B0E]') : 'translate-x-0 bg-[#D0D5DE]',
+        )}
       />
-      <span className={cn(sliderVariants({ variant }), bgColor)}>
-        <span
-          className={cn(
-            `absolute top-1 left-1 rounded-full bg-white transition-transform duration-300`,
-            knobVariants[scale ?? 'md'],
-            knobTranslate,
-          )}
-        ></span>
-      </span>
-    </label>
+    </button>
   );
 }

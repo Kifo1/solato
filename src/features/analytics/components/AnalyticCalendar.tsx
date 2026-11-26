@@ -1,24 +1,26 @@
 import Button from '@/shared/components/Button';
-import { formatSecondsToString } from '@/shared/lib/utils';
+import { Skeleton } from '@/shared/components/Skeleton';
+import { cn, formatSecondsToString } from '@/shared/lib/utils';
 import {
-  startOfYear,
-  endOfYear,
-  startOfToday,
-  format,
   eachDayOfInterval,
-  getYear,
-  startOfWeek,
   endOfWeek,
+  endOfYear,
+  format,
+  getYear,
+  isAfter,
   isSameYear,
+  startOfToday,
+  startOfWeek,
+  startOfYear,
 } from 'date-fns';
 import { useQuery } from '@tanstack/react-query';
 import { invoke } from '@tauri-apps/api/core';
-import React, { useMemo, useState, useRef } from 'react';
+import React, { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface CalendarData {
-  history: { [key: string]: number };
+  history: Record<string, number>;
 }
 
 interface DayCell {
@@ -27,6 +29,7 @@ interface DayCell {
   seconds: number;
   inYear: boolean;
   isToday: boolean;
+  isFuture: boolean;
 }
 
 interface MonthLabel {
@@ -37,19 +40,25 @@ interface MonthLabel {
 interface TooltipState {
   x: number;
   y: number;
+  placement: 'above' | 'below';
   date: Date;
   seconds: number;
+  isFuture: boolean;
 }
 
 const WEEK_STARTS_ON = 1;
-const WEEKDAY_LABELS = ['', 'Mon', '', 'Wed', '', 'Fri', ''];
+const WEEKDAY_LABELS = ['Mon', '', 'Wed', '', 'Fri', '', ''];
+const CELL_SIZE_PX = 14;
+const CELL_GAP_PX = 4;
+const WEEK_COL_STEP_PX = CELL_SIZE_PX + CELL_GAP_PX;
+const TOOLTIP_HALF_WIDTH = 104;
 
 const LEVEL_COLORS = [
-  'bg-white/5 border border-slate-200/10',
-  'bg-blue-900/70 border border-blue-900/70',
-  'bg-blue-700/80 border border-blue-700/80',
-  'bg-blue-500/90 border border-blue-500/90',
-  'bg-blue-300 border border-blue-300',
+  'bg-[#1A1E26] border border-white/[0.05]',
+  'bg-[#4A3210] border border-[#614114]',
+  'bg-[#7C4D0E] border border-[#965D11]',
+  'bg-[#B86D0B] border border-[#D47E0D]',
+  'bg-[#F59E0B] border border-[#FBBF24]',
 ];
 
 function getLevel(seconds: number, max: number): number {
@@ -66,16 +75,17 @@ interface AnalyticCalendarProps {
 }
 
 export function AnalyticCalendar({ onSelectDay }: Readonly<AnalyticCalendarProps> = {}) {
-  const [year, setYear] = useState(() => getYear(startOfToday()));
-  const [tooltip, setTooltip] = useState<TooltipState | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const today = useMemo(() => startOfToday(), []);
+  const todayKey = useMemo(() => format(today, 'yyyy-MM-dd'), [today]);
 
-  const { data: calendarData } = useQuery({
+  const [year, setYear] = useState(() => getYear(today));
+  const [tooltip, setTooltip] = useState<TooltipState | null>(null);
+
+  const { data: calendarData, isLoading } = useQuery({
     queryKey: ['analytics', 'calendar'],
     queryFn: () => invoke<CalendarData>('get_analytics_calendar'),
   });
 
-  const today = startOfToday();
   const isCurrentYear = isSameYear(new Date(year, 0, 1), today);
 
   const { weeks, monthLabels, maxSeconds, activeDays, totalSeconds } = useMemo(() => {
@@ -83,9 +93,7 @@ export function AnalyticCalendar({ onSelectDay }: Readonly<AnalyticCalendarProps
 
     const yearStart = startOfYear(new Date(year, 0, 1));
     const yearEnd = endOfYear(yearStart);
-    const gridStart = startOfWeek(yearStart, {
-      weekStartsOn: WEEK_STARTS_ON,
-    });
+    const gridStart = startOfWeek(yearStart, { weekStartsOn: WEEK_STARTS_ON });
     const gridEnd = endOfWeek(yearEnd, { weekStartsOn: WEEK_STARTS_ON });
 
     const allDays = eachDayOfInterval({ start: gridStart, end: gridEnd });
@@ -98,8 +106,9 @@ export function AnalyticCalendar({ onSelectDay }: Readonly<AnalyticCalendarProps
       const key = format(date, 'yyyy-MM-dd');
       const seconds = history[key] ?? 0;
       const inYear = isSameYear(date, yearStart);
+      const isFuture = isAfter(date, today);
 
-      if (inYear) {
+      if (inYear && !isFuture) {
         if (seconds > max) max = seconds;
         if (seconds > 0) active += 1;
         total += seconds;
@@ -110,78 +119,126 @@ export function AnalyticCalendar({ onSelectDay }: Readonly<AnalyticCalendarProps
         key,
         seconds,
         inYear,
-        isToday: format(today, 'yyyy-MM-dd') === key,
+        isToday: key === todayKey,
+        isFuture,
       };
     });
 
-    const weeks: DayCell[][] = [];
+    const groupedWeeks: DayCell[][] = [];
     for (let i = 0; i < days.length; i += 7) {
-      weeks.push(days.slice(i, i + 7));
+      groupedWeeks.push(days.slice(i, i + 7));
     }
 
-    const monthLabels: MonthLabel[] = [];
+    const labels: MonthLabel[] = [];
     let lastMonth = -1;
-    weeks.forEach((week, weekIndex) => {
+    let lastLabelWeek = -10;
+    groupedWeeks.forEach((week, weekIndex) => {
       const firstInYearDay = week.find((d) => d.inYear);
       if (!firstInYearDay) return;
       const month = firstInYearDay.date.getMonth();
       if (month !== lastMonth) {
-        monthLabels.push({
-          weekIndex,
-          label: format(firstInYearDay.date, 'MMM'),
-        });
+        if (weekIndex - lastLabelWeek >= 2) {
+          labels.push({
+            weekIndex,
+            label: format(firstInYearDay.date, 'MMM'),
+          });
+          lastLabelWeek = weekIndex;
+        }
         lastMonth = month;
       }
     });
 
     return {
-      weeks,
-      monthLabels,
+      weeks: groupedWeeks,
+      monthLabels: labels,
       maxSeconds: max,
       activeDays: active,
       totalSeconds: total,
     };
-  }, [calendarData, year, today]);
+  }, [calendarData, year, today, todayKey]);
 
-  const handleMouseEnter = (e: React.MouseEvent, day: DayCell) => {
+  const showTooltip = (target: HTMLElement, day: DayCell) => {
     if (!day.inYear) return;
-    const cellRect = e.currentTarget.getBoundingClientRect();
+    const cellRect = target.getBoundingClientRect();
+    const rawCenterX = cellRect.left + cellRect.width / 2;
+    const clampedX = Math.min(
+      Math.max(TOOLTIP_HALF_WIDTH + 12, rawCenterX),
+      Math.max(TOOLTIP_HALF_WIDTH + 12, window.innerWidth - TOOLTIP_HALF_WIDTH - 12),
+    );
+    const showBelow = cellRect.top < 84;
+
     setTooltip({
-      x: cellRect.left + cellRect.width / 2,
-      y: cellRect.top,
+      x: clampedX,
+      y: showBelow ? cellRect.bottom + 8 : cellRect.top - 8,
+      placement: showBelow ? 'below' : 'above',
       date: day.date,
       seconds: day.seconds,
+      isFuture: day.isFuture,
     });
   };
 
+  const handleMouseEnter = (e: React.MouseEvent<HTMLButtonElement>, day: DayCell) => {
+    showTooltip(e.currentTarget, day);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="surface-card rounded-2xl p-6">
+        <div className="mb-6 flex items-center justify-between">
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-28" />
+            <Skeleton className="h-3 w-48" />
+          </div>
+          <Skeleton className="h-8 w-32 rounded-xl" />
+        </div>
+        <Skeleton className="h-36 w-full rounded-xl" />
+      </div>
+    );
+  }
+
+  const gridWidthPx = weeks.length * WEEK_COL_STEP_PX - CELL_GAP_PX;
+
   return (
-    <div className="rounded-xl border border-slate-200/10 bg-slate-200/5 p-6">
-      <div className="mb-6 flex items-center justify-between">
+    <div className="surface-card rounded-2xl p-6">
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h3 className="te text-sm font-semibold tracking-wider text-blue-200 uppercase">
-            Activity
-          </h3>
-          <p className="mt-1 text-xs text-blue-200/70">
-            {activeDays} active day{activeDays === 1 ? '' : 's'} ·{' '}
-            {formatSecondsToString(totalSeconds)} total in {year}
+          <h3 className="text-sm font-semibold tracking-tight text-[#F4F5F7]">Activity Heatmap</h3>
+          <p className="mt-1 font-mono text-xs tabular-nums text-[#646C7A]">
+            <span className="font-medium text-[#9CA3B0]">{activeDays}</span> active day
+            {activeDays === 1 ? '' : 's'} ·{' '}
+            <span className="font-medium text-[#9CA3B0]">
+              {formatSecondsToString(totalSeconds)}
+            </span>{' '}
+            in {year}
           </p>
         </div>
-        <div className="flex items-center gap-3">
+
+        <div className="flex items-center gap-1.5">
           <Button
-            variant={'secondary'}
-            className="rounded-xl border border-white/20 p-2!"
-            onClick={() => setYear((y) => y - 1)}
+            variant="secondary"
+            scale="icon_sm"
+            aria-label={`View ${year - 1}`}
+            onClick={() => {
+              setTooltip(null);
+              setYear((y) => y - 1);
+            }}
           >
-            <ChevronLeft size={16} />
+            <ChevronLeft className="h-4 w-4" />
           </Button>
-          <span className="w-12 text-center text-sm font-medium text-white">{year}</span>
+          <span className="w-13 text-center font-mono text-xs font-semibold tabular-nums text-[#F4F5F7]">
+            {year}
+          </span>
           <Button
-            variant={'secondary'}
-            className="rounded-xl border border-white/20 p-2!"
+            variant="secondary"
+            scale="icon_sm"
+            aria-label={`View ${year + 1}`}
             disabled={isCurrentYear}
-            onClick={() => setYear((y) => y + 1)}
+            onClick={() => {
+              setTooltip(null);
+              setYear((y) => y + 1);
+            }}
           >
-            <ChevronRight size={16} />
+            <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
       </div>
@@ -189,62 +246,97 @@ export function AnalyticCalendar({ onSelectDay }: Readonly<AnalyticCalendarProps
       {tooltip &&
         createPortal(
           <div
-            className="pointer-events-none fixed z-50 -translate-x-1/2 -translate-y-full rounded-lg border border-slate-200/10 bg-slate-900 px-3 py-2 text-xs whitespace-nowrap text-white shadow-lg"
-            style={{ left: tooltip.x, top: tooltip.y - 8 }}
+            role="tooltip"
+            className={cn(
+              'surface-elevated pointer-events-none fixed z-[1300] -translate-x-1/2 rounded-xl px-3 py-2 text-xs whitespace-nowrap shadow-xl',
+              tooltip.placement === 'above' ? '-translate-y-full' : '',
+            )}
+            style={{ left: tooltip.x, top: tooltip.y }}
           >
-            <p className="font-semibold">{formatSecondsToString(tooltip.seconds)}</p>
-            <p className="text-blue-200/70">{format(tooltip.date, 'EEEE, MMM d, yyyy')}</p>
-            {onSelectDay && (
-              <p className="mt-0.5 text-[10px] text-blue-300/70">Click to view sessions</p>
+            <p className="font-mono font-semibold tabular-nums text-[#F4F5F7]">
+              {tooltip.isFuture ? 'Upcoming' : formatSecondsToString(tooltip.seconds)}
+            </p>
+            <p className="mt-0.5 text-[#9CA3B0]">{format(tooltip.date, 'EEEE, MMM d, yyyy')}</p>
+            {onSelectDay && !tooltip.isFuture && (
+              <p className="mt-1 text-[10px] font-medium text-amber-400">Click to view sessions</p>
             )}
           </div>,
           document.body,
         )}
 
-      <div ref={containerRef} className="relative overflow-x-auto pb-2">
-        <div className="inline-flex gap-3">
-          <div className="flex flex-col gap-1 pt-5">
+      <div className="overflow-x-auto pb-2">
+        <div className="inline-flex gap-3 pr-6">
+          {/* Weekday labels aligned to Monday = row 0 */}
+          <div className="flex shrink-0 flex-col gap-1 pt-5">
             {WEEKDAY_LABELS.map((label, i) => (
-              <span key={i} className="h-3 text-[10px] leading-3 text-blue-200/60 md:h-3.5">
+              <span
+                key={i}
+                className="flex h-3.5 items-center font-mono text-[10px] leading-none text-[#646C7A]"
+              >
                 {label}
               </span>
             ))}
           </div>
 
           <div>
-            <div className="relative mb-1 h-4">
+            {/* Month labels aligned to exact 18px week column pitch */}
+            <div className="relative mb-1 h-4" style={{ width: `${gridWidthPx}px` }}>
               {monthLabels.map(({ weekIndex, label }) => (
                 <span
                   key={weekIndex}
-                  className="absolute text-[10px] text-blue-200/60"
-                  style={{ left: weekIndex * (14 + 4) }}
+                  className="absolute font-mono text-[10px] text-[#646C7A]"
+                  style={{ left: `${weekIndex * WEEK_COL_STEP_PX}px` }}
                 >
                   {label}
                 </span>
               ))}
             </div>
 
+            {/* Heatmap grid */}
             <div className="flex gap-1">
               {weeks.map((week, weekIndex) => (
                 <div key={weekIndex} className="flex flex-col gap-1">
-                  {week.map((day) => (
-                    <div
-                      key={day.key}
-                      onMouseEnter={(e) => handleMouseEnter(e, day)}
-                      onMouseLeave={() => setTooltip(null)}
-                      onClick={() => {
-                        if (day.inYear && onSelectDay) {
-                          setTooltip(null);
-                          onSelectDay(day.key);
-                        }
-                      }}
-                      className={`h-3 w-3 rounded-sm transition-transform md:h-3.5 md:w-3.5 ${
-                        day.inYear
-                          ? `${LEVEL_COLORS[getLevel(day.seconds, maxSeconds)]} cursor-pointer hover:scale-125`
-                          : 'opacity-0'
-                      } ${day.isToday ? 'ring-1 ring-white/70' : ''}`}
-                    />
-                  ))}
+                  {week.map((day) => {
+                    if (!day.inYear) {
+                      return <div key={day.key} aria-hidden="true" className="h-3.5 w-3.5" />;
+                    }
+
+                    const level = day.isFuture ? 0 : getLevel(day.seconds, maxSeconds);
+                    const canOpen = Boolean(onSelectDay) && !day.isFuture;
+                    const dayLabel = day.isFuture
+                      ? `${format(day.date, 'EEEE, MMM d, yyyy')}: upcoming`
+                      : `${format(day.date, 'EEEE, MMM d, yyyy')}: ${formatSecondsToString(day.seconds)} focus`;
+
+                    return (
+                      <button
+                        key={day.key}
+                        type="button"
+                        disabled={!canOpen}
+                        aria-label={dayLabel}
+                        onMouseEnter={(e) => handleMouseEnter(e, day)}
+                        onMouseLeave={() => setTooltip(null)}
+                        onFocus={(e) => showTooltip(e.currentTarget, day)}
+                        onBlur={() => setTooltip(null)}
+                        onClick={() => {
+                          if (canOpen && onSelectDay) {
+                            setTooltip(null);
+                            onSelectDay(day.key);
+                          }
+                        }}
+                        className={cn(
+                          'h-3.5 w-3.5 rounded-[3px] transition-transform duration-100 focus-visible:ring-2 focus-visible:ring-amber-400/70 focus-visible:outline-none',
+                          LEVEL_COLORS[level],
+                          day.isFuture
+                            ? 'cursor-default opacity-35'
+                            : canOpen
+                              ? 'cursor-pointer hover:scale-125'
+                              : 'cursor-default',
+                          day.isToday &&
+                            'ring-1 ring-[#F4F5F7]/85 ring-offset-1 ring-offset-[#14171D]',
+                        )}
+                      />
+                    );
+                  })}
                 </div>
               ))}
             </div>
@@ -252,12 +344,12 @@ export function AnalyticCalendar({ onSelectDay }: Readonly<AnalyticCalendarProps
         </div>
       </div>
 
-      <div className="mt-4 flex items-center justify-end gap-1.5">
-        <span className="mr-1 text-[10px] text-blue-200/60">Less</span>
-        {LEVEL_COLORS.map((color, i) => (
-          <div key={i} className={`h-3 w-3 rounded-sm ${color}`} />
+      <div className="mt-3 flex items-center justify-end gap-1.5">
+        <span className="mr-1 font-mono text-[10px] text-[#646C7A]">Less</span>
+        {LEVEL_COLORS.map((colorClass, i) => (
+          <div key={i} className={cn('h-3 w-3 rounded-[3px]', colorClass)} />
         ))}
-        <span className="ml-1 text-[10px] text-blue-200/60">More</span>
+        <span className="ml-1 font-mono text-[10px] text-[#646C7A]">More</span>
       </div>
     </div>
   );

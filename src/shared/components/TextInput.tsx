@@ -1,18 +1,21 @@
+import { forwardRef, type InputHTMLAttributes } from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
-import { cn } from '@shared/lib/utils.js';
-import type { InputHTMLAttributes } from 'react';
+import { cn } from '@shared/lib/utils';
 
 const inputVariants = cva(
-  'text-white w-full px-2 py-1.5 rounded-md focus:outline-none focus:ring-2 focus:border-transparent transition-colors',
+  'w-full rounded-xl text-[#F4F5F7] placeholder-[#646C7A] transition-all duration-150 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50',
   {
     variants: {
       variant: {
-        default: 'bg-slate-700 placeholder-gray-400 border border-color-blue',
+        default:
+          'bg-[#0E1015] border border-white/[0.09] hover:border-white/[0.15] focus:border-amber-500/60 focus:ring-2 focus:ring-amber-500/20',
+        error:
+          'bg-[#0E1015] border border-rose-500/50 focus:border-rose-400 focus:ring-2 focus:ring-rose-500/20',
       },
       scale: {
-        sm: 'text-sm',
-        md: 'text-base',
-        lg: 'text-lg',
+        sm: 'h-8.5 px-3 text-xs',
+        md: 'h-10 px-3.5 text-sm',
+        lg: 'h-11 px-4 text-base',
       },
     },
     defaultVariants: {
@@ -22,11 +25,20 @@ const inputVariants = cva(
   },
 );
 
-interface TextInputProps
-  extends VariantProps<typeof inputVariants>, InputHTMLAttributes<HTMLInputElement> {
+export interface TextInputProps
+  extends VariantProps<typeof inputVariants>,
+    InputHTMLAttributes<HTMLInputElement> {
   className?: string;
 }
 
-export function TextInput({ variant, scale, className, ...props }: Readonly<TextInputProps>) {
-  return <input className={cn(inputVariants({ variant, scale, className }))} {...props} />;
-}
+export const TextInput = forwardRef<HTMLInputElement, Readonly<TextInputProps>>(
+  function TextInput({ variant, scale, className, ...props }, ref) {
+    return (
+      <input
+        ref={ref}
+        className={cn(inputVariants({ variant, scale }), className)}
+        {...props}
+      />
+    );
+  },
+);

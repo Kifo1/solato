@@ -1,22 +1,28 @@
 import Button from '@/shared/components/Button';
 import { TextInput } from '@/shared/components/TextInput';
 import { Folder, getDescendantFolderIds } from '@/shared/lib/models/project';
+import { cn, getErrorMessage } from '@/shared/lib/utils';
 import Modal from '@shared/components/Modal';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { invoke } from '@tauri-apps/api/core';
-import React, { useMemo, useState } from 'react';
+import { AlertCircle, Check, Folder as FolderIcon } from 'lucide-react';
+import React, { useEffect, useId, useMemo, useState } from 'react';
 import { FolderSelect } from './FolderSelect';
 
-const PRESET_COLORS = [
-  '#3B82F6',
-  '#10B981',
-  '#F59E0B',
-  '#EF4444',
-  '#8B5CF6',
-  '#EC4899',
-  '#06B6D4',
-  '#84CC16',
-];
+const STUDIO_COLOR_SWATCHES = [
+  { name: 'Solar Amber', hex: '#F59E0B' },
+  { name: 'Coral', hex: '#F97316' },
+  { name: 'Rose', hex: '#F43F5E' },
+  { name: 'Emerald', hex: '#10B981' },
+  { name: 'Teal', hex: '#14B8A6' },
+  { name: 'Sky', hex: '#38BDF8' },
+  { name: 'Cobalt', hex: '#3B82F6' },
+  { name: 'Indigo', hex: '#6366F1' },
+  { name: 'Lavender', hex: '#A78BFA' },
+  { name: 'Slate', hex: '#94A3B8' },
+] as const;
+
+const DEFAULT_FOLDER_COLOR = '#F59E0B';
 
 interface FolderModalProps {
   folder?: Folder | null;
@@ -32,10 +38,13 @@ export function FolderModal({
   setIsModalOpen,
 }: Readonly<FolderModalProps>) {
   const queryClient = useQueryClient();
+  const uid = useId();
+  const nameInputId = `${uid}-folder-name`;
+  const colorInputId = `${uid}-folder-color`;
   const isEditing = Boolean(folder);
 
   const [folderName, setFolderName] = useState(folder?.name ?? '');
-  const [folderColor, setFolderColor] = useState(folder?.color ?? '#3B82F6');
+  const [folderColor, setFolderColor] = useState(folder?.color ?? DEFAULT_FOLDER_COLOR);
   const [parentId, setParentId] = useState<string | null>(
     folder?.parent_id ?? defaultParentId ?? null,
   );
@@ -52,119 +61,192 @@ export function FolderModal({
   );
 
   const mutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (payload: { name: string; color: string; parentId: string | null }) => {
       if (folder) {
         return invoke('update_folder', {
           id: folder.id,
-          name: folderName,
-          color: folderColor,
-          parentId,
+          name: payload.name,
+          color: payload.color,
+          parentId: payload.parentId,
         });
       }
       return invoke<string>('create_folder', {
-        name: folderName,
-        color: folderColor,
-        parentId,
+        name: payload.name,
+        color: payload.color,
+        parentId: payload.parentId,
       });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['folders'] });
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       queryClient.invalidateQueries({ queryKey: ['timer_projects'] });
+      queryClient.invalidateQueries({ queryKey: ['analytics'] });
+      queryClient.invalidateQueries({ queryKey: ['localSelectedProjects'] });
       setIsModalOpen(false);
     },
     onError: (err) => {
-      setErrorMessage(String(err));
+      setErrorMessage(
+        getErrorMessage(err, isEditing ? 'Failed to update folder.' : 'Failed to create folder.'),
+      );
     },
   });
 
+  useEffect(() => {
+    if (isModalOpen) {
+      setFolderName(folder?.name ?? '');
+      setFolderColor(folder?.color ?? DEFAULT_FOLDER_COLOR);
+      setParentId(folder?.parent_id ?? defaultParentId ?? null);
+      setErrorMessage(null);
+      mutation.reset();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isModalOpen, folder?.id, folder?.name, folder?.color, folder?.parent_id, defaultParentId]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const trimmedName = folderName.trim();
+    if (!trimmedName) {
+      setErrorMessage('Please enter a folder name.');
+      return;
+    }
+
     setErrorMessage(null);
-    mutation.mutate();
+    mutation.mutate({
+      name: trimmedName,
+      color: folderColor,
+      parentId,
+    });
   };
 
   return (
     <Modal variant="default" scale="md" isOpen={isModalOpen} setIsOpen={setIsModalOpen}>
-      <form onSubmit={handleSubmit} className="w-full">
-        <fieldset className="flex flex-col items-center gap-5">
-          <legend className="pb-6 text-3xl font-semibold text-white">
-            {isEditing ? 'Edit Folder' : 'Create Folder'}
-          </legend>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+        <div className="pr-8">
+          <div className="flex items-center gap-2.5">
+            <FolderIcon className="h-5 w-5 shrink-0" style={{ color: folderColor }} />
+            <h2 className="text-xl font-semibold tracking-tight text-[#F4F5F7]">
+              {isEditing ? 'Edit Folder' : 'New Folder'}
+            </h2>
+          </div>
+          <p className="mt-1 text-xs text-[#9CA3B0]">
+            {isEditing
+              ? 'Rename, recolor, or nest this folder inside another.'
+              : 'Group related projects into nested folders for effortless filtering.'}
+          </p>
+        </div>
 
-          {errorMessage && (
-            <div className="w-full rounded-lg border border-red-500/50 bg-red-500/10 px-3 py-2 text-left text-xs text-red-300">
-              {errorMessage}
+        {errorMessage && (
+          <div
+            role="alert"
+            className="flex items-start gap-2.5 rounded-xl border border-rose-500/30 bg-rose-500/10 px-3.5 py-2.5 text-xs text-rose-300"
+          >
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-rose-400" />
+            <span>{errorMessage}</span>
+          </div>
+        )}
+
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center justify-between">
+              <label htmlFor={nameInputId} className="text-xs font-medium text-[#D1D5DE]">
+                Folder Name
+              </label>
+              <span className="font-mono text-[11px] text-[#646C7A] tabular-nums">
+                {folderName.length}/30
+              </span>
             </div>
-          )}
-
-          <div className="grid w-full grid-cols-3 items-center gap-6 text-left">
-            <label htmlFor="folder-name" className="col-span-1 text-lg text-white">
-              Name
-            </label>
             <TextInput
-              className="col-span-2"
-              type="text"
+              id={nameInputId}
               name="folder-name"
-              id="folder-name"
-              placeholder="e.g. University, Semester 4"
+              type="text"
+              placeholder="e.g. Client Work, University, Semester 4"
               required
               minLength={1}
               maxLength={30}
+              autoFocus
               value={folderName}
               onChange={(e) => setFolderName(e.target.value)}
             />
           </div>
 
-          <div className="grid w-full grid-cols-3 items-center gap-6 text-left">
-            <span className="col-span-1 text-lg text-white">Parent</span>
-            <div className="col-span-2">
-              <FolderSelect
-                folders={folders}
-                value={parentId}
-                onChange={setParentId}
-                excludeIds={excludedParentIds}
-                emptyLabel="None (Top-level)"
-                variant="form"
-                ariaLabel="Parent folder"
-              />
-            </div>
+          <div className="flex flex-col gap-1.5">
+            <span className="text-xs font-medium text-[#D1D5DE]">Parent Folder</span>
+            <FolderSelect
+              folders={folders}
+              value={parentId}
+              onChange={setParentId}
+              excludeIds={excludedParentIds}
+              emptyLabel="None (Top-level)"
+              variant="form"
+              ariaLabel="Parent folder"
+            />
           </div>
 
-          <div className="grid w-full grid-cols-3 items-start gap-6 text-left">
-            <label htmlFor="folder-color" className="col-span-1 pt-1 text-lg text-white">
-              Color
-            </label>
-            <div className="col-span-2 flex flex-col gap-3">
-              <div className="flex flex-wrap gap-2">
-                {PRESET_COLORS.map((preset) => (
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <label htmlFor={colorInputId} className="text-xs font-medium text-[#D1D5DE]">
+                Color
+              </label>
+              <span className="font-mono text-[11px] tracking-wide text-[#9CA3B0] uppercase">
+                {folderColor}
+              </span>
+            </div>
+            <div className="surface-well flex flex-wrap items-center gap-2 rounded-xl p-2.5">
+              {STUDIO_COLOR_SWATCHES.map((swatch) => {
+                const isSelected = folderColor.toLowerCase() === swatch.hex.toLowerCase();
+                return (
                   <button
-                    key={preset}
+                    key={swatch.hex}
                     type="button"
-                    aria-label={`Select color ${preset}`}
-                    onClick={() => setFolderColor(preset)}
-                    className={`h-6 w-6 cursor-pointer rounded-full border-2 transition-transform hover:scale-110 ${
-                      folderColor.toLowerCase() === preset.toLowerCase()
-                        ? 'scale-110 border-white'
-                        : 'border-transparent'
-                    }`}
-                    style={{ backgroundColor: preset }}
-                  />
-                ))}
-              </div>
-              <input
-                className="h-9 w-full cursor-pointer rounded bg-transparent"
-                type="color"
-                name="folder-color"
-                id="folder-color"
-                value={folderColor}
-                required
-                onChange={(e) => setFolderColor(e.target.value)}
-              />
+                    title={swatch.name}
+                    aria-label={`Select ${swatch.name}`}
+                    aria-pressed={isSelected}
+                    onClick={() => setFolderColor(swatch.hex)}
+                    className={cn(
+                      'flex h-7 w-7 cursor-pointer items-center justify-center rounded-full transition-transform duration-150 hover:scale-110 focus-visible:ring-2 focus-visible:ring-amber-400/70 focus-visible:outline-none',
+                      isSelected && 'scale-105 ring-2 ring-white ring-offset-2 ring-offset-[#0F1116]',
+                    )}
+                    style={{ backgroundColor: swatch.hex }}
+                  >
+                    {isSelected && <Check className="h-3.5 w-3.5 text-[#0A0B0E] stroke-[3]" />}
+                  </button>
+                );
+              })}
+
+              <label
+                htmlFor={colorInputId}
+                title="Custom color"
+                className="ml-auto flex h-7 cursor-pointer items-center gap-1.5 rounded-lg border border-white/[0.1] bg-[#191D26] px-2 text-[11px] font-medium text-[#9CA3B0] transition-colors hover:border-white/[0.2] hover:text-[#F4F5F7]"
+              >
+                <span
+                  className="h-3.5 w-3.5 rounded-full border border-white/20"
+                  style={{ backgroundColor: folderColor }}
+                />
+                <span>Custom</span>
+                <input
+                  id={colorInputId}
+                  name="folder-color"
+                  type="color"
+                  value={folderColor}
+                  required
+                  onChange={(e) => setFolderColor(e.target.value)}
+                  className="sr-only"
+                />
+              </label>
             </div>
           </div>
+        </div>
 
-          <Button type="submit" disabled={mutation.isPending} className="mt-2">
+        <div className="mt-1 flex items-center justify-end gap-2.5 border-t border-white/[0.06] pt-4">
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => setIsModalOpen(false)}
+            disabled={mutation.isPending}
+          >
+            Cancel
+          </Button>
+          <Button type="submit" variant="primary" disabled={mutation.isPending}>
             {mutation.isPending
               ? isEditing
                 ? 'Saving...'
@@ -173,7 +255,7 @@ export function FolderModal({
                 ? 'Save Folder'
                 : 'Create Folder'}
           </Button>
-        </fieldset>
+        </div>
       </form>
     </Modal>
   );

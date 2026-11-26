@@ -1,52 +1,69 @@
+import { useState } from 'react';
+import { invoke } from '@tauri-apps/api/core';
+import { AlertCircle, Radio } from 'lucide-react';
 import Switch from '@/shared/components/Switch';
-import { useSettings } from '../hooks/useSettings';
 import { PresenceState, usePresence } from '@shared/hooks/usePresence.tsx';
-import { useTimer } from '@features/timer/hooks/useTimer.ts';
-import { useEffect } from 'react';
-import { sleep } from '@shared/lib/utils.ts';
+import { getErrorMessage } from '@shared/lib/utils';
+import { useSettings } from '../hooks/useSettings';
 
 export default function DiscordSettings() {
-  const { settings, isLoading, updateSingleSetting } = useSettings();
+  const { settings, updateSingleSetting } = useSettings();
   const { updatePresence } = usePresence();
-  const { isRunning } = useTimer();
-
-  useEffect(() => {
-    if (!settings) return;
-
-    const syncPresence = async () => {
-      await sleep(100);
-      if (!settings.discord_rich_presence) {
-        await updatePresence(PresenceState.None);
-      } else {
-        await updatePresence(isRunning ? PresenceState.Working : PresenceState.Idle);
-      }
-    };
-
-    syncPresence();
-  }, [settings?.discord_rich_presence, isRunning]);
-
-  if (isLoading) {
-    return <div className="p-10 text-center text-white">Settings loading...</div>;
-  }
+  const [isToggling, setIsToggling] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   if (!settings) return null;
 
+  const handleToggle = async (nextValue: boolean) => {
+    try {
+      setIsToggling(true);
+      setSaveError(null);
+      await updateSingleSetting({ discord_rich_presence: nextValue });
+
+      if (!nextValue) {
+        await updatePresence(PresenceState.None, { force: true });
+      } else {
+        const running = await invoke<boolean>('is_timer_running');
+        await updatePresence(running ? PresenceState.Working : PresenceState.Idle, {
+          force: true,
+        });
+      }
+    } catch (err) {
+      setSaveError(getErrorMessage(err, 'Failed to update Discord Rich Presence.'));
+    } finally {
+      setIsToggling(false);
+    }
+  };
+
   return (
-    <div className="flex w-full items-center justify-center p-4">
-      <div className="flex w-full max-w-2xl flex-col divide-y divide-slate-200/10 overflow-hidden rounded-3xl border border-slate-200/10 bg-slate-200/5 p-6">
-        <div className="flex items-center justify-between py-4">
-          <div className="flex flex-col gap-1">
-            <span className="font-medium text-white">Discord Rich Presence</span>
-            <span className="text-sm text-slate-400">
-              Show your current working status in Discord
-            </span>
+    <div className="surface-card rounded-2xl p-5">
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex min-w-0 items-start gap-3.5">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-sky-400/20 bg-sky-400/10 text-sky-300">
+            <Radio className="h-4.5 w-4.5" />
           </div>
-          <Switch
-            isOn={settings.discord_rich_presence}
-            setIsOn={async (val) => await updateSingleSetting({ discord_rich_presence: val })}
-          />
+          <div className="min-w-0">
+            <span className="text-sm font-medium text-[#F4F5F7]">Discord Rich Presence</span>
+            <p className="mt-0.5 text-xs text-[#9CA3B0]">
+              Share your live focus or idle status in your Discord profile.
+            </p>
+          </div>
         </div>
+
+        <Switch
+          isOn={settings.discord_rich_presence}
+          setIsOn={handleToggle}
+          disabled={isToggling}
+          ariaLabel="Discord Rich Presence"
+        />
       </div>
+
+      {saveError && (
+        <div className="mt-3 flex items-center gap-1.5 text-xs text-rose-400">
+          <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+          <span>{saveError}</span>
+        </div>
+      )}
     </div>
   );
 }

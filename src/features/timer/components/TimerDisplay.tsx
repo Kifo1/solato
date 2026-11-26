@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { formatMillis } from '@shared/lib/utils';
+import { useEffect, useId, useState } from 'react';
+import { cn, formatMillisParts } from '@shared/lib/utils';
 import { PomodoroPhases } from './PomodoroPhases';
 import { useSettings } from '@/features/settings/hooks/useSettings';
 
@@ -10,90 +10,295 @@ interface Props {
   isRunning: boolean;
 }
 
+interface DialTick {
+  index: number;
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+  isQuarter: boolean;
+  isFiveMin: boolean;
+}
+
+const DIAL_RADIUS = 45;
+const DIAL_CIRCUMFERENCE = 2 * Math.PI * DIAL_RADIUS;
+
+const DIAL_TICKS: ReadonlyArray<DialTick> = Array.from({ length: 60 }, (_, index) => {
+  const angleRad = ((index * 6 - 90) * Math.PI) / 180;
+  const isQuarter = index % 15 === 0;
+  const isFiveMin = index % 5 === 0;
+  const outerR = 41.2;
+  const innerR = isQuarter ? 38.4 : isFiveMin ? 39.1 : 40.0;
+
+  return {
+    index,
+    x1: Number((50 + innerR * Math.cos(angleRad)).toFixed(3)),
+    y1: Number((50 + innerR * Math.sin(angleRad)).toFixed(3)),
+    x2: Number((50 + outerR * Math.cos(angleRad)).toFixed(3)),
+    y2: Number((50 + outerR * Math.sin(angleRad)).toFixed(3)),
+    isQuarter,
+    isFiveMin,
+  };
+});
+
+interface PhasePalette {
+  gradStart: string;
+  gradMid: string;
+  gradEnd: string;
+  halo: string;
+  dotClass: string;
+}
+
+function getPhasePalette(mode: 'stopwatch' | 'pomodoro', pomodoroPhase: number): PhasePalette {
+  if (mode === 'pomodoro' && pomodoroPhase === 1) {
+    return {
+      gradStart: '#99F6E4',
+      gradMid: '#2DD4BF',
+      gradEnd: '#0D9488',
+      halo: '#2DD4BF',
+      dotClass: 'bg-teal-400 shadow-[0_0_8px_rgba(45,212,191,0.7)]',
+    };
+  }
+
+  if (mode === 'pomodoro' && pomodoroPhase === 3) {
+    return {
+      gradStart: '#BAE6FD',
+      gradMid: '#38BDF8',
+      gradEnd: '#0284C7',
+      halo: '#38BDF8',
+      dotClass: 'bg-sky-400 shadow-[0_0_8px_rgba(56,189,248,0.7)]',
+    };
+  }
+
+  return {
+    gradStart: '#FDE68A',
+    gradMid: '#F59E0B',
+    gradEnd: '#D97706',
+    halo: '#F59E0B',
+    dotClass: 'bg-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.75)]',
+  };
+}
+
 export function TimerDisplay({ millis, mode, pomodoroPhase, isRunning }: Readonly<Props>) {
   const { settings } = useSettings();
   const [transitionsEnabled, setTransitionsEnabled] = useState(false);
+
+  const uid = useId();
+  const faceGradId = `timer-face-${uid}`;
+  const arcGradId = `timer-arc-${uid}`;
+  const glowFilterId = `timer-glow-${uid}`;
 
   useEffect(() => {
     const transitionTimeout = setTimeout(() => setTransitionsEnabled(true), 200);
     return () => clearTimeout(transitionTimeout);
   }, []);
 
-  const ratio = mode === 'pomodoro' ? millis / getMaxMillisByPhase(pomodoroPhase) : 0;
-  const R = 45;
-  const CIRC = 2 * Math.PI * R;
-
-  function getMaxMillisByPhase(phase: number) {
-    if (!settings) return 25 * 60 * 1000;
+  function getMaxMillisByPhase(phase: number): number {
+    const focus = settings?.focus_duration ?? 25;
+    const shortBreak = settings?.short_break ?? 5;
+    const longBreak = settings?.long_break ?? 15;
 
     switch (phase) {
       case 0:
       case 2:
-        return settings.focus_duration * 60 * 1000;
+        return focus * 60 * 1000;
       case 1:
-        return settings.short_break * 60 * 1000;
+        return shortBreak * 60 * 1000;
       case 3:
-        return settings.long_break * 60 * 1000;
+        return longBreak * 60 * 1000;
       default:
-        return settings.focus_duration * 60 * 1000;
+        return focus * 60 * 1000;
     }
   }
 
+  const maxMillis = getMaxMillisByPhase(pomodoroPhase);
+  const rawRatio = mode === 'pomodoro' && maxMillis > 0 ? millis / maxMillis : 0;
+  const ratio = Math.min(1, Math.max(0, rawRatio));
+
+  const visibleArc = DIAL_CIRCUMFERENCE * ratio;
+  const gapArc = Math.max(0, DIAL_CIRCUMFERENCE - visibleArc);
+  const strokeDasharray = mode === 'stopwatch' ? '71 70 71 70' : `${visibleArc} ${gapArc}`;
+  const strokeDashoffset = mode === 'stopwatch' ? (isRunning ? '0' : '70') : `${-(gapArc / 2)}`;
+  const showActiveArc = mode === 'stopwatch' || ratio > 0;
+
+  const palette = getPhasePalette(mode, pomodoroPhase);
+  const { main, tenths } = formatMillisParts(millis);
   const isOverAnHour = millis >= 60 * 60 * 1000;
 
+  const arcTransitionClass = !transitionsEnabled
+    ? ''
+    : mode === 'stopwatch'
+      ? 'transition-all duration-700 ease-in-out'
+      : isRunning
+        ? 'transition-[stroke-dasharray,stroke-dashoffset,opacity] duration-150 ease-linear'
+        : 'transition-all duration-500 ease-out';
+
+  const statusText =
+    mode === 'stopwatch'
+      ? isRunning
+        ? 'Running'
+        : 'Stopwatch'
+      : isRunning
+        ? 'In Session'
+        : 'Pomodoro';
+
+  const stopwatchSubLabel = isRunning
+    ? 'Session active'
+    : millis > 0
+      ? 'Session paused'
+      : 'Ready to focus';
+
   return (
-    <div className="relative grid h-100 w-100 grid-rows-[2fr_1fr]">
-      <div className="mt-auto mb-10 flex flex-col justify-center text-center">
-        <span
-          className={`font-mono font-bold text-white tabular-nums transition-all ${
-            isOverAnHour ? 'text-5xl' : 'text-6xl'
-          }`}
-        >
-          {formatMillis(millis)}
-        </span>
-        <span className="text-lg font-semibold text-gray-500 uppercase">{mode}</span>
-      </div>
-      <svg viewBox="0 0 100 100" className="pointer-events-none absolute z-0 max-h-100 transform">
+    <div className="relative flex h-full w-full items-center justify-center select-none">
+      <svg
+        viewBox="0 0 100 100"
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 h-full w-full overflow-visible"
+      >
+        <defs>
+          <radialGradient id={faceGradId} cx="50%" cy="28%" r="74%">
+            <stop offset="0%" stopColor="#171B24" stopOpacity="0.55" />
+            <stop offset="100%" stopColor="#0A0B0E" stopOpacity="0.82" />
+          </radialGradient>
+
+          <linearGradient id={arcGradId} x1="12%" y1="8%" x2="88%" y2="92%">
+            <stop offset="0%" stopColor={palette.gradStart} />
+            <stop offset="52%" stopColor={palette.gradMid} />
+            <stop offset="100%" stopColor={palette.gradEnd} />
+          </linearGradient>
+
+          <filter id={glowFilterId} x="-25%" y="-25%" width="150%" height="150%">
+            <feGaussianBlur stdDeviation="1.65" />
+          </filter>
+        </defs>
+
+        {/* Subtle recessed obsidian dial plate */}
         <circle
           cx="50"
           cy="50"
-          r="45"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          className="dark:text-surface-highlight text-slate-700"
+          r="42.4"
+          fill={`url(#${faceGradId})`}
+          stroke="rgba(255,255,255,0.045)"
+          strokeWidth="0.35"
         />
+
+        {/* 60 horological precision micro-ticks */}
+        <g>
+          {DIAL_TICKS.map((tick) => (
+            <line
+              key={tick.index}
+              x1={tick.x1}
+              y1={tick.y1}
+              x2={tick.x2}
+              y2={tick.y2}
+              stroke={
+                tick.isQuarter
+                  ? 'rgba(255,255,255,0.28)'
+                  : tick.isFiveMin
+                    ? 'rgba(255,255,255,0.17)'
+                    : 'rgba(255,255,255,0.075)'
+              }
+              strokeWidth={tick.isQuarter ? '0.52' : tick.isFiveMin ? '0.42' : '0.3'}
+              strokeLinecap="round"
+            />
+          ))}
+        </g>
+
+        {/* Base orbital track */}
         <circle
-          className={`dark:text-primary text-blue-500 ${
-            transitionsEnabled ? 'transition-all duration-700 ease-in-out' : ''
-          }`}
-          cx="50%"
-          cy="50%"
-          transform={'rotate(-90 50 50)'}
+          cx="50"
+          cy="50"
+          r={DIAL_RADIUS}
+          fill="none"
+          stroke="rgba(255,255,255,0.09)"
+          strokeWidth="2.0"
+        />
+
+        {/* Soft halo glow behind active arc when running */}
+        <circle
+          cx="50"
+          cy="50"
+          r={DIAL_RADIUS}
+          transform="rotate(-90 50 50)"
           fill="transparent"
-          r="45"
-          stroke="currentColor"
+          stroke={palette.halo}
           strokeLinecap="round"
-          strokeWidth="2.25"
-          strokeDasharray={
-            mode === 'stopwatch'
-              ? '71 70 71 70'
-              : (() => {
-                  const visible = CIRC * ratio;
-                  const gap = Math.max(0, CIRC - visible);
-                  return `${visible} ${gap}`;
-                })()
-          }
-          strokeDashoffset={(() => {
-            if (mode === 'stopwatch') return isRunning ? '0' : '70';
-            const visible = CIRC * ratio;
-            const gap = Math.max(0, CIRC - visible);
-            const offset = gap / 2;
-            return `${-offset}`;
-          })()}
-        ></circle>
+          strokeWidth="3.6"
+          strokeDasharray={strokeDasharray}
+          strokeDashoffset={strokeDashoffset}
+          filter={`url(#${glowFilterId})`}
+          opacity={showActiveArc ? (isRunning ? 0.48 : 0.12) : 0}
+          className={arcTransitionClass}
+        />
+
+        {/* Signature opposing quarter-arcs (Stopwatch) / radial countdown ring (Pomodoro) */}
+        <circle
+          cx="50"
+          cy="50"
+          r={DIAL_RADIUS}
+          transform="rotate(-90 50 50)"
+          fill="transparent"
+          stroke={`url(#${arcGradId})`}
+          strokeLinecap="round"
+          strokeWidth="2.4"
+          strokeDasharray={strokeDasharray}
+          strokeDashoffset={strokeDashoffset}
+          opacity={showActiveArc ? 1 : 0}
+          className={arcTransitionClass}
+        />
       </svg>
-      {mode === 'pomodoro' && <PomodoroPhases currentPhase={pomodoroPhase} />}
+
+      {/* Upper micro-status inside dial */}
+      <div className="pointer-events-none absolute top-[18%] z-10 flex items-center gap-1.5">
+        <span
+          className={cn(
+            'h-1.5 w-1.5 rounded-full transition-all duration-300',
+            isRunning ? palette.dotClass : 'bg-[#646C7A]/60',
+          )}
+        />
+        <span className="text-[10px] font-semibold tracking-[0.22em] text-[#646C7A] uppercase">
+          {statusText}
+        </span>
+      </div>
+
+      {/* Primary tabular chronometer readout */}
+      <div
+        role="timer"
+        aria-live="off"
+        className="relative z-10 flex items-baseline justify-center px-6"
+      >
+        <span
+          className={cn(
+            'font-mono leading-none font-semibold tracking-[-0.03em] text-[#F4F5F7] tabular-nums transition-[font-size] duration-200',
+            isOverAnHour
+              ? 'text-[clamp(1.85rem,4.6vh,2.6rem)]'
+              : 'text-[clamp(2.55rem,6.3vh,3.55rem)]',
+          )}
+        >
+          {main}
+        </span>
+        <span
+          className={cn(
+            'ml-0.5 font-mono leading-none font-medium text-[#646C7A] tabular-nums',
+            isOverAnHour
+              ? 'text-[clamp(0.95rem,2.2vh,1.3rem)]'
+              : 'text-[clamp(1.25rem,2.8vh,1.65rem)]',
+          )}
+        >
+          .{tenths}
+        </span>
+      </div>
+
+      {/* Lower phase / session indicator inside dial */}
+      <div className="absolute bottom-[15.5%] z-10 flex flex-col items-center">
+        {mode === 'pomodoro' ? (
+          <PomodoroPhases currentPhase={pomodoroPhase} isRunning={isRunning} />
+        ) : (
+          <span className="text-[11px] font-medium tracking-wide text-[#646C7A]">
+            {stopwatchSubLabel}
+          </span>
+        )}
+      </div>
     </div>
   );
 }

@@ -1,10 +1,19 @@
 import Button from '@/shared/components/Button';
 import Modal from '@/shared/components/Modal';
+import { SolatoLogo } from '@/shared/components/SolatoLogo';
 import { TextInput } from '@/shared/components/TextInput';
-import { CloudOff } from 'lucide-react';
-import React, { Dispatch, FormEvent, SetStateAction, useState } from 'react';
+import { AlertCircle, ArrowLeft, Eye, EyeOff, Loader2, MailCheck } from 'lucide-react';
+import {
+  Dispatch,
+  FormEvent,
+  SetStateAction,
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+} from 'react';
 import { useAuth } from '../hooks/useAuth';
-import { useQueryClient } from '@tanstack/react-query';
 
 enum ModalView {
   Welcome,
@@ -19,62 +28,97 @@ interface LoginModalProps {
 }
 
 const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-const PASSWORD_REGEX = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=!.*_]).*$/;
+const PASSWORD_REGEX = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[^A-Za-z0-9\s]).*$/;
 
 export default function LoginModal({ isOpen, setIsOpen }: Readonly<LoginModalProps>) {
-  const queryClient = useQueryClient();
   const [currentView, setCurrentView] = useState<ModalView>(ModalView.Welcome);
   const [verificationEmail, setVerificationEmail] = useState<string>('');
+  const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const handleClose = () => {
+  const clearResetTimeout = useCallback(() => {
+    if (closeTimeoutRef.current !== null) {
+      clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isOpen) {
+      clearResetTimeout();
+    }
+  }, [isOpen, clearResetTimeout]);
+
+  useEffect(() => {
+    return () => {
+      clearResetTimeout();
+    };
+  }, [clearResetTimeout]);
+
+  const handleClose = useCallback(() => {
     setIsOpen(false);
-    setTimeout(() => setCurrentView(ModalView.Welcome), 200);
-  };
+    clearResetTimeout();
+    closeTimeoutRef.current = setTimeout(() => {
+      setCurrentView(ModalView.Welcome);
+      setVerificationEmail('');
+      closeTimeoutRef.current = null;
+    }, 200);
+  }, [setIsOpen, clearResetTimeout]);
 
   return (
-    <Modal isOpen={isOpen} setIsOpen={handleClose}>
+    <Modal isOpen={isOpen} setIsOpen={handleClose} scale="sm">
       {currentView === ModalView.Welcome && (
-        <div className="flex max-w-64 flex-col items-center gap-3">
-          <CloudOff size={50} className="rounded-full bg-blue-500/30 p-2 text-blue-200" />
-          <h2 className="text-2xl font-semibold text-white">Sign in to stay synced</h2>
-          <p className="text-center text-sm text-blue-200">
-            Login to sync your progress, projects and analytics across all your devices seamlessly.
+        <div className="flex flex-col items-center pt-1 text-center">
+          <SolatoLogo size={44} />
+
+          <h2 className="mt-4 text-xl font-semibold tracking-tight text-[#F4F5F7]">
+            Sync with Solato Cloud
+          </h2>
+          <p className="mt-2 max-w-[300px] text-sm leading-relaxed text-[#9CA3B0]">
+            Keep your focus sessions, projects, and analytics seamlessly backed up across all your
+            devices.
           </p>
 
-          <Button
-            className="w-full rounded-lg"
-            variant="primary"
-            onClick={() => setCurrentView(ModalView.Register)}
-          >
-            Create Account
-          </Button>
-          <Button
-            className="w-full rounded-lg"
-            variant="secondary"
-            onClick={() => setCurrentView(ModalView.Login)}
-          >
-            Login
-          </Button>
-
-          <Button className="w-full rounded-lg font-light" variant="ghost" onClick={handleClose}>
-            Continue as guest
-          </Button>
+          <div className="mt-6 flex w-full flex-col gap-2.5">
+            <Button
+              variant="primary"
+              scale="lg"
+              className="w-full"
+              onClick={() => setCurrentView(ModalView.Register)}
+            >
+              Create account
+            </Button>
+            <Button
+              variant="secondary"
+              scale="lg"
+              className="w-full"
+              onClick={() => setCurrentView(ModalView.Login)}
+            >
+              Sign in
+            </Button>
+            <Button
+              variant="ghost"
+              scale="md"
+              className="mt-0.5 w-full text-[#646C7A] hover:text-[#9CA3B0]"
+              onClick={handleClose}
+            >
+              Continue as guest
+            </Button>
+          </div>
         </div>
       )}
 
       {currentView === ModalView.Login && (
         <LoginForm
           onBack={() => setCurrentView(ModalView.Welcome)}
-          onSuccess={() => {
-            handleClose();
-            queryClient.setQueryData(['loginStatus'], true);
-          }}
+          onSwitchToRegister={() => setCurrentView(ModalView.Register)}
+          onSuccess={handleClose}
         />
       )}
 
       {currentView === ModalView.Register && (
         <RegisterForm
           onBack={() => setCurrentView(ModalView.Welcome)}
+          onSwitchToLogin={() => setCurrentView(ModalView.Login)}
           onSuccess={(email) => {
             setVerificationEmail(email);
             setCurrentView(ModalView.Verify);
@@ -84,43 +128,92 @@ export default function LoginModal({ isOpen, setIsOpen }: Readonly<LoginModalPro
 
       {currentView === ModalView.Verify && (
         <VerifyForm
-          onSuccess={() => {
-            handleClose();
-            queryClient.setQueryData(['loginStatus'], true);
-          }}
           email={verificationEmail}
+          onBack={() => setCurrentView(ModalView.Register)}
+          onSuccess={handleClose}
         />
       )}
     </Modal>
   );
 }
 
-function FormWrapper({ title, children }: Readonly<{ title: string; children: React.ReactNode }>) {
+function ErrorBanner({ message }: Readonly<{ message: string }>) {
   return (
-    <div className="flex max-w-64 flex-col gap-3 text-white">
-      <h2 className="text-2xl font-semibold">{title}</h2>
-      {children}
+    <div
+      role="alert"
+      className="flex items-start gap-2 rounded-xl border border-rose-500/25 bg-rose-500/10 px-3.5 py-2.5 text-xs leading-relaxed text-rose-300"
+    >
+      <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-rose-400" />
+      <span>{message}</span>
     </div>
   );
 }
 
-interface FormProps {
+function AuthModeTabs({
+  active,
+  onSelectLogin,
+  onSelectRegister,
+  disabled,
+}: Readonly<{
+  active: 'login' | 'register';
+  onSelectLogin: () => void;
+  onSelectRegister: () => void;
+  disabled?: boolean;
+}>) {
+  return (
+    <div className="surface-well grid grid-cols-2 gap-1 rounded-xl p-1">
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={onSelectLogin}
+        className={`h-8 cursor-pointer rounded-lg text-xs font-medium transition-all duration-150 focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50 ${
+          active === 'login'
+            ? 'bg-[#1D222D] text-[#F4F5F7] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]'
+            : 'text-[#646C7A] hover:text-[#9CA3B0]'
+        }`}
+      >
+        Sign in
+      </button>
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={onSelectRegister}
+        className={`h-8 cursor-pointer rounded-lg text-xs font-medium transition-all duration-150 focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50 ${
+          active === 'register'
+            ? 'bg-[#1D222D] text-[#F4F5F7] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]'
+            : 'text-[#646C7A] hover:text-[#9CA3B0]'
+        }`}
+      >
+        Create account
+      </button>
+    </div>
+  );
+}
+
+interface LoginFormProps {
   onBack: () => void;
+  onSwitchToRegister: () => void;
   onSuccess: () => void;
 }
 
-interface RegisterFormProps extends Omit<FormProps, 'onSuccess'> {
+interface RegisterFormProps {
+  onBack: () => void;
+  onSwitchToLogin: () => void;
   onSuccess: (email: string) => void;
 }
 
 interface VerifyFormProps {
-  onSuccess: () => void;
   email: string;
+  onBack: () => void;
+  onSuccess: () => void;
 }
 
-function LoginForm({ onBack, onSuccess }: Readonly<FormProps>) {
+function LoginForm({ onBack, onSwitchToRegister, onSuccess }: Readonly<LoginFormProps>) {
+  const emailId = useId();
+  const passwordId = useId();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
 
   const { login, isLoggingIn, loginError } = useAuth();
@@ -129,74 +222,137 @@ function LoginForm({ onBack, onSuccess }: Readonly<FormProps>) {
     e.preventDefault();
     setLocalError(null);
 
-    e.preventDefault();
-    setLocalError(null);
-
-    if (!email.trim()) {
-      setLocalError('E-Mail cannot be empty');
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
+      setLocalError('Email cannot be empty.');
       return;
     }
-    if (!password.trim()) {
-      setLocalError('Password cannot be empty');
+    if (!EMAIL_REGEX.test(trimmedEmail)) {
+      setLocalError('Please enter a valid email address.');
       return;
     }
-    if (!EMAIL_REGEX.test(email)) {
-      setLocalError('E-Mail is not valid');
+    if (!password) {
+      setLocalError('Password cannot be empty.');
       return;
     }
 
     try {
-      await login({ email, password });
+      await login({ email: trimmedEmail, password });
       onSuccess();
-    } catch {} //Errors handled via tanstack
+    } catch {
+      // Error surfaced via loginError from useAuth
+    }
   };
 
   const activeError = localError || loginError;
 
   return (
-    <form onSubmit={handleSubmit}>
-      <FormWrapper title="Login">
-        {activeError && (
-          <div className="rounded border border-red-500 bg-red-500/20 p-2 text-xs text-red-300">
-            {activeError}
+    <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
+      <div className="flex flex-col items-center text-center">
+        <SolatoLogo size={44} />
+        <h2 className="mt-3.5 text-lg font-semibold tracking-tight text-[#F4F5F7]">
+          Welcome back
+        </h2>
+        <p className="mt-1 text-xs text-[#9CA3B0]">Sign in to resume syncing your workspace.</p>
+      </div>
+
+      <AuthModeTabs
+        active="login"
+        onSelectLogin={() => {}}
+        onSelectRegister={onSwitchToRegister}
+        disabled={isLoggingIn}
+      />
+
+      {activeError && <ErrorBanner message={activeError} />}
+
+      <div className="flex flex-col gap-3.5">
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor={emailId} className="text-xs font-medium text-[#9CA3B0]">
+            Email
+          </label>
+          <TextInput
+            id={emailId}
+            type="email"
+            autoComplete="email"
+            placeholder="you@example.com"
+            value={email}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              if (localError) setLocalError(null);
+            }}
+            disabled={isLoggingIn}
+            autoFocus
+          />
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor={passwordId} className="text-xs font-medium text-[#9CA3B0]">
+            Password
+          </label>
+          <div className="relative">
+            <TextInput
+              id={passwordId}
+              type={showPassword ? 'text' : 'password'}
+              autoComplete="current-password"
+              placeholder="Enter your password"
+              value={password}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                if (localError) setLocalError(null);
+              }}
+              disabled={isLoggingIn}
+              className="pr-10"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((prev) => !prev)}
+              disabled={isLoggingIn}
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+              className="absolute top-1/2 right-2.5 flex h-7 w-7 -translate-y-1/2 cursor-pointer items-center justify-center rounded-lg text-[#646C7A] transition-colors hover:bg-white/[0.06] hover:text-[#F4F5F7] focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none disabled:pointer-events-none"
+            >
+              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
           </div>
-        )}
+        </div>
+      </div>
 
-        <TextInput
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          disabled={isLoggingIn}
-        />
-        <TextInput
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          disabled={isLoggingIn}
-        />
-
-        <Button type="submit" variant="primary" className="rounded-lg" disabled={isLoggingIn}>
-          {isLoggingIn ? 'Signing In...' : 'Sign In'}
+      <div className="flex flex-col gap-2 pt-1">
+        <Button type="submit" variant="primary" scale="lg" className="w-full" disabled={isLoggingIn}>
+          {isLoggingIn ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Signing in...
+            </>
+          ) : (
+            'Sign in'
+          )}
         </Button>
+
         <Button
           type="button"
           variant="ghost"
-          className="rounded-lg"
+          scale="sm"
+          className="w-full text-[#646C7A] hover:text-[#9CA3B0]"
           onClick={onBack}
           disabled={isLoggingIn}
         >
+          <ArrowLeft className="h-3.5 w-3.5" />
           Back
         </Button>
-      </FormWrapper>
+      </div>
     </form>
   );
 }
 
-function RegisterForm({ onBack, onSuccess }: Readonly<RegisterFormProps>) {
+function RegisterForm({ onBack, onSwitchToLogin, onSuccess }: Readonly<RegisterFormProps>) {
+  const emailId = useId();
+  const passwordId = useId();
+  const confirmPasswordId = useId();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
 
   const { register, isRegistering, registerError } = useAuth();
@@ -205,79 +361,185 @@ function RegisterForm({ onBack, onSuccess }: Readonly<RegisterFormProps>) {
     e.preventDefault();
     setLocalError(null);
 
-    if (!email.trim()) {
-      setLocalError('E-Mail cannot be empty');
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
+      setLocalError('Email cannot be empty.');
       return;
     }
-    if (!password.trim()) {
-      setLocalError('Password cannot be empty');
+    if (!EMAIL_REGEX.test(trimmedEmail)) {
+      setLocalError('Please enter a valid email address.');
       return;
     }
-    if (!EMAIL_REGEX.test(email)) {
-      setLocalError('E-Mail is not valid');
+    if (!password) {
+      setLocalError('Password cannot be empty.');
       return;
     }
     if (password.length < 8 || password.length > 64) {
-      setLocalError('Password must have between 8 and 64 characters');
+      setLocalError('Password must be between 8 and 64 characters.');
       return;
     }
     if (!PASSWORD_REGEX.test(password)) {
       setLocalError(
-        'Password must contain uppercase letters, lowercase letters, numbers and special characters',
+        'Password must include uppercase, lowercase, a number, and a symbol.',
       );
+      return;
+    }
+    if (password !== confirmPassword) {
+      setLocalError('Passwords do not match.');
       return;
     }
 
     try {
-      await register({ email, password });
-      onSuccess(email);
-    } catch {} //Error handling via tanstack
+      await register({ email: trimmedEmail, password });
+      onSuccess(trimmedEmail);
+    } catch {
+      // Error surfaced via registerError from useAuth
+    }
   };
 
   const activeError = localError || registerError;
 
   return (
-    <form onSubmit={handleSubmit}>
-      <FormWrapper title="Create Account">
-        {activeError && (
-          <div className="rounded border border-red-500 bg-red-500/20 p-2 text-xs text-red-300">
-            {activeError}
+    <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
+      <div className="flex flex-col items-center text-center">
+        <SolatoLogo size={44} />
+        <h2 className="mt-3.5 text-lg font-semibold tracking-tight text-[#F4F5F7]">
+          Create your account
+        </h2>
+        <p className="mt-1 text-xs text-[#9CA3B0]">
+          Start syncing your sessions and projects with Solato Cloud.
+        </p>
+      </div>
+
+      <AuthModeTabs
+        active="register"
+        onSelectLogin={onSwitchToLogin}
+        onSelectRegister={() => {}}
+        disabled={isRegistering}
+      />
+
+      {activeError && <ErrorBanner message={activeError} />}
+
+      <div className="flex flex-col gap-3.5">
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor={emailId} className="text-xs font-medium text-[#9CA3B0]">
+            Email
+          </label>
+          <TextInput
+            id={emailId}
+            type="email"
+            autoComplete="email"
+            placeholder="you@example.com"
+            value={email}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              if (localError) setLocalError(null);
+            }}
+            disabled={isRegistering}
+            autoFocus
+          />
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor={passwordId} className="text-xs font-medium text-[#9CA3B0]">
+            Password
+          </label>
+          <div className="relative">
+            <TextInput
+              id={passwordId}
+              type={showPassword ? 'text' : 'password'}
+              autoComplete="new-password"
+              placeholder="Create a strong password"
+              value={password}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                if (localError) setLocalError(null);
+              }}
+              disabled={isRegistering}
+              className="pr-10"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((prev) => !prev)}
+              disabled={isRegistering}
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+              className="absolute top-1/2 right-2.5 flex h-7 w-7 -translate-y-1/2 cursor-pointer items-center justify-center rounded-lg text-[#646C7A] transition-colors hover:bg-white/[0.06] hover:text-[#F4F5F7] focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none disabled:pointer-events-none"
+            >
+              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
           </div>
-        )}
+          <p className="text-[11px] leading-snug text-[#646C7A]">
+            8–64 chars with uppercase, lowercase, a number, and a symbol.
+          </p>
+        </div>
 
-        <TextInput
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          disabled={isRegistering}
-        />
-        <TextInput
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          disabled={isRegistering}
-        />
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor={confirmPasswordId} className="text-xs font-medium text-[#9CA3B0]">
+            Confirm password
+          </label>
+          <div className="relative">
+            <TextInput
+              id={confirmPasswordId}
+              type={showConfirmPassword ? 'text' : 'password'}
+              autoComplete="new-password"
+              placeholder="Re-enter your password"
+              value={confirmPassword}
+              onChange={(e) => {
+                setConfirmPassword(e.target.value);
+                if (localError) setLocalError(null);
+              }}
+              disabled={isRegistering}
+              className="pr-10"
+            />
+            <button
+              type="button"
+              onClick={() => setShowConfirmPassword((prev) => !prev)}
+              disabled={isRegistering}
+              aria-label={showConfirmPassword ? 'Hide password confirmation' : 'Show password confirmation'}
+              className="absolute top-1/2 right-2.5 flex h-7 w-7 -translate-y-1/2 cursor-pointer items-center justify-center rounded-lg text-[#646C7A] transition-colors hover:bg-white/[0.06] hover:text-[#F4F5F7] focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none disabled:pointer-events-none"
+            >
+              {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
+          </div>
+        </div>
+      </div>
 
-        <Button type="submit" variant="primary" className="rounded-lg" disabled={isRegistering}>
-          {isRegistering ? 'Registering...' : 'Register'}
+      <div className="flex flex-col gap-2 pt-1">
+        <Button
+          type="submit"
+          variant="primary"
+          scale="lg"
+          className="w-full"
+          disabled={isRegistering}
+        >
+          {isRegistering ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Creating account...
+            </>
+          ) : (
+            'Create account'
+          )}
         </Button>
+
         <Button
           type="button"
           variant="ghost"
-          className="rounded-lg"
+          scale="sm"
+          className="w-full text-[#646C7A] hover:text-[#9CA3B0]"
           onClick={onBack}
           disabled={isRegistering}
         >
+          <ArrowLeft className="h-3.5 w-3.5" />
           Back
         </Button>
-      </FormWrapper>
+      </div>
     </form>
   );
 }
 
-function VerifyForm({ onSuccess, email }: Readonly<VerifyFormProps>) {
+function VerifyForm({ email, onBack, onSuccess }: Readonly<VerifyFormProps>) {
+  const codeId = useId();
   const [code, setCode] = useState('');
   const [localError, setLocalError] = useState<string | null>(null);
 
@@ -287,45 +549,86 @@ function VerifyForm({ onSuccess, email }: Readonly<VerifyFormProps>) {
     e.preventDefault();
     setLocalError(null);
 
-    if (code.length != 6) {
-      setLocalError('Code must be a 6 digit number');
+    if (code.length !== 6) {
+      setLocalError('Verification code must be 6 digits.');
       return;
     }
 
     try {
       await verify({ email, code });
       onSuccess();
-    } catch {} //Error handling via tanstack
+    } catch {
+      // Error surfaced via verifyError from useAuth
+    }
   };
 
   const activeError = localError || verifyError;
 
   return (
-    <form onSubmit={handleSubmit}>
-      <FormWrapper title="Verify E-Mail">
-        {activeError && (
-          <div className="rounded border border-red-500 bg-red-500/20 p-2 text-xs text-red-300">
-            {activeError}
-          </div>
-        )}
-
-        <p className="text-sm leading-relaxed text-slate-400">
-          We sent a verification code to your email address. Please enter the code below to verify
-          your account.
+    <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
+      <div className="flex flex-col items-center text-center">
+        <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-amber-500/25 bg-amber-500/10 text-amber-400">
+          <MailCheck className="h-5 w-5" />
+        </div>
+        <h2 className="mt-3.5 text-lg font-semibold tracking-tight text-[#F4F5F7]">
+          Verify your email
+        </h2>
+        <p className="mt-1.5 text-xs leading-relaxed text-[#9CA3B0]">
+          Enter the 6-digit code sent to{' '}
+          <span className="font-medium break-all text-[#F4F5F7]">{email}</span>
         </p>
+      </div>
 
+      {activeError && <ErrorBanner message={activeError} />}
+
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor={codeId} className="text-xs font-medium text-[#9CA3B0]">
+          Verification code
+        </label>
         <TextInput
-          type="number"
-          placeholder="Code"
+          id={codeId}
+          type="text"
+          inputMode="numeric"
+          pattern="[0-9]*"
+          autoComplete="one-time-code"
+          maxLength={6}
+          placeholder="000000"
           value={code}
-          onChange={(e) => setCode(e.target.value)}
+          onChange={(e) => {
+            const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, 6);
+            setCode(digitsOnly);
+            if (localError) setLocalError(null);
+          }}
           disabled={isVerifying}
+          autoFocus
+          className="h-13 text-center font-mono text-2xl tracking-[0.4em] tabular-nums placeholder:text-[#646C7A]/50"
         />
+      </div>
 
-        <Button type="submit" variant="primary" className="rounded-lg" disabled={isVerifying}>
-          {isVerifying ? 'Verifying...' : 'Verify'}
+      <div className="flex flex-col gap-2 pt-1">
+        <Button type="submit" variant="primary" scale="lg" className="w-full" disabled={isVerifying}>
+          {isVerifying ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Verifying...
+            </>
+          ) : (
+            'Verify & sign in'
+          )}
         </Button>
-      </FormWrapper>
+
+        <Button
+          type="button"
+          variant="ghost"
+          scale="sm"
+          className="w-full text-[#646C7A] hover:text-[#9CA3B0]"
+          onClick={onBack}
+          disabled={isVerifying}
+        >
+          <ArrowLeft className="h-3.5 w-3.5" />
+          Back
+        </Button>
+      </div>
     </form>
   );
 }

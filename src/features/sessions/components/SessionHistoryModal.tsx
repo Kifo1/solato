@@ -1,4 +1,5 @@
 import Button from '@/shared/components/Button';
+import { Skeleton } from '@/shared/components/Skeleton';
 import { Folder, Project } from '@/shared/lib/models/project';
 import {
   SessionEntry,
@@ -7,7 +8,7 @@ import {
   TimerMode,
   UpdateSessionInput,
 } from '@/shared/lib/models/session';
-import { formatSecondsToString } from '@/shared/lib/utils';
+import { cn, formatSecondsToString, getErrorMessage } from '@/shared/lib/utils';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
@@ -24,11 +25,12 @@ import {
   Hourglass,
   Loader2,
   Pencil,
+  RotateCcw,
   Timer,
   Trash2,
   X,
 } from 'lucide-react';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { CustomSelect, SelectOption } from './CustomSelect';
 import { ProjectFolderSelect } from './ProjectFolderSelect';
@@ -49,9 +51,9 @@ const SESSION_TYPE_LABELS: Record<SessionType, string> = {
 };
 
 const SESSION_TYPE_BADGE_CLASSES: Record<SessionType, string> = {
-  FOCUS: 'border-blue-500/30 bg-blue-500/15 text-blue-300',
-  SHORT_BREAK: 'border-emerald-500/30 bg-emerald-500/15 text-emerald-300',
-  LONG_BREAK: 'border-violet-500/30 bg-violet-500/15 text-violet-300',
+  FOCUS: 'border-amber-500/25 bg-amber-500/12 text-amber-300',
+  SHORT_BREAK: 'border-teal-400/25 bg-teal-400/12 text-teal-300',
+  LONG_BREAK: 'border-sky-400/25 bg-sky-400/12 text-sky-300',
 };
 
 const TIMER_MODE_LABELS: Record<TimerMode, string> = {
@@ -62,9 +64,9 @@ const TIMER_MODE_LABELS: Record<TimerMode, string> = {
 type SessionTypeFilter = 'all' | SessionType;
 
 const SESSION_TYPE_OPTIONS: SelectOption<SessionType>[] = [
-  { value: 'FOCUS', label: 'Focus', dotColor: '#3B82F6' },
-  { value: 'SHORT_BREAK', label: 'Short Break', dotColor: '#10B981' },
-  { value: 'LONG_BREAK', label: 'Long Break', dotColor: '#8B5CF6' },
+  { value: 'FOCUS', label: 'Focus', dotColor: '#F59E0B' },
+  { value: 'SHORT_BREAK', label: 'Short Break', dotColor: '#2DD4BF' },
+  { value: 'LONG_BREAK', label: 'Long Break', dotColor: '#38BDF8' },
 ];
 
 const SESSION_TYPE_FILTER_OPTIONS: SelectOption<SessionTypeFilter>[] = [
@@ -76,12 +78,12 @@ const TIMER_MODE_OPTIONS: SelectOption<TimerMode>[] = [
   {
     value: 'STOPWATCH',
     label: 'Stopwatch',
-    icon: <Timer className="h-3.5 w-3.5 shrink-0 text-blue-300" />,
+    icon: <Timer className="h-3.5 w-3.5 shrink-0 text-amber-400" />,
   },
   {
     value: 'POMODORO',
     label: 'Pomodoro',
-    icon: <Hourglass className="h-3.5 w-3.5 shrink-0 text-blue-300" />,
+    icon: <Hourglass className="h-3.5 w-3.5 shrink-0 text-amber-400" />,
   },
 ];
 
@@ -154,6 +156,8 @@ export function SessionHistoryModal({
 
   useEffect(() => {
     if (isOpen) {
+      setProjectFilter(null);
+      setTypeFilter('all');
       setDateFilter(initialDate ?? '');
       setPage(1);
       setEditingSession(null);
@@ -178,20 +182,24 @@ export function SessionHistoryModal({
       }
     };
 
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
     globalThis.addEventListener('keydown', handleKeyDown);
+
     return () => {
+      document.body.style.overflow = previousOverflow;
       globalThis.removeEventListener('keydown', handleKeyDown);
     };
   }, [isOpen, editingSession, onClose]);
 
-  const invalidateSessionDependentQueries = () => {
+  const invalidateSessionDependentQueries = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ['sessions'] });
     queryClient.invalidateQueries({ queryKey: ['analytics'] });
     queryClient.invalidateQueries({ queryKey: ['overall_project_time'] });
     queryClient.invalidateQueries({ queryKey: ['todays_overall_time'] });
     queryClient.invalidateQueries({ queryKey: ['most_active_project_name'] });
     queryClient.invalidateQueries({ queryKey: ['timer_projects'] });
-  };
+  }, [queryClient]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -216,7 +224,7 @@ export function SessionHistoryModal({
       cancelled = true;
       unlistenFn?.();
     };
-  }, [isOpen, queryClient]);
+  }, [isOpen, invalidateSessionDependentQueries]);
 
   const {
     data: sessions = [],
@@ -242,7 +250,7 @@ export function SessionHistoryModal({
       setEditError(null);
     },
     onError: (err) => {
-      setEditError(typeof err === 'string' ? err : String(err));
+      setEditError(getErrorMessage(err, 'Failed to update session.'));
     },
   });
 
@@ -254,7 +262,7 @@ export function SessionHistoryModal({
       setDeleteError(null);
     },
     onError: (err) => {
-      setDeleteError(typeof err === 'string' ? err : String(err));
+      setDeleteError(getErrorMessage(err, 'Failed to delete session.'));
     },
   });
 
@@ -276,9 +284,13 @@ export function SessionHistoryModal({
     });
   }, [sessions, projectFilter, typeFilter, dateFilter]);
 
+  const totalFilteredSeconds = useMemo(() => {
+    return filteredSessions.reduce((sum, s) => sum + Math.max(0, s.duration_seconds), 0);
+  }, [filteredSessions]);
+
   const totalFocusSeconds = useMemo(() => {
     return filteredSessions.reduce(
-      (sum, s) => sum + (s.session_type === 'FOCUS' ? s.duration_seconds : 0),
+      (sum, s) => sum + (s.session_type === 'FOCUS' ? Math.max(0, s.duration_seconds) : 0),
       0,
     );
   }, [filteredSessions]);
@@ -360,6 +372,16 @@ export function SessionHistoryModal({
       return;
     }
 
+    if (endDate.getTime() <= startDate.getTime()) {
+      setEditError('End time must be later than start time.');
+      return;
+    }
+
+    if (!editProjectId) {
+      setEditError('Please select a project.');
+      return;
+    }
+
     updateMutation.mutate({
       id: editingSession.id,
       project_id: editProjectId,
@@ -376,33 +398,33 @@ export function SessionHistoryModal({
     switch (syncEvent.status) {
       case 'syncing':
         return (
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-500/30 bg-blue-500/10 px-2.5 py-1 text-xs font-medium text-blue-300">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/25 bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-300">
             <Loader2 className="h-3 w-3 animate-spin" />
-            Syncing…
+            Syncing...
           </span>
         );
       case 'synced':
         return (
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-300">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-teal-400/25 bg-teal-400/10 px-2.5 py-1 text-xs font-medium text-teal-300">
             <Cloud className="h-3 w-3" />
-            Synced with cloud
+            Synced
           </span>
         );
       case 'local_only':
         return (
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-600/60 bg-slate-700/40 px-2.5 py-1 text-xs font-medium text-slate-300">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.10] bg-white/[0.04] px-2.5 py-1 text-xs font-medium text-[#9CA3B0]">
             <Check className="h-3 w-3" />
-            Saved locally
+            Local only
           </span>
         );
       case 'error':
         return (
           <span
             title={syncEvent.message ?? 'Cloud sync will retry automatically.'}
-            className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-300"
+            className="inline-flex items-center gap-1.5 rounded-full border border-rose-500/25 bg-rose-500/10 px-2.5 py-1 text-xs font-medium text-rose-300"
           >
             <CloudOff className="h-3 w-3" />
-            Saved locally · sync pending
+            Sync error
           </span>
         );
     }
@@ -414,8 +436,10 @@ export function SessionHistoryModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-1000 flex items-center justify-center bg-black/60 p-4 backdrop-blur-[2px]"
-      onClick={() => {
+      role="presentation"
+      className="animate-modal-backdrop fixed inset-0 z-[1000] flex items-center justify-center bg-black/70 p-4 backdrop-blur-md"
+      onMouseDown={(e) => {
+        if (e.target !== e.currentTarget) return;
         if (editingSession) {
           setEditingSession(null);
           setEditError(null);
@@ -427,13 +451,12 @@ export function SessionHistoryModal({
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Session History"
-        onClick={(e) => e.stopPropagation()}
-        className="flex max-h-[85vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-blue-300/25 bg-slate-800 text-left shadow-2xl"
+        aria-label={editingSession ? 'Edit Session' : 'Session History'}
+        className="surface-elevated animate-modal-panel flex max-h-[86vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl text-left"
       >
         {/* Header */}
-        <div className="flex items-center justify-between gap-4 border-b border-slate-200/10 px-6 py-4">
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between gap-4 border-b border-white/[0.07] px-6 py-4">
+          <div className="flex min-w-0 items-center gap-3">
             {editingSession ? (
               <button
                 type="button"
@@ -441,37 +464,37 @@ export function SessionHistoryModal({
                   setEditingSession(null);
                   setEditError(null);
                 }}
-                className="rounded-lg border border-slate-700 bg-slate-900/60 p-2 text-blue-200 transition-colors hover:cursor-pointer hover:border-blue-500 hover:text-white"
-                aria-label="Back to sessions"
+                className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-white/[0.09] bg-[#14171F] text-[#9CA3B0] transition-colors hover:border-white/[0.16] hover:text-[#F4F5F7] focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none"
+                aria-label="Back to session history"
               >
                 <ArrowLeft className="h-4 w-4" />
               </button>
             ) : (
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-blue-500/30 bg-blue-500/10 text-blue-400">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-amber-500/20 bg-amber-500/10 text-amber-400">
                 <History className="h-4 w-4" />
               </div>
             )}
-            <div>
-              <h2 className="text-lg font-bold text-white">
+            <div className="min-w-0">
+              <h2 className="truncate text-base font-semibold tracking-tight text-[#F4F5F7]">
                 {editingSession ? 'Edit Session' : 'Session History'}
               </h2>
-              <p className="text-xs text-blue-200/75">
+              <p className="mt-0.5 text-xs text-[#9CA3B0]">
                 {editingSession
-                  ? 'Adjust timestamps, duration, or project — changes sync automatically.'
-                  : `${filteredSessions.length} session${filteredSessions.length === 1 ? '' : 's'} · ${formatSecondsToString(totalFocusSeconds)} focus`}
+                  ? 'Adjust project, timestamps, or duration. Changes sync automatically.'
+                  : 'Inspect, filter, and refine your recorded sessions.'}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex shrink-0 items-center gap-2.5">
             {renderSyncBadge()}
             <button
               type="button"
               onClick={onClose}
               aria-label="Close session history"
-              className="rounded-lg p-2 text-slate-300 transition-colors hover:cursor-pointer hover:bg-slate-700 hover:text-white"
+              className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-[#9CA3B0] transition-colors hover:bg-white/[0.08] hover:text-[#F4F5F7] focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none"
             >
-              <X className="h-5 w-5" />
+              <X className="h-4 w-4" />
             </button>
           </div>
         </div>
@@ -483,16 +506,19 @@ export function SessionHistoryModal({
             className="flex flex-1 flex-col gap-5 overflow-y-auto p-6"
           >
             {editError && (
-              <div className="flex items-center gap-2 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300">
-                <AlertCircle className="h-4 w-4 shrink-0" />
+              <div
+                role="alert"
+                className="flex items-center gap-2.5 rounded-xl border border-rose-500/25 bg-rose-500/10 px-4 py-3 text-xs text-rose-200"
+              >
+                <AlertCircle className="h-4 w-4 shrink-0 text-rose-400" />
                 <span>{editError}</span>
               </div>
             )}
 
-            <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+            <div className="surface-well grid grid-cols-1 gap-5 rounded-2xl p-5 md:grid-cols-2">
               {/* Project */}
               <div className="flex flex-col gap-1.5">
-                <span className="text-xs font-semibold tracking-wider text-blue-200 uppercase">
+                <span className="text-[11px] font-semibold tracking-wider text-[#646C7A] uppercase">
                   Project
                 </span>
                 <ProjectFolderSelect
@@ -509,11 +535,11 @@ export function SessionHistoryModal({
 
               {/* Quick Duration */}
               <div className="flex flex-col gap-1.5">
-                <span className="text-xs font-semibold tracking-wider text-blue-200 uppercase">
+                <span className="text-[11px] font-semibold tracking-wider text-[#646C7A] uppercase">
                   Duration (adjusts end time)
                 </span>
-                <div className="flex items-center gap-2">
-                  <div className="flex flex-1 items-center gap-2 rounded-lg border border-slate-600 bg-slate-900 px-3 py-1.5">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex h-10 flex-1 items-center gap-2 rounded-xl border border-white/[0.09] bg-[#0E1015] px-3 transition-colors focus-within:border-amber-500/60 focus-within:ring-2 focus-within:ring-amber-500/20">
                     <input
                       type="number"
                       min={0}
@@ -521,11 +547,11 @@ export function SessionHistoryModal({
                       aria-label="Duration hours"
                       value={editDurationHours}
                       onChange={(e) => handleDurationChange(e.target.value, editDurationMinutes)}
-                      className="w-full bg-transparent text-sm text-white focus:outline-none"
+                      className="w-full bg-transparent font-mono text-sm tabular-nums text-[#F4F5F7] focus:outline-none"
                     />
-                    <span className="text-xs text-slate-400">h</span>
+                    <span className="font-mono text-xs text-[#646C7A]">h</span>
                   </div>
-                  <div className="flex flex-1 items-center gap-2 rounded-lg border border-slate-600 bg-slate-900 px-3 py-1.5">
+                  <div className="flex h-10 flex-1 items-center gap-2 rounded-xl border border-white/[0.09] bg-[#0E1015] px-3 transition-colors focus-within:border-amber-500/60 focus-within:ring-2 focus-within:ring-amber-500/20">
                     <input
                       type="number"
                       min={0}
@@ -533,9 +559,9 @@ export function SessionHistoryModal({
                       aria-label="Duration minutes"
                       value={editDurationMinutes}
                       onChange={(e) => handleDurationChange(editDurationHours, e.target.value)}
-                      className="w-full bg-transparent text-sm text-white focus:outline-none"
+                      className="w-full bg-transparent font-mono text-sm tabular-nums text-[#F4F5F7] focus:outline-none"
                     />
-                    <span className="text-xs text-slate-400">m</span>
+                    <span className="font-mono text-xs text-[#646C7A]">m</span>
                   </div>
                 </div>
               </div>
@@ -544,7 +570,7 @@ export function SessionHistoryModal({
               <div className="flex flex-col gap-1.5">
                 <label
                   htmlFor="session-start"
-                  className="text-xs font-semibold tracking-wider text-blue-200 uppercase"
+                  className="text-[11px] font-semibold tracking-wider text-[#646C7A] uppercase"
                 >
                   Start time
                 </label>
@@ -555,7 +581,7 @@ export function SessionHistoryModal({
                   required
                   value={editStartLocal}
                   onChange={(e) => handleStartChange(e.target.value)}
-                  className="rounded-lg border border-slate-600 bg-slate-900 px-3 py-2 text-sm text-white scheme-dark focus:border-blue-500 focus:outline-none"
+                  className="h-10 rounded-xl border border-white/[0.09] bg-[#0E1015] px-3 font-mono text-sm tabular-nums text-[#F4F5F7] scheme-dark transition-colors hover:border-white/[0.15] focus:border-amber-500/60 focus:ring-2 focus:ring-amber-500/20 focus:outline-none"
                 />
               </div>
 
@@ -563,7 +589,7 @@ export function SessionHistoryModal({
               <div className="flex flex-col gap-1.5">
                 <label
                   htmlFor="session-end"
-                  className="text-xs font-semibold tracking-wider text-blue-200 uppercase"
+                  className="text-[11px] font-semibold tracking-wider text-[#646C7A] uppercase"
                 >
                   End time
                 </label>
@@ -574,13 +600,13 @@ export function SessionHistoryModal({
                   required
                   value={editEndLocal}
                   onChange={(e) => handleEndChange(e.target.value)}
-                  className="rounded-lg border border-slate-600 bg-slate-900 px-3 py-2 text-sm text-white scheme-dark focus:border-blue-500 focus:outline-none"
+                  className="h-10 rounded-xl border border-white/[0.09] bg-[#0E1015] px-3 font-mono text-sm tabular-nums text-[#F4F5F7] scheme-dark transition-colors hover:border-white/[0.15] focus:border-amber-500/60 focus:ring-2 focus:ring-amber-500/20 focus:outline-none"
                 />
               </div>
 
               {/* Session type */}
               <div className="flex flex-col gap-1.5">
-                <span className="text-xs font-semibold tracking-wider text-blue-200 uppercase">
+                <span className="text-[11px] font-semibold tracking-wider text-[#646C7A] uppercase">
                   Session type
                 </span>
                 <CustomSelect
@@ -594,7 +620,7 @@ export function SessionHistoryModal({
 
               {/* Timer mode */}
               <div className="flex flex-col gap-1.5">
-                <span className="text-xs font-semibold tracking-wider text-blue-200 uppercase">
+                <span className="text-[11px] font-semibold tracking-wider text-[#646C7A] uppercase">
                   Timer mode
                 </span>
                 <CustomSelect
@@ -607,11 +633,10 @@ export function SessionHistoryModal({
               </div>
             </div>
 
-            <div className="mt-auto flex items-center justify-end gap-3 border-t border-slate-200/10 pt-4">
+            <div className="mt-auto flex items-center justify-end gap-2.5 border-t border-white/[0.07] pt-4">
               <Button
                 type="button"
                 variant="secondary"
-                className="rounded-lg border border-slate-600 text-sm"
                 onClick={() => {
                   setEditingSession(null);
                   setEditError(null);
@@ -619,110 +644,148 @@ export function SessionHistoryModal({
               >
                 Cancel
               </Button>
-              <Button
-                type="submit"
-                disabled={updateMutation.isPending}
-                className="rounded-lg text-sm font-semibold"
-              >
-                {updateMutation.isPending ? 'Saving…' : 'Save Changes'}
+              <Button type="submit" disabled={updateMutation.isPending}>
+                {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
               </Button>
             </div>
           </form>
         ) : (
           <>
-            {/* Filter bar */}
-            <div className="flex flex-wrap items-center gap-3 border-b border-slate-200/10 bg-slate-900/30 px-6 py-3">
-              <ProjectFolderSelect
-                projects={projects}
-                folders={folders}
-                value={projectFilter}
-                onChange={setProjectFilter}
-                allowAll
-                allLabel="All projects"
-                variant="filter"
-                ariaLabel="Filter by project"
-              />
-
-              <CustomSelect
-                options={SESSION_TYPE_FILTER_OPTIONS}
-                value={typeFilter}
-                onChange={setTypeFilter}
-                variant="filter"
-                ariaLabel="Filter by session type"
-              />
-
-              <div className="flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-1.5 transition-colors focus-within:border-blue-500 hover:border-blue-400/70">
-                <Calendar className="h-3.5 w-3.5 text-blue-300" />
-                <input
-                  type="date"
-                  aria-label="Filter by date"
-                  value={dateFilter}
-                  onChange={(e) => setDateFilter(e.target.value)}
-                  className="bg-transparent text-xs font-medium text-white scheme-dark focus:outline-none"
+            {/* Filter toolbar */}
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.07] bg-[#101217]/80 px-6 py-3">
+              <div className="flex flex-wrap items-center gap-2.5">
+                <ProjectFolderSelect
+                  projects={projects}
+                  folders={folders}
+                  value={projectFilter}
+                  onChange={setProjectFilter}
+                  allowAll
+                  allLabel="All projects"
+                  variant="filter"
+                  ariaLabel="Filter by project"
                 />
+
+                <CustomSelect
+                  options={SESSION_TYPE_FILTER_OPTIONS}
+                  value={typeFilter}
+                  onChange={setTypeFilter}
+                  variant="filter"
+                  ariaLabel="Filter by session type"
+                />
+
+                <div className="flex h-8.5 items-center gap-2 rounded-xl border border-white/[0.09] bg-[#0E1015] px-3 transition-colors focus-within:border-amber-500/60 focus-within:ring-2 focus-within:ring-amber-500/15 hover:border-white/[0.16]">
+                  <Calendar className="h-3.5 w-3.5 shrink-0 text-amber-400" />
+                  <input
+                    type="date"
+                    aria-label="Filter by date"
+                    value={dateFilter}
+                    onChange={(e) => setDateFilter(e.target.value)}
+                    className="bg-transparent font-mono text-xs font-medium tabular-nums text-[#F4F5F7] scheme-dark focus:outline-none"
+                  />
+                </div>
+
+                {hasActiveFilters && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setProjectFilter(null);
+                      setTypeFilter('all');
+                      setDateFilter('');
+                    }}
+                    className="inline-flex h-8.5 cursor-pointer items-center gap-1.5 rounded-full border border-amber-500/25 bg-amber-500/10 px-3 text-xs font-medium text-amber-300 transition-colors hover:bg-amber-500/20"
+                  >
+                    <RotateCcw className="h-3 w-3" />
+                    Clear filters
+                  </button>
+                )}
               </div>
 
-              {hasActiveFilters && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setProjectFilter(null);
-                    setTypeFilter('all');
-                    setDateFilter('');
-                  }}
-                  className="text-xs font-medium text-blue-300 hover:cursor-pointer hover:text-white"
-                >
-                  Clear filters
-                </button>
-              )}
+              <div className="flex items-center gap-2 font-mono text-xs tabular-nums text-[#9CA3B0]">
+                <span className="font-semibold text-[#F4F5F7]">{filteredSessions.length}</span>
+                <span>{filteredSessions.length === 1 ? 'session' : 'sessions'}</span>
+                <span className="text-white/20">·</span>
+                <span className="font-semibold text-amber-400">
+                  {formatSecondsToString(
+                    typeFilter === 'all' ? totalFilteredSeconds : totalFocusSeconds || totalFilteredSeconds,
+                  )}
+                </span>
+                <span className="text-[#646C7A]">
+                  {typeFilter === 'all' ? 'total' : 'filtered'}
+                </span>
+              </div>
             </div>
 
             {deleteError && (
-              <div className="mx-6 mt-3 flex items-center gap-2 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-2.5 text-xs text-red-300">
-                <AlertCircle className="h-4 w-4 shrink-0" />
+              <div
+                role="alert"
+                className="mx-6 mt-3 flex items-center gap-2 rounded-xl border border-rose-500/25 bg-rose-500/10 px-4 py-2.5 text-xs text-rose-200"
+              >
+                <AlertCircle className="h-4 w-4 shrink-0 text-rose-400" />
                 <span>{deleteError}</span>
               </div>
             )}
 
-            {/* Table */}
+            {/* Session list */}
             <div className="flex-1 overflow-y-auto">
               {isLoading ? (
-                <div className="flex items-center justify-center gap-2 py-16 text-sm text-blue-200">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Loading sessions…
+                <div className="divide-y divide-white/[0.05] px-6 py-2">
+                  {[0, 1, 2, 3, 4, 5].map((i) => (
+                    <div key={i} className="flex items-center justify-between gap-4 py-3.5">
+                      <div className="flex items-center gap-3">
+                        <Skeleton className="h-2.5 w-2.5 rounded-full" />
+                        <Skeleton className="h-4 w-32" />
+                      </div>
+                      <Skeleton className="h-4 w-36" />
+                      <Skeleton className="h-6 w-16 rounded-lg" />
+                      <Skeleton className="h-5 w-28 rounded-full" />
+                      <Skeleton className="h-7 w-16 rounded-lg" />
+                    </div>
+                  ))}
                 </div>
               ) : loadError ? (
-                <div className="py-16 text-center text-sm text-red-300">
-                  Failed to load sessions: {String(loadError)}
+                <div className="flex flex-col items-center justify-center gap-2 py-16 text-center">
+                  <AlertCircle className="h-5 w-5 text-rose-400" />
+                  <p className="text-sm font-medium text-rose-200">Failed to load sessions</p>
+                  <p className="text-xs text-rose-300/75">
+                    {getErrorMessage(loadError, 'Could not fetch recorded sessions.')}
+                  </p>
                 </div>
               ) : visibleSessions.length === 0 ? (
-                <div className="py-16 text-center text-sm text-blue-200/70">
-                  {hasActiveFilters
-                    ? 'No sessions match the selected filters.'
-                    : 'No past sessions recorded yet.'}
+                <div className="flex flex-col items-center justify-center gap-1.5 py-16 text-center">
+                  <History className="h-6 w-6 text-[#646C7A]" />
+                  <p className="mt-1 text-sm font-medium text-[#D0D5DE]">
+                    {hasActiveFilters
+                      ? 'No sessions match your filters'
+                      : 'No sessions recorded yet'}
+                  </p>
+                  <p className="text-xs text-[#646C7A]">
+                    {hasActiveFilters
+                      ? 'Try adjusting the project, type, or date filter.'
+                      : 'Complete a focus or break timer to see your history here.'}
+                  </p>
                 </div>
               ) : (
-                <table className="w-full">
-                  <thead className="sticky top-0 z-10 bg-slate-800/95 backdrop-blur-xs">
-                    <tr className="border-b border-slate-200/10">
-                      <th className="px-6 py-3 text-left text-xs font-semibold tracking-wider text-blue-200 uppercase">
+                <table className="w-full border-collapse">
+                  <thead className="sticky top-0 z-10 bg-[#171B23]/95 backdrop-blur-sm">
+                    <tr className="border-b border-white/[0.07]">
+                      <th className="px-6 py-2.5 text-left text-[11px] font-semibold tracking-wider text-[#646C7A] uppercase">
                         Project
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold tracking-wider text-blue-200 uppercase">
+                      <th className="px-4 py-2.5 text-left text-[11px] font-semibold tracking-wider text-[#646C7A] uppercase">
                         Date &amp; Time
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold tracking-wider text-blue-200 uppercase">
+                      <th className="px-4 py-2.5 text-left text-[11px] font-semibold tracking-wider text-[#646C7A] uppercase">
                         Duration
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold tracking-wider text-blue-200 uppercase">
+                      <th className="px-4 py-2.5 text-left text-[11px] font-semibold tracking-wider text-[#646C7A] uppercase">
                         Type / Mode
                       </th>
-                      <th className="px-6 py-3 text-right text-xs font-semibold tracking-wider text-blue-200 uppercase">
+                      <th className="px-6 py-2.5 text-right text-[11px] font-semibold tracking-wider text-[#646C7A] uppercase">
                         Actions
                       </th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-white/[0.05]">
                     {visibleSessions.map((session) => {
                       const start = new Date(session.start_time);
                       const end = new Date(session.end_time);
@@ -732,7 +795,7 @@ export function SessionHistoryModal({
                       return (
                         <tr
                           key={session.id}
-                          className="group border-b border-slate-200/5 transition-colors last:border-b-0 hover:bg-slate-200/5"
+                          className="group transition-colors hover:bg-white/[0.03]"
                         >
                           <td className="px-6 py-3.5 whitespace-nowrap">
                             <div className="flex items-center gap-2.5">
@@ -740,80 +803,87 @@ export function SessionHistoryModal({
                                 className="h-2.5 w-2.5 shrink-0 rounded-full"
                                 style={{ backgroundColor: session.project_color }}
                               />
-                              <span className="max-w-44 truncate text-sm font-medium text-white">
+                              <span className="max-w-44 truncate text-sm font-medium text-[#F4F5F7]">
                                 {session.project_name}
                               </span>
                             </div>
                           </td>
                           <td className="px-4 py-3.5 whitespace-nowrap">
-                            <div className="text-sm font-medium text-white">
+                            <div className="text-sm font-medium text-[#F4F5F7]">
                               {spansDays
                                 ? `${format(start, 'MMM d')} – ${format(end, 'MMM d, yyyy')}`
                                 : format(start, 'EEE, MMM d, yyyy')}
                             </div>
-                            <div className="text-xs text-blue-200/70">
+                            <div className="mt-0.5 font-mono text-xs tabular-nums text-[#646C7A]">
                               {format(start, 'HH:mm')} – {format(end, 'HH:mm')}
                             </div>
                           </td>
                           <td className="px-4 py-3.5 whitespace-nowrap">
-                            <div className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900/60 px-2.5 py-1 text-sm font-semibold text-white">
-                              <Clock3 className="h-3.5 w-3.5 text-blue-400" />
+                            <div className="inline-flex items-center gap-1.5 rounded-lg border border-white/[0.06] bg-[#0F1116] px-2.5 py-1 font-mono text-xs font-semibold tabular-nums text-[#F4F5F7]">
+                              <Clock3 className="h-3.5 w-3.5 text-amber-400" />
                               {formatSessionDuration(session.duration_seconds)}
                             </div>
                           </td>
                           <td className="px-4 py-3.5 whitespace-nowrap">
                             <div className="flex items-center gap-1.5">
                               <span
-                                className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${SESSION_TYPE_BADGE_CLASSES[session.session_type]}`}
+                                className={cn(
+                                  'rounded-full border px-2 py-0.5 text-[11px] font-medium',
+                                  SESSION_TYPE_BADGE_CLASSES[session.session_type],
+                                )}
                               >
                                 {SESSION_TYPE_LABELS[session.session_type]}
                               </span>
-                              <span className="rounded-full border border-slate-600/60 bg-slate-900/40 px-2 py-0.5 text-[11px] text-slate-300">
+                              <span className="rounded-full border border-white/[0.08] bg-white/[0.03] px-2 py-0.5 text-[11px] text-[#9CA3B0]">
                                 {TIMER_MODE_LABELS[session.mode]}
                               </span>
                             </div>
                           </td>
                           <td className="px-6 py-3.5 text-right whitespace-nowrap">
                             {isConfirmingDelete ? (
-                              <div className="inline-flex items-center gap-2">
-                                <button
+                              <div className="inline-flex items-center gap-1.5">
+                                <Button
                                   type="button"
+                                  variant="danger"
+                                  scale="sm"
                                   disabled={deleteMutation.isPending}
                                   onClick={() => deleteMutation.mutate(session.id)}
-                                  className="rounded-md bg-red-500/20 px-2.5 py-1 text-xs font-semibold text-red-300 hover:cursor-pointer hover:bg-red-500/30"
+                                  className="h-7 px-2.5 text-xs"
                                 >
-                                  {deleteMutation.isPending ? 'Deleting…' : 'Confirm'}
-                                </button>
-                                <button
+                                  {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
+                                </Button>
+                                <Button
                                   type="button"
+                                  variant="ghost"
+                                  scale="sm"
                                   onClick={() => setConfirmDeleteId(null)}
-                                  className="rounded-md bg-slate-700 px-2 py-1 text-xs text-slate-200 hover:cursor-pointer hover:bg-slate-600"
+                                  className="h-7 px-2 text-xs"
                                 >
                                   Cancel
-                                </button>
+                                </Button>
                               </div>
                             ) : (
-                              <div className="inline-flex items-center gap-2">
+                              <div className="inline-flex items-center gap-1">
                                 <button
                                   type="button"
                                   title="Edit session"
-                                  aria-label="Edit session"
+                                  aria-label={`Edit ${session.project_name} session`}
                                   onClick={() => openEditor(session)}
-                                  className="rounded-lg p-1.5 text-blue-200 transition-colors hover:cursor-pointer hover:bg-slate-700 hover:text-white"
+                                  className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg text-[#9CA3B0] transition-colors hover:bg-white/[0.07] hover:text-[#F4F5F7] focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:outline-none"
                                 >
-                                  <Pencil className="h-4 w-4" />
+                                  <Pencil className="h-3.5 w-3.5" />
                                 </button>
                                 <button
                                   type="button"
                                   title="Delete session"
-                                  aria-label="Delete session"
+                                  aria-label={`Delete ${session.project_name} session`}
                                   onClick={() => {
                                     setDeleteError(null);
                                     setConfirmDeleteId(session.id);
                                   }}
-                                  className="rounded-lg p-1.5 text-blue-200 transition-colors hover:cursor-pointer hover:bg-red-500/20 hover:text-red-400"
+                                  className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg text-[#9CA3B0] transition-colors hover:bg-rose-500/15 hover:text-rose-400 focus-visible:ring-2 focus-visible:ring-rose-400/60 focus-visible:outline-none"
                                 >
-                                  <Trash2 className="h-4 w-4" />
+                                  <Trash2 className="h-3.5 w-3.5" />
                                 </button>
                               </div>
                             )}
@@ -828,20 +898,18 @@ export function SessionHistoryModal({
 
             {/* Footer Pagination */}
             {filteredSessions.length > 0 && (
-              <div className="flex items-center justify-between border-t border-slate-200/10 bg-slate-900/30 px-6 py-3">
-                <div className="text-xs text-blue-200">
+              <div className="flex items-center justify-between border-t border-white/[0.07] bg-[#101217]/80 px-6 py-3">
+                <div className="font-mono text-xs tabular-nums text-[#9CA3B0]">
                   Showing{' '}
-                  <span className="font-semibold text-white">
-                    {startIdx + 1}-{Math.min(startIdx + SESSIONS_PER_PAGE, filteredSessions.length)}
+                  <span className="font-semibold text-[#F4F5F7]">
+                    {startIdx + 1}–{Math.min(startIdx + SESSIONS_PER_PAGE, filteredSessions.length)}
                   </span>{' '}
-                  of <span className="font-semibold text-white">{filteredSessions.length}</span>{' '}
-                  sessions
+                  of <span className="font-semibold text-[#F4F5F7]">{filteredSessions.length}</span>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex items-center gap-2">
                   <Button
                     variant="secondary"
                     scale="sm"
-                    className="rounded-lg border border-white/15 text-xs"
                     disabled={page === 1}
                     onClick={() => setPage((p) => p - 1)}
                   >
@@ -850,7 +918,6 @@ export function SessionHistoryModal({
                   <Button
                     variant="secondary"
                     scale="sm"
-                    className="rounded-lg border border-white/15 text-xs"
                     disabled={page >= maxPage}
                     onClick={() => setPage((p) => p + 1)}
                   >

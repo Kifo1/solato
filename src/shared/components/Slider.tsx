@@ -1,7 +1,7 @@
 import { useRef, useState, useCallback } from 'react';
 import { cn } from '@shared/lib/utils';
 
-interface SliderMark {
+export interface SliderMark {
   value: number;
   label: string;
 }
@@ -15,8 +15,32 @@ interface CustomSliderProps {
   onChange?: (value: number) => void;
   onChangeCommitted?: (value: number) => void;
   valueLabelFormat?: (value: number) => string;
+  accentColor?: 'amber' | 'teal' | 'sky';
+  disabled?: boolean;
+  ariaLabel?: string;
   className?: string;
 }
+
+const ACCENT_STYLES = {
+  amber: {
+    fill: 'bg-amber-500',
+    thumbBorder: 'border-amber-400',
+    ring: 'focus-visible:ring-amber-400/40',
+    tooltip: 'bg-amber-500 text-[#0A0B0E]',
+  },
+  teal: {
+    fill: 'bg-teal-400',
+    thumbBorder: 'border-teal-400',
+    ring: 'focus-visible:ring-teal-400/40',
+    tooltip: 'bg-teal-400 text-[#0A0B0E]',
+  },
+  sky: {
+    fill: 'bg-sky-400',
+    thumbBorder: 'border-sky-400',
+    ring: 'focus-visible:ring-sky-400/40',
+    tooltip: 'bg-sky-400 text-[#0A0B0E]',
+  },
+} as const;
 
 export function CustomSlider({
   value,
@@ -27,13 +51,18 @@ export function CustomSlider({
   onChange,
   onChangeCommitted,
   valueLabelFormat,
+  accentColor = 'amber',
+  disabled = false,
+  ariaLabel,
   className,
 }: Readonly<CustomSliderProps>) {
   const trackRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
 
-  const percentage = ((value - min) / (max - min)) * 100;
+  const range = max - min;
+  const percentage = range > 0 ? Math.min(100, Math.max(0, ((value - min) / range) * 100)) : 0;
+  const accent = ACCENT_STYLES[accentColor];
 
   const clampToStep = useCallback(
     (raw: number) => {
@@ -45,33 +74,45 @@ export function CustomSlider({
 
   const valueFromClientX = useCallback(
     (clientX: number) => {
-      if (!trackRef.current) return value;
+      if (!trackRef.current || range <= 0) return value;
       const rect = trackRef.current.getBoundingClientRect();
+      if (rect.width <= 0) return value;
       const ratio = (clientX - rect.left) / rect.width;
-      return clampToStep(min + ratio * (max - min));
+      return clampToStep(min + ratio * range);
     },
-    [min, max, clampToStep, value],
+    [min, range, clampToStep, value],
   );
 
-  const handlePointerDown = (e: React.PointerEvent) => {
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (disabled) return;
     e.preventDefault();
     setIsDragging(true);
-    onChange?.(valueFromClientX(e.clientX));
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    const nextVal = valueFromClientX(e.clientX);
+    onChange?.(nextVal);
+    e.currentTarget.setPointerCapture(e.pointerId);
   };
 
-  const handlePointerMove = (e: React.PointerEvent) => {
-    if (!isDragging) return;
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDragging || disabled) return;
     onChange?.(valueFromClientX(e.clientX));
   };
 
-  const handlePointerUp = (e: React.PointerEvent) => {
+  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!isDragging) return;
     setIsDragging(false);
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
     onChangeCommitted?.(valueFromClientX(e.clientX));
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handlePointerCancel = () => {
+    if (!isDragging) return;
+    setIsDragging(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (disabled) return;
     let next = value;
     if (e.key === 'ArrowRight' || e.key === 'ArrowUp') next = Math.min(max, value + step);
     else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') next = Math.max(min, value - step);
@@ -84,54 +125,81 @@ export function CustomSlider({
   };
 
   const showLabel = isDragging || isHovering;
-  const thumbScale = isDragging ? 1.25 : isHovering ? 1.12 : 1;
+  const thumbScale = isDragging ? 1.2 : isHovering ? 1.1 : 1;
 
   return (
-    <div className={cn('px-2 py-4', className)}>
+    <div className={cn('px-1 pt-3', marks && marks.length > 0 ? 'pb-7' : 'pb-3', className)}>
       <div
         ref={trackRef}
-        className="relative flex h-2 w-full cursor-pointer touch-none items-center select-none"
+        className={cn(
+          'relative flex h-5 w-full touch-none items-center select-none',
+          disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer',
+        )}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerCancel}
         onMouseEnter={() => setIsHovering(true)}
         onMouseLeave={() => setIsHovering(false)}
       >
-        <div className="absolute h-1.5 w-full rounded-full bg-slate-200/10" />
+        {/* Background track */}
+        <div className="absolute h-1.5 w-full rounded-full bg-white/[0.08]" />
 
+        {/* Active fill track */}
         <div
-          className="absolute h-1.5 rounded-full bg-blue-500 transition-[width] duration-100 ease-out"
+          className={cn('absolute h-1.5 rounded-full transition-[width] duration-75 ease-out', accent.fill)}
           style={{ width: `${percentage}%` }}
         />
 
+        {/* Marks */}
         {marks?.map((mark) => {
-          const markPercentage = ((mark.value - min) / (max - min)) * 100;
+          const markPercentage = range > 0 ? ((mark.value - min) / range) * 100 : 0;
+          const isReached = mark.value <= value;
           return (
             <div
               key={mark.value}
-              className="absolute flex flex-col items-center"
+              className="pointer-events-none absolute top-1/2 flex flex-col items-center"
               style={{ left: `${markPercentage}%`, transform: 'translateX(-50%)' }}
             >
-              <span className="mt-10 text-xs text-blue-200/80">{mark.label}</span>
+              <span
+                className={cn(
+                  'mt-4 font-mono text-[11px] tabular-nums transition-colors',
+                  isReached ? 'text-[#9CA3B0]' : 'text-[#555D6B]',
+                )}
+              >
+                {mark.label}
+              </span>
             </div>
           );
         })}
 
+        {/* Thumb */}
         <div
           role="slider"
-          tabIndex={0}
+          tabIndex={disabled ? -1 : 0}
+          aria-label={ariaLabel}
           aria-valuemin={min}
           aria-valuemax={max}
           aria-valuenow={value}
+          aria-disabled={disabled}
           onKeyDown={handleKeyDown}
-          className="absolute top-1/2 h-5 w-5 rounded-full border-2 border-blue-500 bg-white shadow-md transition-transform duration-100 ease-out focus:ring-4 focus:ring-blue-500/30 focus:outline-none"
+          className={cn(
+            'absolute top-1/2 h-4.5 w-4.5 rounded-full border-2 bg-[#F4F5F7] shadow-[0_2px_8px_rgba(0,0,0,0.6)] transition-transform duration-100 ease-out focus-visible:ring-4 focus-visible:outline-none',
+            accent.thumbBorder,
+            accent.ring,
+          )}
           style={{
             left: `${percentage}%`,
             transform: `translate(-50%, -50%) scale(${thumbScale})`,
           }}
         >
           {showLabel && (
-            <div className="pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 rounded-lg bg-blue-500 px-2 py-1 text-xs font-medium whitespace-nowrap text-white shadow-lg">
+            <div
+              className={cn(
+                'pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 rounded-lg px-2 py-0.5 font-mono text-[11px] font-semibold whitespace-nowrap tabular-nums shadow-lg',
+                accent.tooltip,
+              )}
+            >
               {valueLabelFormat ? valueLabelFormat(value) : value}
             </div>
           )}

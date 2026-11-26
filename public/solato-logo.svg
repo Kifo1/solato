@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <radialGradient id="favBg" cx="50%" cy="25%" r="80%">
+      <stop offset="0%" stop-color="#1E222B" />
+      <stop offset="100%" stop-color="#0B0C0E" />
+    </radialGradient>
+    <linearGradient id="favArc1" x1="32" y1="12" x2="52" y2="32" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FDE68A" />
+      <stop offset="100%" stop-color="#F59E0B" />
+    </linearGradient>
+    <linearGradient id="favArc2" x1="32" y1="52" x2="12" y2="32" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FBBF24" />
+      <stop offset="100%" stop-color="#D97706" />
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="15" fill="url(#favBg)" stroke="#FFFFFF" stroke-opacity="0.1" stroke-width="1.5" />
+  <circle cx="32" cy="32" r="19" fill="none" stroke="#FFFFFF" stroke-opacity="0.14" stroke-width="3.2" />
+  <path d="M 33.5 13.06 A 19 19 0 0 1 50.94 30.5" fill="none" stroke="url(#favArc1)" stroke-width="4.2" stroke-linecap="round" />
+  <path d="M 30.5 50.94 A 19 19 0 0 1 13.06 33.5" fill="none" stroke="url(#favArc2)" stroke-width="4.2" stroke-linecap="round" />
+  <circle cx="32" cy="32" r="2.8" fill="#FBBF24" />
+</svg>

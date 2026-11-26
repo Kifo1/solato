@@ -1,3 +1,5 @@
+import { Skeleton } from '@/shared/components/Skeleton';
+import { cn } from '@shared/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import { invoke } from '@tauri-apps/api/core';
 import { Flame } from 'lucide-react';
@@ -8,35 +10,82 @@ interface StreakData {
 }
 
 export default function AnalyticStreak() {
-  const { data: streakData } = useQuery({
+  const { data: streakData, isLoading } = useQuery({
     queryKey: ['analytics', 'streak'],
     queryFn: () => invoke<StreakData>('get_analytics_streak'),
   });
+
+  if (isLoading) {
+    return (
+      <div className="surface-card flex h-full flex-col justify-between rounded-2xl p-6">
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-3 w-36" />
+        </div>
+        <div className="my-6 flex flex-col items-center gap-3">
+          <Skeleton className="h-14 w-14 rounded-2xl" />
+          <Skeleton className="h-10 w-28" />
+          <Skeleton className="h-6 w-40 rounded-full" />
+        </div>
+      </div>
+    );
+  }
 
   const streak = streakData?.current_streak ?? 0;
   const activeToday = streakData?.active_today ?? false;
 
   return (
-    <div className="flex h-full flex-col rounded-2xl border border-slate-200/10 bg-slate-200/5 p-6">
+    <div className="surface-card flex h-full flex-col justify-between rounded-2xl p-6">
       <div>
-        <h3 className="text-sm font-semibold tracking-wider text-blue-200 uppercase">Streak</h3>
-        <p className="mt-1 text-xs text-blue-200/70">
-          {streak} consecutive day{streak === 1 ? '' : 's'} with focus time
-        </p>
+        <h3 className="text-sm font-semibold tracking-tight text-[#F4F5F7]">Focus Streak</h3>
+        <p className="mt-1 text-xs text-[#646C7A]">Consecutive days with focus time</p>
       </div>
 
-      <div className="flex flex-1 items-center justify-center">
-        <div className="flex">
+      <div className="my-6 flex flex-1 flex-col items-center justify-center text-center">
+        <div
+          className={cn(
+            'relative flex h-15 w-15 items-center justify-center rounded-2xl border transition-all duration-300',
+            activeToday
+              ? 'border-amber-400/35 bg-amber-500/15 shadow-[0_0_28px_-4px_rgba(245,158,11,0.5)]'
+              : 'border-white/[0.08] bg-white/[0.03]',
+          )}
+        >
           <Flame
-            size={60}
-            color={activeToday ? 'orange' : 'gray'}
-            fill={activeToday ? 'orange' : '#1d293d'}
+            className={cn(
+              'h-8 w-8 transition-colors',
+              activeToday
+                ? 'fill-amber-400 text-amber-400'
+                : 'fill-[#252A34] text-[#646C7A]',
+            )}
           />
-          <p
-            className={`align-bottom text-6xl font-semibold ${activeToday ? 'text-orange-400' : 'text-gray-500'}`}
+        </div>
+
+        <div className="mt-4 flex items-baseline justify-center gap-2">
+          <span
+            className={cn(
+              'font-mono text-5xl font-semibold tracking-tight tabular-nums',
+              activeToday ? 'text-[#F4F5F7]' : 'text-[#9CA3B0]',
+            )}
           >
             {streak}
-          </p>
+          </span>
+          <span className="text-sm font-medium text-[#646C7A]">
+            {streak === 1 ? 'day' : 'days'}
+          </span>
+        </div>
+
+        <div className="mt-4">
+          {activeToday ? (
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-teal-400/25 bg-teal-400/12 px-3 py-1 text-xs font-medium text-teal-300">
+              <span className="h-1.5 w-1.5 rounded-full bg-teal-400" />
+              Active today
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.03] px-3 py-1 text-xs font-medium text-[#9CA3B0]">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#646C7A]" />
+              Start a session to keep streak
+            </span>
+          )}
         </div>
       </div>
     </div>

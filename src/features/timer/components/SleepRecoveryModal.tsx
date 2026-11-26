@@ -3,8 +3,9 @@ import { createPortal } from 'react-dom';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { useQueryClient } from '@tanstack/react-query';
-import { Moon, Clock, Play } from 'lucide-react';
+import { AlertCircle, Clock, Loader2, Moon, Play } from 'lucide-react';
 import Button from '@shared/components/Button';
+import { getErrorMessage } from '@shared/lib/utils';
 
 export interface SleepRecoveryInfo {
   slept_at: string;
@@ -16,6 +17,17 @@ export interface SleepRecoveryInfo {
   scheduled_phase_end: string | null;
   pomodoro_phase: number | null;
 }
+
+type RecoveryAction = 'end_at_sleep' | 'keep_full_time';
+
+const SESSION_QUERY_KEYS = [
+  ['timer_projects'],
+  ['sessions'],
+  ['analytics'],
+  ['overall_project_time'],
+  ['todays_overall_time'],
+  ['most_active_project_name'],
+] as const;
 
 function formatLocalTime(iso: string): string {
   const date = new Date(iso);
@@ -33,7 +45,7 @@ function formatDuration(totalSeconds: number): string {
     return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
   }
   if (minutes > 0) {
-    return `${minutes}m`;
+    return remainingSecs > 0 ? `${minutes}m ${remainingSecs}s` : `${minutes}m`;
   }
   return `${remainingSecs}s`;
 }
@@ -41,7 +53,10 @@ function formatDuration(totalSeconds: number): string {
 export default function SleepRecoveryModal() {
   const queryClient = useQueryClient();
   const [recovery, setRecovery] = useState<SleepRecoveryInfo | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submittingAction, setSubmittingAction] = useState<RecoveryAction | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const isSubmitting = submittingAction !== null;
 
   useEffect(() => {
     let active = true;
@@ -50,6 +65,7 @@ export default function SleepRecoveryModal() {
       .then((pending) => {
         if (active && pending) {
           setRecovery(pending);
+          setError(null);
         }
       })
       .catch((err) => console.error('Failed to check pending sleep recovery:', err));
@@ -57,13 +73,15 @@ export default function SleepRecoveryModal() {
     const unlistenNeededPromise = listen<SleepRecoveryInfo>('sleep-recovery-needed', (event) => {
       if (active) {
         setRecovery(event.payload);
+        setError(null);
       }
     });
 
     const unlistenResolvedPromise = listen('sleep-recovery-resolved', () => {
       if (active) {
         setRecovery(null);
-        setIsSubmitting(false);
+        setSubmittingAction(null);
+        setError(null);
       }
     });
 
@@ -77,88 +95,152 @@ export default function SleepRecoveryModal() {
   if (!recovery) return null;
 
   const sleepTimeLabel = formatLocalTime(recovery.slept_at);
+  const wokeTimeLabel = formatLocalTime(recovery.woke_at);
   const sleepDurationLabel = formatDuration(recovery.sleep_duration_seconds);
+  const elapsedBeforeSleepLabel = formatDuration(
+    Math.floor(Math.max(0, recovery.elapsed_at_sleep_millis) / 1000),
+  );
   const scheduledPhaseEndLabel = recovery.scheduled_phase_end
     ? formatLocalTime(recovery.scheduled_phase_end)
     : null;
 
-  const handleResolve = async (action: 'end_at_sleep' | 'keep_full_time') => {
+  const handleResolve = async (action: RecoveryAction) => {
     if (isSubmitting) return;
-    setIsSubmitting(true);
+    setSubmittingAction(action);
+    setError(null);
+
     try {
       await invoke('resolve_sleep_recovery', { action });
       setRecovery(null);
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['timer_projects'] }),
-        queryClient.invalidateQueries({ queryKey: ['sessions'] }),
-        queryClient.invalidateQueries({ queryKey: ['overall_project_time'] }),
-        queryClient.invalidateQueries({ queryKey: ['todays_overall_time'] }),
-      ]);
+      await Promise.all(
+        SESSION_QUERY_KEYS.map((queryKey) =>
+          queryClient.invalidateQueries({ queryKey: [...queryKey] }),
+        ),
+      );
     } catch (err) {
       console.error('Failed to resolve sleep recovery:', err);
+      setError(getErrorMessage(err, 'Unable to save your sleep recovery choice. Please try again.'));
     } finally {
-      setIsSubmitting(false);
+      setSubmittingAction(null);
     }
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-1000 flex h-full w-full items-center justify-center bg-black/60 backdrop-blur-xs">
+    <div className="animate-modal-backdrop fixed inset-0 z-[1300] flex items-center justify-center bg-black/75 p-4 backdrop-blur-md">
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="sleep-recovery-title"
-        className="mx-6 flex w-full max-w-lg flex-col items-center gap-6 rounded-2xl border border-blue-300/35 bg-slate-800 p-8 text-center shadow-2xl"
+        className="surface-elevated animate-modal-panel flex w-full max-w-lg flex-col gap-5 rounded-2xl p-6 sm:p-7"
       >
-        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-blue-500/15 text-blue-300">
-          <Moon className="h-7 w-7" />
+        {/* Header with Solar Amber Moon badge */}
+        <div className="flex items-start gap-4">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-amber-500/25 bg-amber-500/12 text-amber-400">
+            <Moon className="h-6 w-6" />
+          </div>
+          <div className="flex min-w-0 flex-1 flex-col gap-1">
+            <div className="flex items-center gap-2">
+              <h2
+                id="sleep-recovery-title"
+                className="text-lg font-semibold tracking-tight text-[#F4F5F7]"
+              >
+                Device Sleep Detected
+              </h2>
+              <span className="rounded-full border border-white/[0.08] bg-white/[0.04] px-2 py-0.5 text-[10px] font-medium tracking-wider text-[#9CA3B0] uppercase">
+                {recovery.mode}
+              </span>
+            </div>
+            {recovery.phase_ended_during_sleep && scheduledPhaseEndLabel ? (
+              <p className="text-sm leading-relaxed text-[#9CA3B0]">
+                Your Pomodoro phase would have finished at{' '}
+                <span className="font-mono font-medium text-[#F4F5F7]">
+                  {scheduledPhaseEndLabel}
+                </span>
+                . End the session at sleep time, or save the completed phase and pause for the next
+                one.
+              </p>
+            ) : (
+              <p className="text-sm leading-relaxed text-[#9CA3B0]">
+                Were you still working while your device was asleep, or did you forget to pause the
+                timer?
+              </p>
+            )}
+          </div>
         </div>
 
-        <div className="flex flex-col gap-2">
-          <h2 id="sleep-recovery-title" className="text-2xl font-bold text-white">
-            Device Sleep Detected
-          </h2>
-          <p className="text-sm leading-relaxed text-slate-300">
-            Your device went to sleep at{' '}
-            <span className="font-semibold text-white">{sleepTimeLabel}</span> and was asleep for{' '}
-            <span className="font-semibold text-white">{sleepDurationLabel}</span>.
-          </p>
-          {recovery.phase_ended_during_sleep && scheduledPhaseEndLabel ? (
-            <p className="text-sm leading-relaxed text-blue-200/90">
-              Your Pomodoro phase would have finished at{' '}
-              <span className="font-semibold text-white">{scheduledPhaseEndLabel}</span>. You can
-              end the session at sleep time or save the completed phase and pause for the next one.
-            </p>
-          ) : (
-            <p className="text-sm leading-relaxed text-slate-400">
-              Were you still studying while the device was asleep, or did you forget to stop the
-              timer?
-            </p>
-          )}
+        {/* Structured sleep summary grid */}
+        <div className="surface-well grid grid-cols-2 gap-3 rounded-xl p-3.5">
+          <div className="flex flex-col gap-0.5">
+            <span className="text-[11px] font-medium text-[#646C7A]">Time Slept</span>
+            <span className="font-mono text-sm font-semibold text-[#F4F5F7] tabular-nums">
+              {sleepTimeLabel}
+            </span>
+          </div>
+          <div className="flex flex-col gap-0.5">
+            <span className="text-[11px] font-medium text-[#646C7A]">Time Woke</span>
+            <span className="font-mono text-sm font-semibold text-[#F4F5F7] tabular-nums">
+              {wokeTimeLabel}
+            </span>
+          </div>
+          <div className="flex flex-col gap-0.5 border-t border-white/[0.06] pt-2.5">
+            <span className="text-[11px] font-medium text-[#646C7A]">Sleep Duration</span>
+            <span className="font-mono text-sm font-semibold text-amber-400 tabular-nums">
+              {sleepDurationLabel}
+            </span>
+          </div>
+          <div className="flex flex-col gap-0.5 border-t border-white/[0.06] pt-2.5">
+            <span className="text-[11px] font-medium text-[#646C7A]">Elapsed Before Sleep</span>
+            <span className="font-mono text-sm font-semibold text-[#F4F5F7] tabular-nums">
+              {elapsedBeforeSleepLabel}
+            </span>
+          </div>
         </div>
 
-        <div className="flex w-full flex-col gap-3">
+        {/* Inline error banner */}
+        {error && (
+          <div
+            role="alert"
+            className="flex items-start gap-2.5 rounded-xl border border-rose-500/25 bg-rose-500/10 px-3.5 py-2.5 text-xs text-rose-200"
+          >
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-rose-400" />
+            <span className="leading-relaxed">{error}</span>
+          </div>
+        )}
+
+        {/* Resolution actions */}
+        <div className="flex flex-col gap-2.5">
           <Button
             variant="primary"
-            scale="md"
+            scale="lg"
             disabled={isSubmitting}
             onClick={() => handleResolve('keep_full_time')}
-            className="w-full py-3 text-base"
+            className="w-full"
           >
-            <Play className="h-4 w-4" />
-            {recovery.phase_ended_during_sleep && scheduledPhaseEndLabel
-              ? `Finish phase (${scheduledPhaseEndLabel}) & pause`
-              : 'Keep full time & continue'}
+            {submittingAction === 'keep_full_time' ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Play className="h-4 w-4 fill-current" />
+            )}
+            <span>
+              {recovery.phase_ended_during_sleep && scheduledPhaseEndLabel
+                ? `Finish phase (${scheduledPhaseEndLabel}) & pause`
+                : 'Keep full time & continue'}
+            </span>
           </Button>
 
           <Button
             variant="secondary"
-            scale="md"
+            scale="lg"
             disabled={isSubmitting}
             onClick={() => handleResolve('end_at_sleep')}
-            className="w-full border border-slate-600/60 py-3 text-base hover:bg-slate-950"
+            className="w-full"
           >
-            <Clock className="h-4 w-4" />
-            {`End session at ${sleepTimeLabel}`}
+            {submittingAction === 'end_at_sleep' ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Clock className="h-4 w-4 text-[#9CA3B0]" />
+            )}
+            <span>{`End session at ${sleepTimeLabel}`}</span>
           </Button>
         </div>
       </div>

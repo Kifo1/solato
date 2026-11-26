@@ -1,8 +1,10 @@
+import { Skeleton } from '@/shared/components/Skeleton';
+import { cn, formatSecondsToString } from '@/shared/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import { invoke } from '@tauri-apps/api/core';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
-import { formatSecondsToString } from '@/shared/lib/utils';
+import { useAnalytics } from '../hooks/useAnalytics';
 
 interface ProjectTimeShare {
   project_id: string;
@@ -24,101 +26,230 @@ interface PieSlice {
   percentage: number;
 }
 
-const EMPTY_COLOR = '#475569';
+const EMPTY_RING_COLOR = '#1E232D';
 
 interface PieTooltipProps {
   active?: boolean;
   payload?: { payload: PieSlice }[];
 }
 
-function PieTooltip({ active, payload }: PieTooltipProps) {
+function PieTooltip({ active, payload }: Readonly<PieTooltipProps>) {
   if (!active || !payload || payload.length === 0) return null;
 
   const slice = payload[0].payload;
 
   return (
-    <div className="rounded-lg border border-slate-200/10 bg-slate-900 px-3 py-2 text-xs whitespace-nowrap text-white shadow-lg">
-      <p className="font-semibold">{slice.name}</p>
-      <p className="text-blue-200/70">
-        {slice.percentage.toFixed(1)}% · {formatSecondsToString(slice.seconds)}
+    <div className="surface-elevated rounded-xl px-3 py-2 text-xs whitespace-nowrap shadow-xl">
+      <div className="flex items-center gap-2">
+        <span
+          className="h-2 w-2 shrink-0 rounded-full"
+          style={{ backgroundColor: slice.color }}
+        />
+        <p className="font-semibold text-[#F4F5F7]">{slice.name}</p>
+      </div>
+      <p className="mt-1 font-mono tabular-nums text-[#9CA3B0]">
+        <span className="font-semibold text-amber-400">{slice.percentage.toFixed(1)}%</span> ·{' '}
+        {formatSecondsToString(slice.seconds)}
       </p>
     </div>
   );
 }
 
 export default function AnalyticProjectPie() {
-  const { data: shareData } = useQuery({
+  const { selectedProjects } = useAnalytics();
+  const [hoveredKey, setHoveredKey] = useState<string | null>(null);
+
+  const { data: shareData, isLoading } = useQuery({
     queryKey: ['analytics', 'projectTimeShare'],
     queryFn: () => invoke<ProjectTimeShareData>('get_analytics_project_time_share'),
   });
 
-  const { slices, hasData } = useMemo(() => {
+  const { slices, totalSeconds, hasData } = useMemo(() => {
     const entries = shareData?.entries ?? [];
-    const totalSeconds = shareData?.total_seconds ?? 0;
+    const total = shareData?.total_seconds ?? 0;
 
-    if (entries.length === 0) {
-      return { slices: [], hasData: false };
+    const nonEmptyEntries = entries.filter((entry) => entry.total_seconds > 0);
+    if (nonEmptyEntries.length === 0 || total <= 0) {
+      return { slices: [], totalSeconds: 0, hasData: false };
     }
 
+    const sorted = [...nonEmptyEntries].sort((a, b) => b.total_seconds - a.total_seconds);
+
     return {
+      totalSeconds: total,
       hasData: true,
-      slices: entries.map((entry) => ({
+      slices: sorted.map((entry) => ({
         key: entry.project_id,
         name: entry.name,
         color: entry.color,
         seconds: entry.total_seconds,
-        percentage: totalSeconds > 0 ? (entry.total_seconds / totalSeconds) * 100 : 0,
+        percentage: (entry.total_seconds / total) * 100,
       })),
     };
   }, [shareData]);
+
+  if (isLoading) {
+    return (
+      <div className="surface-card flex h-full flex-col justify-between rounded-2xl p-6">
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-36" />
+            <Skeleton className="h-3 w-44" />
+          </div>
+          <Skeleton className="h-6 w-20 rounded-lg" />
+        </div>
+        <div className="mt-5 flex flex-col items-center gap-6 sm:flex-row">
+          <Skeleton className="h-44 w-44 shrink-0 rounded-full" />
+          <div className="w-full flex-1 space-y-3">
+            <Skeleton className="h-7 w-full rounded-lg" />
+            <Skeleton className="h-7 w-full rounded-lg" />
+            <Skeleton className="h-7 w-4/5 rounded-lg" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const noProjectsSelected = selectedProjects.length === 0;
+  const emptyTitle = noProjectsSelected ? 'No projects selected' : 'No focus time recorded yet';
+  const emptySubtitle = noProjectsSelected
+    ? 'Choose one or more projects from the scope selector above.'
+    : 'Start a focus session to see how your time is distributed.';
 
   const chartData: PieSlice[] = hasData
     ? slices
     : [
         {
           key: 'empty',
-          name: 'No projects selected',
-          color: EMPTY_COLOR,
+          name: emptyTitle,
+          color: EMPTY_RING_COLOR,
           seconds: 1,
           percentage: 0,
         },
       ];
 
+  const activeSlice = hoveredKey ? slices.find((s) => s.key === hoveredKey) : undefined;
+
   return (
-    <div className="flex h-full flex-col rounded-2xl border border-slate-200/10 bg-slate-200/5 p-6">
-      <div>
-        <h3 className="text-sm font-semibold tracking-wider text-blue-200 uppercase">
-          Time per Project
-        </h3>
-        <p className="mt-1 text-xs text-blue-200/70">
-          {hasData
-            ? `${slices.length} project${slices.length === 1 ? '' : 's'} · ${formatSecondsToString(shareData?.total_seconds ?? 0)} total`
-            : 'No projects selected'}
-        </p>
+    <div className="surface-card flex h-full flex-col rounded-2xl p-6">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h3 className="text-sm font-semibold tracking-tight text-[#F4F5F7]">
+            Project Distribution
+          </h3>
+          <p className="mt-1 text-xs text-[#646C7A]">
+            {hasData
+              ? `Across ${slices.length} active project${slices.length === 1 ? '' : 's'}`
+              : emptyTitle}
+          </p>
+        </div>
+
+        <span className="shrink-0 rounded-lg border border-white/[0.08] bg-[#0F1116] px-2.5 py-1 font-mono text-xs font-semibold tabular-nums text-[#F4F5F7]">
+          {formatSecondsToString(totalSeconds)}
+        </span>
       </div>
 
-      <div className="mt-4 h-56 w-full">
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <Pie
-              data={chartData}
-              dataKey="seconds"
-              nameKey="name"
-              cx="50%"
-              cy="50%"
-              innerRadius="55%"
-              outerRadius="85%"
-              paddingAngle={hasData ? 1 : 0}
-              stroke="none"
-              isAnimationActive={false}
-            >
-              {chartData.map((slice) => (
-                <Cell key={slice.key} fill={slice.color} />
-              ))}
-            </Pie>
-            <Tooltip cursor={false} content={<PieTooltip />} />
-          </PieChart>
-        </ResponsiveContainer>
+      <div className="mt-5 flex flex-1 flex-col items-center gap-6 sm:flex-row">
+        {/* Donut chart with centered readout */}
+        <div className="relative h-48 w-48 shrink-0">
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie
+                data={chartData}
+                dataKey="seconds"
+                nameKey="name"
+                cx="50%"
+                cy="50%"
+                innerRadius="64%"
+                outerRadius="90%"
+                paddingAngle={hasData && slices.length > 1 ? 2 : 0}
+                cornerRadius={hasData ? 4 : 0}
+                stroke="none"
+                isAnimationActive={false}
+                onMouseEnter={(_, index) => {
+                  if (hasData && chartData[index]) {
+                    setHoveredKey(chartData[index].key);
+                  }
+                }}
+                onMouseLeave={() => setHoveredKey(null)}
+              >
+                {chartData.map((slice) => {
+                  const isDimmed = hasData && hoveredKey !== null && hoveredKey !== slice.key;
+                  return (
+                    <Cell
+                      key={slice.key}
+                      fill={slice.color}
+                      fillOpacity={isDimmed ? 0.3 : 1}
+                      style={{ transition: 'fill-opacity 150ms ease' }}
+                    />
+                  );
+                })}
+              </Pie>
+              {hasData && <Tooltip cursor={false} content={<PieTooltip />} />}
+            </PieChart>
+          </ResponsiveContainer>
+
+          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-5 text-center">
+            {hasData ? (
+              <>
+                <span className="font-mono text-lg font-semibold tracking-tight tabular-nums text-[#F4F5F7]">
+                  {activeSlice
+                    ? formatSecondsToString(activeSlice.seconds)
+                    : formatSecondsToString(totalSeconds)}
+                </span>
+                <span className="mt-0.5 max-w-full truncate text-[11px] text-[#646C7A]">
+                  {activeSlice ? activeSlice.name : 'Total focus'}
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="font-mono text-lg font-semibold tabular-nums text-[#646C7A]">
+                  0m
+                </span>
+                <span className="mt-0.5 text-[11px] text-[#646C7A]">No data</span>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Interactive Legend / Empty state copy */}
+        {hasData ? (
+          <div className="max-h-48 w-full flex-1 space-y-1 overflow-y-auto pr-1">
+            {slices.map((slice) => {
+              const isHighlighted = hoveredKey === slice.key;
+              return (
+                <div
+                  key={slice.key}
+                  onMouseEnter={() => setHoveredKey(slice.key)}
+                  onMouseLeave={() => setHoveredKey(null)}
+                  className={cn(
+                    'flex items-center gap-2.5 rounded-xl px-2.5 py-2 transition-colors',
+                    isHighlighted ? 'bg-white/[0.06]' : 'hover:bg-white/[0.04]',
+                  )}
+                >
+                  <span
+                    className="h-2.5 w-2.5 shrink-0 rounded-full"
+                    style={{ backgroundColor: slice.color }}
+                  />
+                  <span className="min-w-0 flex-1 truncate text-xs font-medium text-[#F4F5F7]">
+                    {slice.name}
+                  </span>
+                  <span className="shrink-0 font-mono text-xs tabular-nums text-[#646C7A]">
+                    {slice.percentage.toFixed(0)}%
+                  </span>
+                  <span className="w-14 shrink-0 text-right font-mono text-xs font-medium tabular-nums text-[#D0D5DE]">
+                    {formatSecondsToString(slice.seconds)}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="flex flex-1 flex-col items-start justify-center rounded-xl border border-white/[0.05] bg-[#0F1116]/70 p-4 text-left">
+            <p className="text-sm font-medium text-[#D0D5DE]">{emptyTitle}</p>
+            <p className="mt-1 text-xs leading-relaxed text-[#646C7A]">{emptySubtitle}</p>
+          </div>
+        )}
       </div>
     </div>
   );
